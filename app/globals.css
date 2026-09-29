@@ -1,0 +1,1237 @@
+/* =============================================================
+   NBAStats — "Dark Command Center" (átvéve az ASEStatsből)
+   app/globals.css
+   Tailwind CSS 4 + shadcn/ui (New York) override layer
+   ============================================================= */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* -------------------------------------------------------------
+   1) NYERS DESIGN TOKENEK  (Single Source of Truth)
+   ------------------------------------------------------------- */
+:root {
+  /* Surface skála */
+  --bg-base:        #050B14;
+  --bg-surface-1:   #0A1628;
+  --bg-surface-2:   #0F1F3D;
+  --bg-surface-3:   #162440;
+
+  /* Accentek */
+  --accent-cyan:     #00D4FF;
+  --accent-cyan-dim: #0096B8;
+  --accent-orange:   #FF6B35;
+  --accent-orange-dim: #B84A22;
+  --accent-ai:       #7C3AED;
+  --accent-ai-dim:   #5B21B6;
+
+  /* Tipográfia szín-skála */
+  --text-primary:   #E8F4FF;
+  --text-secondary: #7A9ABB;
+  --text-muted:     #4A6D95;
+
+  /* Szemantikus jelzések */
+  --positive:  #10D98A;
+  --negative:  #FF4757;
+  --warning:   #FFB627;
+
+  /* Vonalak / rács (solid, nem rgba!) */
+  --border-subtle: #0F2040;
+  --border-active: #1E3A5F;
+  --border-strong: #2A4A75;
+
+  /* Glow-k (rgba a box-shadow / drop-shadow használathoz) */
+  --glow-cyan:       rgba(0, 212, 255, 0.15);
+  --glow-cyan-hot:   rgba(0, 212, 255, 0.45);
+  --glow-orange:     rgba(255, 107, 53, 0.15);
+  --glow-orange-hot: rgba(255, 107, 53, 0.45);
+  --glow-ai:         rgba(124, 58, 237, 0.18);
+  --glow-positive:   rgba(16, 217, 138, 0.18);
+  --glow-negative:   rgba(255, 71, 87, 0.18);
+
+  /* Tipográfia változók — layout.tsx-ben Google Fonts-tal felülírjuk */
+  --font-display: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
+  --font-body:    "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Sűrűség */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  /* Easings */
+  --ease-snap:  cubic-bezier(.2, .8, .2, 1);
+  --ease-glide: cubic-bezier(.4, 0, .2, 1);
+}
+
+/* -------------------------------------------------------------
+   2) @theme — Tailwind 4 utility-k generálása a tokenekből
+      Használható: bg-base, text-cyan, border-subtle, stb.
+   ------------------------------------------------------------- */
+@theme inline {
+  /* Felszín-skála → bg-base, bg-surface-1, … */
+  --color-base:      var(--bg-base);
+  --color-surface-1: var(--bg-surface-1);
+  --color-surface-2: var(--bg-surface-2);
+  --color-surface-3: var(--bg-surface-3);
+
+  /* Accentek → text-cyan, bg-cyan, border-cyan, … */
+  --color-cyan:        var(--accent-cyan);
+  --color-cyan-dim:    var(--accent-cyan-dim);
+  --color-orange:      var(--accent-orange);
+  --color-orange-dim:  var(--accent-orange-dim);
+  --color-ai:          var(--accent-ai);
+  --color-ai-dim:      var(--accent-ai-dim);
+
+  /* Szöveg → text-primary (#E8F4FF), text-secondary, text-muted */
+  --color-primary:   var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted:     var(--text-muted);
+
+  /* Szemantikus */
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning:  var(--warning);
+
+  /* Vonalak → border-border-subtle, border-border-active, … */
+  --color-border-subtle: var(--border-subtle);
+  --color-border-active: var(--border-active);
+  --color-border-strong: var(--border-strong);
+
+  /* shadcn popover → bg-popover (Select, Tooltip, Dropdown legördülő háttér) */
+  --color-popover:            var(--bg-surface-2);
+  --color-popover-foreground: var(--text-primary);
+
+  /* Font utility-k → font-display, font-sans (body), font-mono */
+  --font-display: var(--font-display);
+  --font-sans:    var(--font-body);
+  --font-mono:    var(--font-mono);
+
+  /* Shadow / glow utility-k → shadow-glow-cyan, shadow-panel, … */
+  --shadow-glow-cyan:     0 0 20px var(--glow-cyan);
+  --shadow-glow-cyan-hot: 0 0 32px var(--glow-cyan-hot);
+  --shadow-glow-orange:   0 0 20px var(--glow-orange);
+  --shadow-glow-orange-hot: 0 0 32px var(--glow-orange-hot);
+  --shadow-glow-ai:       0 0 24px var(--glow-ai);
+  --shadow-glow-positive: 0 0 20px var(--glow-positive);
+  --shadow-glow-negative: 0 0 20px var(--glow-negative);
+  --shadow-panel:         0 1px 0 0 rgba(255,255,255,.03) inset,
+                          0 24px 60px -28px rgba(0,0,0,.8);
+
+  /* Animáció utility-k — Tailwind 4 ezekből generál animate-* utility-t */
+  --animate-count-up:      count-up 1.2s var(--ease-snap) both;
+  --animate-fade-slide-up: fade-slide-up 400ms var(--ease-snap) both;
+  --animate-pulse-glow:    pulse-glow 1.8s ease-in-out infinite;
+  --animate-shimmer:       shimmer 1.6s linear infinite;
+  --animate-scan:          scan 3s linear infinite;
+  --animate-blink:         blink 1.1s steps(2, end) infinite;
+  --animate-trend-in:      trend-in 480ms var(--ease-snap) 280ms both;
+}
+
+/* -------------------------------------------------------------
+   3) SHADCN/UI VARIABLE OVERRIDE-OK
+   A shadcn default változókat átírjuk a Dark Command Center
+   palettára, így Button / Card / Badge / Input / Tabs azonnal
+   helyes stílust kap.
+   ------------------------------------------------------------- */
+:root {
+  --background:        var(--bg-base);
+  --foreground:        var(--text-primary);
+
+  --card:              var(--bg-surface-1);
+  --card-foreground:   var(--text-primary);
+
+  --popover:           var(--bg-surface-2);
+  --popover-foreground:var(--text-primary);
+
+  --primary:           var(--accent-cyan);
+  --primary-foreground:var(--bg-base);
+
+  --secondary:         var(--bg-surface-2);
+  --secondary-foreground: var(--text-primary);
+
+  --muted:             var(--bg-surface-2);
+  --muted-foreground:  var(--text-secondary);
+
+  --accent:            var(--bg-surface-3);
+  --accent-foreground: var(--text-primary);
+
+  --destructive:            var(--negative);
+  --destructive-foreground: var(--text-primary);
+
+  --border: var(--border-subtle);
+  --input:  var(--bg-surface-2);
+  --ring:   var(--accent-cyan);
+
+  --chart-1: var(--accent-cyan);
+  --chart-2: var(--accent-orange);
+  --chart-3: var(--positive);
+  --chart-4: var(--accent-ai);
+  --chart-5: var(--warning);
+
+  --radius: var(--radius-md);
+}
+
+/* -------------------------------------------------------------
+   4) BASE — reset + pont-rács háttér
+   ------------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+  html, body {
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0, 212, 255, 0.045) 1px, transparent 0),
+      radial-gradient(1200px 600px at 20% -10%, rgba(0,212,255,.05), transparent 60%),
+      radial-gradient(900px 500px at 95% 110%, rgba(255,107,53,.04), transparent 60%);
+    background-size: 24px 24px, 100% 100%, 100% 100%;
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+  h1 { font-weight: 600; font-size: clamp(2rem, 4vw, 3rem); line-height: 1; }
+  h2 { font-weight: 600; font-size: 1.75rem; line-height: 1.05; }
+  h3 { font-weight: 600; font-size: 1.25rem; line-height: 1.1; }
+
+  .stat, [data-stat] {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "zero";
+    letter-spacing: -0.02em;
+  }
+
+  .label, [data-label], .uppercase-label {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  ::selection {
+    background: var(--accent-cyan);
+    color: var(--bg-base);
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-surface-1); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-active);
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan-dim); }
+}
+
+/* -------------------------------------------------------------
+   5) SHADCN KOMPONENS OVERRIDE-OK (data-slot szelektorok)
+   ------------------------------------------------------------- */
+
+/* Card */
+[data-slot="card"] {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  transition: background 200ms var(--ease-snap),
+              border-color 200ms var(--ease-snap),
+              box-shadow 200ms var(--ease-snap);
+}
+[data-slot="card"]:hover {
+  background: var(--bg-surface-2);
+  border-color: var(--border-active);
+}
+
+/* Button — primary / secondary / ghost */
+[data-slot="button"][data-variant="default"] {
+  background: var(--accent-cyan);
+  color: var(--bg-base);
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 160ms var(--ease-snap);
+}
+[data-slot="button"][data-variant="default"]:hover {
+  box-shadow: 0 0 24px var(--glow-cyan-hot);
+  filter: brightness(1.08);
+}
+[data-slot="button"][data-variant="secondary"] {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-active);
+}
+[data-slot="button"][data-variant="secondary"]:hover {
+  background: var(--bg-surface-3);
+  border-color: var(--accent-cyan-dim);
+}
+[data-slot="button"][data-variant="ghost"] {
+  background: transparent;
+  color: var(--text-secondary);
+}
+[data-slot="button"][data-variant="ghost"]:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+[data-slot="button"][data-variant="outline"] {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-active);
+}
+[data-slot="button"][data-variant="outline"]:hover {
+  background: var(--bg-surface-2);
+  border-color: var(--accent-cyan-dim);
+}
+[data-slot="button"][data-variant="destructive"] {
+  background: color-mix(in oklab, var(--negative) 18%, transparent);
+  color: var(--negative);
+  border: 1px solid color-mix(in oklab, var(--negative) 35%, transparent);
+}
+[data-slot="button"][data-variant="destructive"]:hover {
+  background: color-mix(in oklab, var(--negative) 28%, transparent);
+}
+[data-slot="button"][data-variant="link"] {
+  background: transparent;
+  color: var(--accent-cyan);
+}
+
+/* Badge */
+[data-slot="badge"] {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid transparent;
+}
+
+/* Input + Select + Textarea */
+[data-slot="input"],
+[data-slot="select-trigger"],
+[data-slot="textarea"] {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-active);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  transition: border-color 160ms var(--ease-snap),
+              box-shadow 160ms var(--ease-snap),
+              background 160ms var(--ease-snap);
+}
+[data-slot="input"],
+[data-slot="select-trigger"] {
+  font-family: var(--font-mono);
+}
+[data-slot="input"]:focus,
+[data-slot="select-trigger"]:focus,
+[data-slot="textarea"]:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-cyan) 18%, transparent);
+}
+[data-slot="input"]::placeholder,
+[data-slot="textarea"]::placeholder {
+  color: var(--text-muted);
+}
+
+/* Tabs */
+[data-slot="tabs-list"] {
+  display: inline-flex;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 2px;
+}
+[data-slot="tabs-trigger"] {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-sm);
+  transition: all 160ms var(--ease-snap);
+}
+[data-slot="tabs-trigger"][data-state="active"] {
+  background: var(--bg-surface-3);
+  color: var(--accent-cyan);
+  box-shadow: inset 0 -2px 0 0 var(--accent-cyan), 0 0 16px var(--glow-cyan);
+}
+
+/* -------------------------------------------------------------
+   6) BADGE VARIÁNSOK
+   ------------------------------------------------------------- */
+.badge-cyan    { background: color-mix(in oklab, var(--accent-cyan)  14%, transparent); color: var(--accent-cyan);  border-color: color-mix(in oklab, var(--accent-cyan)  30%, transparent); }
+.badge-orange  { background: color-mix(in oklab, var(--accent-orange)14%, transparent); color: var(--accent-orange);border-color: color-mix(in oklab, var(--accent-orange)30%, transparent); }
+.badge-ai      { background: color-mix(in oklab, var(--accent-ai)    16%, transparent); color: #C4B5FD;             border-color: color-mix(in oklab, var(--accent-ai)    40%, transparent); }
+.badge-positive{ background: color-mix(in oklab, var(--positive)     14%, transparent); color: var(--positive);     border-color: color-mix(in oklab, var(--positive)     30%, transparent); }
+.badge-negative{ background: color-mix(in oklab, var(--negative)     14%, transparent); color: var(--negative);     border-color: color-mix(in oklab, var(--negative)     30%, transparent); }
+.badge-warning { background: color-mix(in oklab, var(--warning)      14%, transparent); color: var(--warning);      border-color: color-mix(in oklab, var(--warning)      30%, transparent); }
+.badge-neutral { background: var(--bg-surface-2); color: var(--text-secondary); border-color: var(--border-active); }
+
+/* -------------------------------------------------------------
+   7) ANIMÁCIÓ KEYFRAME-EK
+   ------------------------------------------------------------- */
+@keyframes count-up {
+  0%   { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  60%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-slide-up {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes trend-in {
+  0%   { opacity: 0; transform: translateX(-4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow-cyan), 0 0 16px 0 var(--glow-cyan); }
+  50%       { box-shadow: 0 0 0 6px transparent, 0 0 32px 4px var(--glow-cyan-hot); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes scan {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+@keyframes blink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0.25; }
+}
+
+/* Animáció utility osztályok */
+.animate-count-up      { animation: count-up 1.2s var(--ease-snap) both; }
+.animate-fade-slide-up { animation: fade-slide-up 400ms var(--ease-snap) both; }
+.animate-trend-in      { animation: trend-in 480ms var(--ease-snap) 280ms both; }
+.animate-pulse-glow    { animation: pulse-glow 1.8s ease-in-out infinite; }
+.animate-blink         { animation: blink 1.1s steps(2, end) infinite; }
+.animate-scan          { animation: scan 3s linear infinite; }
+
+.stagger > *           { animation-delay: calc(var(--i, 0) * 60ms); }
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-surface-1);
+  border-radius: var(--radius-sm);
+}
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--bg-surface-2) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* -------------------------------------------------------------
+   8) UI UTILITY OSZTÁLYOK
+   ------------------------------------------------------------- */
+.grid-overlay {
+  background-image:
+    linear-gradient(to right, var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-subtle) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.dot-overlay {
+  background-image: radial-gradient(circle at 1px 1px, var(--border-active) 1px, transparent 0);
+  background-size: 16px 16px;
+}
+
+.shadow-glow-cyan      { box-shadow: 0 0 20px var(--glow-cyan); }
+.shadow-glow-cyan-hot  { box-shadow: 0 0 32px var(--glow-cyan-hot); }
+.shadow-glow-orange    { box-shadow: 0 0 20px var(--glow-orange); }
+.shadow-glow-orange-hot{ box-shadow: 0 0 32px var(--glow-orange-hot); }
+.shadow-glow-ai        { box-shadow: 0 0 24px var(--glow-ai); }
+.shadow-glow-positive  { box-shadow: 0 0 20px var(--glow-positive); }
+.shadow-glow-negative  { box-shadow: 0 0 20px var(--glow-negative); }
+.shadow-panel          { box-shadow: 0 1px 0 0 rgba(255,255,255,.03) inset, 0 24px 60px -28px rgba(0,0,0,.8); }
+
+.ai-marker {
+  position: relative;
+}
+.ai-marker::before {
+  content: "";
+  position: absolute; left: 0; top: 10%; bottom: 10%;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, var(--accent-ai), transparent);
+  box-shadow: 0 0 12px var(--glow-ai);
+}
+
+.live-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  background: var(--negative);
+  animation: pulse-glow 1.6s ease-in-out infinite;
+}
+
+.bar-track {
+  position: relative;
+  height: 6px;
+  background: var(--bg-surface-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bar-fill {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--accent-cyan-dim), var(--accent-cyan));
+  box-shadow: 0 0 12px var(--glow-cyan);
+  border-radius: 999px;
+}
+
+.hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-active), transparent);
+}
+
+/* Terminal-style input */
+.cmd-input {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-active);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  transition: border-color 160ms var(--ease-snap), box-shadow 160ms var(--ease-snap);
+}
+.cmd-input:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent-cyan) 18%, transparent);
+}
+.cmd-input::placeholder { color: var(--text-muted); }
+
+/* -------------------------------------------------------------
+   9) DATATABLE CSS RÉTEG
+   ------------------------------------------------------------- */
+
+/* Külső wrapper */
+.dt-shell {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Görgethető konténer */
+.dt-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-active) transparent;
+}
+.dt-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+.dt-scroll::-webkit-scrollbar-track { background: var(--bg-surface-1); }
+.dt-scroll::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
+
+/* A tábla */
+.dt-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-family: var(--font-body);
+}
+
+/* Fejléc sor */
+.dt-table thead tr {
+  background: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border-active);
+}
+
+/* Header cella */
+.dt-th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 14px;
+  text-align: left;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+}
+.dt-th[data-num="true"]      { text-align: right; font-family: var(--font-mono); letter-spacing: 0.04em; }
+.dt-th[data-center="true"]   { text-align: center; }
+.dt-th[data-sortable="true"] { cursor: pointer; transition: color 140ms var(--ease-snap); }
+.dt-th[data-sortable="true"]:hover { color: var(--text-secondary); }
+.dt-th[data-sorted]          { color: var(--accent-cyan); }
+
+/* Sort indikátor */
+.dt-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dt-th[data-num="true"] .dt-sort { flex-direction: row-reverse; }
+.dt-sort-icon {
+  width: 12px;
+  height: 12px;
+  transition: transform 220ms var(--ease-snap), opacity 140ms var(--ease-snap);
+  opacity: 0.35;
+  flex-shrink: 0;
+}
+.dt-th[data-sorted] .dt-sort-icon          { opacity: 1; color: var(--accent-cyan); }
+.dt-th[data-sorted="desc"] .dt-sort-icon   { transform: rotate(180deg); }
+
+/* Body sorok */
+.dt-table tbody tr {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 150ms var(--ease-snap), box-shadow 150ms var(--ease-snap);
+}
+.dt-table tbody tr:last-child { border-bottom: none; }
+.dt-table tbody tr:hover {
+  background: var(--bg-surface-2);
+  box-shadow: inset 2px 0 0 0 var(--accent-cyan);
+}
+.dt-table tbody tr[data-active="true"] {
+  background: var(--bg-surface-2);
+  box-shadow: inset 2px 0 0 0 var(--accent-cyan), 0 0 24px -4px var(--glow-cyan);
+}
+
+/* Adatcella */
+.dt-td {
+  padding: 14px;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Numerikus cella variánsok */
+.dt-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "zero";
+  text-align: right;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.dt-num--muted  { color: var(--text-secondary); }
+.dt-num--strong { color: var(--accent-cyan); font-weight: 600; }
+.dt-num--pos    { color: var(--positive); }
+.dt-num--neg    { color: var(--negative); }
+
+/* Rank / index cella */
+.dt-rank {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  width: 44px;
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* Játékos cella */
+.dt-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.dt-player-avatar {
+  width: 30px; height: 30px;
+  border-radius: 999px;
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-active);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+.dt-player-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  transition: color 140ms var(--ease-snap);
+}
+.dt-player-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+.dt-player-meta {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+
+/* Csapat cella */
+.dt-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.dt-team-logo {
+  width: 26px; height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-active);
+  background: var(--bg-surface-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+.dt-team-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+/* Badge pill (táblán belül) */
+.dt-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.66rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  min-width: 28px;
+}
+.dt-badge--win     { background: color-mix(in oklab, var(--positive)      14%, transparent); color: var(--positive);      border-color: color-mix(in oklab, var(--positive)      36%, transparent); }
+.dt-badge--loss    { background: color-mix(in oklab, var(--negative)      14%, transparent); color: var(--negative);      border-color: color-mix(in oklab, var(--negative)      36%, transparent); }
+.dt-badge--pg      { background: color-mix(in oklab, var(--accent-cyan)   14%, transparent); color: var(--accent-cyan);   border-color: color-mix(in oklab, var(--accent-cyan)   36%, transparent); }
+.dt-badge--sg      { background: color-mix(in oklab, #38BDF8              16%, transparent); color: #7DD3FC;              border-color: color-mix(in oklab, #38BDF8              36%, transparent); }
+.dt-badge--sf      { background: color-mix(in oklab, var(--warning)       14%, transparent); color: var(--warning);       border-color: color-mix(in oklab, var(--warning)       36%, transparent); }
+.dt-badge--pf      { background: color-mix(in oklab, var(--accent-orange) 14%, transparent); color: var(--accent-orange); border-color: color-mix(in oklab, var(--accent-orange) 36%, transparent); }
+.dt-badge--c       { background: color-mix(in oklab, var(--accent-ai)     18%, transparent); color: #C4B5FD;              border-color: color-mix(in oklab, var(--accent-ai)     42%, transparent); }
+.dt-badge--neutral { background: var(--bg-surface-2); color: var(--text-secondary); border-color: var(--border-active); }
+
+/* Trend chip */
+.dt-trend {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.dt-trend--up   { color: var(--positive); }
+.dt-trend--down { color: var(--negative); }
+.dt-trend--flat { color: var(--text-muted); }
+
+/* Mini bar (pl. shooting %) */
+.dt-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 160px;
+}
+.dt-bar-track {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-surface-3);
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 60px;
+}
+.dt-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan-dim), var(--accent-cyan));
+  border-radius: 999px;
+}
+.dt-bar-fill--orange { background: linear-gradient(90deg, var(--accent-orange-dim), var(--accent-orange)); }
+.dt-bar-val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  min-width: 38px;
+  text-align: right;
+}
+
+/* Streak vizualizáció */
+.dt-streak {
+  display: inline-flex;
+  gap: 3px;
+}
+.dt-streak-dot {
+  width: 6px; height: 14px;
+  border-radius: 1px;
+  background: var(--bg-surface-3);
+}
+.dt-streak-dot--w { background: var(--positive); box-shadow: 0 0 6px var(--glow-positive); }
+.dt-streak-dot--l { background: var(--negative); box-shadow: 0 0 6px var(--glow-negative); }
+
+/* Footer / pager */
+.dt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface-1);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+.dt-foot-pager { display: inline-flex; align-items: center; gap: 4px; }
+.dt-foot-btn {
+  background: transparent;
+  border: 1px solid var(--border-active);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 140ms var(--ease-snap);
+}
+.dt-foot-btn:hover { color: var(--accent-cyan); border-color: var(--accent-cyan-dim); }
+.dt-foot-btn[data-active="true"] {
+  background: color-mix(in oklab, var(--accent-cyan) 14%, transparent);
+  color: var(--accent-cyan);
+  border-color: color-mix(in oklab, var(--accent-cyan) 40%, transparent);
+}
+
+/* -------------------------------------------------------------
+   10) RECHARTS DARK OVERRIDE
+   ------------------------------------------------------------- */
+.recharts-tooltip-cursor {
+  fill: rgba(71, 85, 105, 0.28) !important;
+}
+.recharts-tooltip-cursor[stroke] {
+  stroke: rgba(148, 163, 184, 0.35) !important;
+}
+
+/* -------------------------------------------------------------
+   11) SIDEBAR / APPSHELL
+   AppSidebar.tsx + AppTopbar.tsx komponensekhez.
+   Layout-konstansok (nem design token, komponens-lokális méret).
+   ------------------------------------------------------------- */
+:root {
+  --sb-w-expanded: 240px;
+  --sb-w-collapsed: 64px;
+  --sb-transition: 220ms cubic-bezier(.4, 0, .2, 1);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sb-w-expanded) 1fr;
+  min-height: 100vh;
+}
+.app-shell.is-collapsed {
+  grid-template-columns: var(--sb-w-collapsed) 1fr;
+}
+/* A tartalom grid-cella alapból a benne lévő legszélesebb elem (pl. fix-szélességű
+   play-by-play táblázat) min-content méretére hízik, ami az egész oldalt szélesebbre
+   nyomja a viewportnál. min-width: 0 engedi, hogy a cella a track méretére zsugorodjon,
+   a belső overflow-x-auto konténerek pedig ténylegesen görgessenek túlcsordulás helyett. */
+.app-shell > main {
+  min-width: 0;
+}
+/* A CSS Grid tovább örökli ugyanezt a hibát minden beágyazott `grid grid-cols-*`
+   elrendezésnél (a Grid specifikáció mindkét tengelyen tartalom-alapú minimumot ad
+   az elemeknek, nem csak flexnél a fő tengelyen) – az Elemzések oldalon egy chart
+   (ResponsiveContainer) vagy fix-szélességű táblázat egy grid-cellában így az egész
+   sort, majd az egész oldalt szélesebbre nyomta a viewportnál, sidebar-állapottól
+   függetlenül. A grid itt mindenhol elrendezésre, nem tartalom-alapú méretezésre
+   szolgál, ezért globálisan engedjük a zsugorodást; a belső overflow-x-auto
+   konténerek kezelik a tényleges görgetést. */
+.grid > * {
+  min-width: 0;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: var(--bg-surface-1);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--sb-transition);
+  z-index: 40;
+}
+
+.sb-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+  overflow: hidden;
+}
+.sb-logo {
+  width: 28px; height: 28px;
+  flex: 0 0 28px;
+  border-radius: var(--radius-sm);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(0, 212, 255, .22), transparent 60%),
+    var(--bg-surface-3);
+  border: 1px solid var(--border-active);
+  display: grid; place-items: center;
+}
+.sb-logo svg { color: var(--accent-cyan); filter: drop-shadow(0 0 6px var(--glow-cyan-hot)); }
+
+.sb-brand {
+  display: flex; flex-direction: column;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 160ms var(--ease-glide);
+}
+.sb-brand .sb-wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+.sb-brand .sb-sub {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.sb-toggle {
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  transform: translateY(-50%);
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-active);
+  color: var(--text-secondary);
+  display: grid; place-items: center;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 160ms var(--ease-snap);
+}
+.sb-toggle:hover {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan-dim);
+  box-shadow: 0 0 16px var(--glow-cyan);
+}
+.sb-toggle svg { transition: transform var(--sb-transition); }
+.sidebar[data-collapsed="true"] .sb-toggle svg { transform: rotate(180deg); }
+
+.sb-nav {
+  flex: 1;
+  padding: 14px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex; flex-direction: column;
+  gap: 18px;
+}
+
+.sb-group { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+.sb-group-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding: 4px 10px 8px;
+  white-space: nowrap;
+  transition: opacity 120ms var(--ease-glide);
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 150ms var(--ease-glide), color 150ms var(--ease-glide);
+}
+.nav-item:hover {
+  background: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+.nav-item .nav-item-icon {
+  width: 20px; height: 20px;
+  flex: 0 0 20px;
+  display: grid; place-items: center;
+  color: inherit;
+}
+.nav-item .nav-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  opacity: 1;
+  transition: opacity 120ms var(--ease-glide);
+}
+.nav-item .nav-item-meta {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-xs);
+}
+
+.nav-item.active {
+  background: var(--bg-surface-1);
+  color: var(--text-primary);
+  box-shadow: inset 3px 0 0 0 var(--accent-cyan);
+}
+.nav-item.active .nav-item-icon { color: var(--accent-cyan); }
+
+/* AI tónus — csak az adott nav-itemre (pl. Elemzések), nem csoport-szinten */
+.nav-item[data-tone="ai"].active {
+  box-shadow: inset 3px 0 0 0 var(--accent-ai);
+}
+.nav-item[data-tone="ai"].active .nav-item-icon {
+  color: #C4B5FD;
+  filter: drop-shadow(0 0 10px var(--glow-ai));
+}
+/* Negatív tónus — Törlés */
+.nav-item[data-tone="negative"] { color: var(--negative); }
+.nav-item[data-tone="negative"].active {
+  box-shadow: inset 3px 0 0 0 var(--negative);
+}
+.nav-item[data-tone="negative"].active .nav-item-icon { color: var(--negative); }
+
+/* COLLAPSED MÓD */
+.sidebar[data-collapsed="true"] {
+  width: var(--sb-w-collapsed);
+}
+.sidebar[data-collapsed="true"] .sb-brand,
+.sidebar[data-collapsed="true"] .sb-group-label,
+.sidebar[data-collapsed="true"] .nav-item-label,
+.sidebar[data-collapsed="true"] .nav-item-meta {
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebar[data-collapsed="true"] .sb-header { padding: 0; justify-content: center; }
+.sidebar[data-collapsed="true"] .sb-group { padding: 0 10px; }
+.sidebar[data-collapsed="true"] .sb-group-label { height: 0; padding: 0; overflow: hidden; }
+.sidebar[data-collapsed="true"] .nav-item {
+  justify-content: center;
+  padding: 0;
+  width: 44px;
+  margin: 0 auto;
+}
+.sidebar[data-collapsed="true"] .nav-item.active {
+  box-shadow: none;
+  background: var(--bg-surface-2);
+  border: 1px solid color-mix(in oklab, var(--accent-cyan) 35%, transparent);
+}
+.sidebar[data-collapsed="true"] .nav-item.active .nav-item-icon {
+  filter: drop-shadow(0 0 10px var(--glow-cyan-hot));
+}
+.sidebar[data-collapsed="true"] .nav-item[data-tone="ai"].active {
+  border-color: color-mix(in oklab, var(--accent-ai) 45%, transparent);
+}
+.sidebar[data-collapsed="true"] .nav-item[data-tone="negative"].active {
+  border-color: color-mix(in oklab, var(--negative) 45%, transparent);
+}
+
+/* Tooltip — csak collapsed módban, hoverre */
+.nav-item .nav-item-tip {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-active);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-glide), transform 120ms var(--ease-glide);
+  z-index: 60;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+  display: none;
+}
+.nav-item .nav-item-tip::before {
+  content: "";
+  position: absolute;
+  left: -5px; top: 50%; transform: translateY(-50%) rotate(45deg);
+  width: 8px; height: 8px;
+  background: var(--bg-surface-3);
+  border-left: 1px solid var(--border-active);
+  border-bottom: 1px solid var(--border-active);
+}
+.sidebar[data-collapsed="true"] .nav-item .nav-item-tip { display: block; }
+.sidebar[data-collapsed="true"] .nav-item:hover .nav-item-tip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.sb-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px;
+  display: flex; align-items: center; gap: 10px;
+  overflow: hidden;
+}
+.sb-avatar {
+  width: 32px; height: 32px; flex: 0 0 32px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-cyan-dim), var(--accent-ai));
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--bg-base);
+  letter-spacing: 0.04em;
+  position: relative;
+}
+.sb-avatar::after {
+  content: "";
+  position: absolute; right: -1px; bottom: -1px;
+  width: 9px; height: 9px; border-radius: 999px;
+  background: var(--positive);
+  border: 2px solid var(--bg-surface-1);
+}
+.sb-user {
+  display: flex; flex-direction: column;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 120ms var(--ease-glide);
+}
+.sb-user .sb-user-email {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-overflow: ellipsis; overflow: hidden;
+}
+.sb-user .sb-user-role {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.sidebar[data-collapsed="true"] .sb-footer { justify-content: center; padding: 12px 0; }
+.sidebar[data-collapsed="true"] .sb-user { opacity: 0; pointer-events: none; width: 0; }
+
+/* MOBIL — alsó fix navsáv (<768px) */
+@media (max-width: 768px) {
+  .app-shell, .app-shell.is-collapsed { grid-template-columns: 1fr; }
+  .sidebar,
+  .sidebar[data-collapsed="true"] {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    top: auto; height: auto; width: 100%;
+    border-right: 0;
+    border-top: 1px solid var(--border-active);
+    background: var(--bg-surface-1);
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, .5);
+    flex-direction: row;
+  }
+  .sb-header, .sb-footer, .sb-toggle, .sb-group-label { display: none; }
+  .sb-nav {
+    flex-direction: row;
+    flex: 1;
+    padding: 8px 6px;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .sb-group { flex-direction: row; padding: 0; gap: 0; }
+  .sb-group + .sb-group::before {
+    content: "";
+    width: 1px;
+    background: var(--border-subtle);
+    margin: 8px 4px;
+    align-self: stretch;
+  }
+  .nav-item {
+    flex-direction: column;
+    height: auto;
+    width: 56px;
+    padding: 6px 4px;
+    gap: 4px;
+  }
+  .nav-item .nav-item-label {
+    font-size: 0.62rem;
+    text-align: center;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    letter-spacing: 0.02em;
+  }
+  .nav-item .nav-item-tip,
+  .nav-item .nav-item-meta { display: none !important; }
+  .nav-item.active { background: var(--bg-surface-2); box-shadow: none; }
+  .nav-item.active::after {
+    content: "";
+    position: absolute;
+    top: -8px; left: 50%; transform: translateX(-50%);
+    width: 24px; height: 3px;
+    background: var(--accent-cyan);
+    border-radius: 0 0 3px 3px;
+    box-shadow: 0 0 12px var(--glow-cyan-hot);
+  }
+  .nav-item[data-tone="ai"].active::after { background: var(--accent-ai); box-shadow: 0 0 12px var(--glow-ai); }
+  .nav-item[data-tone="negative"].active::after { background: var(--negative); box-shadow: 0 0 12px var(--glow-negative); }
+}
+
+.nav-item:focus-visible, .sb-toggle:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}

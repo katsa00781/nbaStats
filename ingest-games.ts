@@ -1,0 +1,100 @@
+// NBA meccs-import az ESPN site API-ból (box score + dobás-események).
+//
+// Használat:
+//   npx tsx ingest-games.ts --date 2025-03-01 --dry-run   # DB nélkül, csak validál és kiír
+//   npx tsx ingest-games.ts --date 2025-03-01             # írás Supabase-be (service role)
+//
+// Csak a lezárt (final) meccseket dolgozza fel. A dátum amerikai keleti parti nap.
+
+import * as dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+import { fetchScoreboard, fetchSummary } from '@/lib/espn/client';
+import { parseScoreboard, parseSummary } from '@/lib/espn/schemas';
+import { mapSummary, type StagedGame } from '@/lib/espn/map-boxscore';
+import { writeGame } from '@/lib/espn/write-game';
+
+interface CliArgs {
+  date: string;
+  dryRun: boolean;
+}
+
+function parseArgs(argv: string[]): CliArgs {
+  const dateIndex = argv.indexOf('--date');
+  const date = dateIndex >= 0 ? argv[dateIndex + 1] : undefined;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    console.error('Használat: npx tsx ingest-games.ts --date YYYY-MM-DD [--dry-run]');
+    process.exit(1);
+  }
+  return { date, dryRun: argv.includes('--dry-run') };
+}
+
+function createScriptClient() {
+  dotenv.config({ path: '.env.local' });
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error('Hiányzó env (.env.local): NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.');
+    process.exit(1);
+  }
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+function printSummary(staged: StagedGame): void {
+  const { game, teams } = staged;
+  const byId = new Map(teams.map(t => [t.espn_team_id, t.abbreviation]));
+  const home = byId.get(game.homeEspnTeamId);
+  const away = byId.get(game.awayEspnTeamId);
+  const played = staged.playerLines.filter(p => !p.did_not_play);
+  const zones = staged.shots.reduce<Record<string, number>>((acc, s) => {
+    acc[s.zone] = (acc[s.zone] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  console.log(`\n${game.game_date}  ${away} ${game.away_score} @ ${home} ${game.home_score}  [${game.status}, ${game.periods} negyed, ESPN ${game.espn_event_id}]`);
+  console.log(`  játékos-sorok: ${staged.playerLines.length} (pályán: ${played.length}), csapat-sorok: ${staged.teamLines.length}, dobások: ${staged.shots.length}`);
+  console.log(`  zónák: ${Object.entries(zones).map(([zone, n]) => `${zone}=${n}`).join(', ')}`);
+
+  const top = [...played].sort((a, b) => b.points - a.points).slice(0, 3);
+  for (const line of top) {
+    const name = staged.players.find(p => p.espn_athlete_id === line.espnAthleteId)?.name ?? line.espnAthleteId;
+    console.log(
+      `  ${name.padEnd(24)} ${String(line.minutes).padStart(2)} perc  ${String(line.points).padStart(2)} pont  ` +
+      `FG ${line.fgm}-${line.fga}  3P ${line.fg3m}-${line.fg3a}  FT ${line.ftm}-${line.fta}  ` +
+      `close ${line.close_made}-${line.close_attempted}  mid ${line.mid_made}-${line.mid_attempted}  +/- ${line.plus_minus}`,
+    );
+  }
+  for (const warning of staged.warnings) console.warn(`  ⚠ ${warning}`);
+}
+
+async function main(): Promise<void> {
+  const { date, dryRun } = parseArgs(process.argv.slice(2));
+  const db = dryRun ? null : createScriptClient();
+
+  const events = parseScoreboard(await fetchScoreboard(date.replaceAll('-', '')));
+  const finals = events.filter(e => e.state === 'post' && e.completed);
+  console.log(`${date}: ${events.length} meccs, ebből lezárt: ${finals.length}${dryRun ? ' (dry-run, nincs DB írás)' : ''}`);
+
+  let failed = 0;
+  for (const event of finals) {
+    try {
+      const raw = await fetchSummary(event.id);
+      const staged = mapSummary(parseSummary(raw));
+      printSummary(staged);
+      if (db) {
+        const result = await writeGame(db, staged, raw);
+        console.log(`  ✓ mentve (game ${result.gameId})`);
+      }
+    } catch (error) {
+      failed++;
+      console.error(`  ✗ ${event.name} (${event.id}):`, error instanceof Error ? error.message : error);
+    }
+  }
+
+  console.log(`\nKész: ${finals.length - failed}/${finals.length} meccs feldolgozva.`);
+  if (failed > 0) process.exit(1);
+}
+
+main().catch(error => {
+  console.error(error);
+  process.exit(1);
+});

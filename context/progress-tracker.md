@@ -12,6 +12,8 @@
   - A dry-run a 2025-03-01-i 6 meccsen 6/6-os eredményt adott, konzisztencia-figyelmeztetés nélkül.
   - Ellenőrizve: pontösszeg, FGA-összeg, dobásszám = FGA, close+mid = kétpontos kísérlet.
 - `npx tsc --noEmit`, `eslint` és `npm run build` hibátlan.
+- A `CLAUDE.md` tartalmazza az ASEStats teljes, NBA-ra igazított szabályrendszerét.
+- A `BACKLOG.md` részei: feladatok, fejlesztési történet és 30 ASEStats-tanulság (T1–T30). A tanulságokból három új teendő lett az ingesthez: szezon-kapu, dobás-dedup, nem-nulla exit figyelmeztetésnél.
 
 ## Kézi teendők (felhasználó)
 
@@ -23,6 +25,7 @@
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
+   - előbb a T4/T5/T6 teendők (`BACKLOG.md`);
    - `ingest-games.ts --season` visszatöltés;
    - `ingest-schedule.ts` a jövőbeli meccsekhez;
    - `ingest-standings.ts` a konferencia- és divízióadatokkal;

@@ -37,7 +37,7 @@ export type Json =
 
 type Timestamps = { created_at: string }
 
-// Típusok a Supabase táblákhoz – a migrations/001-initial-schema.sql tükre.
+// Típusok a Supabase táblákhoz – a migrations/001–002 tükre.
 export type Database = {
   public: {
     Tables: {
@@ -192,7 +192,8 @@ export type Database = {
         Row: {
           espn_event_id: string
           game_id: string | null
-          payload: Json
+          /** gzip-elt nyers summary, bytea hex literálként ("\x…") – lib/espn/raw-payload.ts */
+          payload_gz: string
           fetched_at: string
         }
         Insert: Omit<Database['public']['Tables']['espn_game_raw']['Row'], 'fetched_at'> & { fetched_at?: string }

@@ -13,10 +13,11 @@ Szerkezet:
 
 ### Következő – Ingest teljesítése (roadmap 1.)
 
+- [x] **Adatbázis-előkészítés (migráció 002):** gzip-elt nyers JSON, a 3 szezon határai, Lakers követett csapat. **Kézi futtatás a 001 után.**
 - [ ] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
 - [ ] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
 - [ ] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
-- [ ] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja
+- [ ] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25–30 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja. Scope: 2024, 2025, 2026; `season_type` 2, 3, 5 (előszezon nélkül)
 - [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal
 - [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
 - [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
@@ -44,10 +45,11 @@ Szerkezet:
 - [ ] Élő meccsállapot (scoreboard polling)
 - [ ] Tartalék adatforrás-adapter (balldontlie), ha az ESPN formátuma eltörik
 
-### Nyitott kérdések (felhasználói döntés)
+### Eldöntött kérdések (2026-09-29)
 
-- Hány szezont töltsünk vissza? Javaslat: 3, a free tier miatt.
-- Melyik a követett csapat?
+- Visszatöltés: az utolsó 3 szezon (2023/24, 2024/25, 2025/26), alapszakasz + play-in + rájátszás, előszezon nélkül.
+- Követett csapat: Los Angeles Lakers (ESPN `13`).
+- Nyers JSON: gzip `bytea`, hogy 3 szezon beleférjen a free tierbe.
 
 ### Ismert korlátok
 
@@ -58,6 +60,19 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-29 – Adatbázis-előkészítés a visszatöltéshez ✓
+
+- **Mérés:** egy ESPN summary 368 KB (ebből a `plays` 243 KB), gzip-pel 38 KB. 3 szezon (kb. 3 950 meccs) jsonb-ben kb. 350–400 MB lenne, a dobásokkal (kb. 680e sor, kb. 150 MB) együtt túllépné a free tier 500 MB-ját.
+- **`migrations/002-raw-gzip-seasons-followed-team.sql`:**
+  - `espn_game_raw.payload` (jsonb) → `payload_gz` (bytea). Nem-üres táblán hibával megáll, nem veszít adatot;
+  - a `seasons` 2024–2026 sorai az ESPN szezonablakával (`leagues[0].season`), a szezon-kapuhoz (T4);
+  - `app_settings.followed_team_id` = Los Angeles Lakers, ESPN ID alapján (`13`).
+- **`lib/espn/raw-payload.ts`:** `encodeRawPayload` / `decodeRawPayload` (node:zlib, bytea hex literál), új csomag nélkül. A `write-game.ts` ezzel ír; a `Database` típus frissítve.
+- **Ellenőrzés:**
+  - gzip round-trip egy valódi summary-n: azonos JSON, az újra-parse figyelmeztetés nélkül fut;
+  - `tsc` és `lint` hibátlan, a `build` dummy Supabase env-vel is hibátlan (`.env.local` nélkül a HEAD is elbukik a prerendernél);
+  - a SQL-t helyi Postgres hiányában nem futtattam.
 
 ### 2026-09-29 – Teljes szabályrendszer és ASEStats-tanulságok ✓
 

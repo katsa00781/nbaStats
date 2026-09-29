@@ -26,7 +26,7 @@ Azonos az ASEStatsszel, **Playwright nélkül**:
 
 ## Storage Model
 
-A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/001-initial-schema.sql` + `002-raw-gzip-seasons-followed-team.sql` fájlban él, a TS-tükre a `lib/supabase.ts` `Database` típusa.
 
 - `seasons`: `espn_year` UNIQUE, a szezon záró éve (2025 = 2024/2025).
 - `teams`: `espn_team_id` UNIQUE. `players`: `espn_athlete_id` UNIQUE. A csapattagság meccsenként a `player_game_stats.team_id`-ben él, így a cserék is követhetők.
@@ -43,8 +43,9 @@ A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/s
   - Nyers koordináta lábban, a kosár a (25, 0) pontban.
   - A `distance_ft` és a `zone` (rim/paint/mid/corner3/above_break3) számított.
   - Büntető nem kerül ide.
-- `espn_game_raw`: a nyers summary JSON, újra-parse-oláshoz.
-- `app_settings`: egysoros tábla, `followed_team_id` = követett csapat.
+- `espn_game_raw`: a nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, kb. 38 KB/meccs; migráció 002), újra-parse-oláshoz. Kódolás/dekódolás: `lib/espn/raw-payload.ts`.
+- `app_settings`: egysoros tábla, `followed_team_id` = követett csapat: **Los Angeles Lakers** (ESPN `13`, migráció 002).
+- `seasons` start/end: a migráció 002 tölti ki az ESPN szezonablakából (2024–2026); ehhez veti a szezon-kapu a `game_date`-et.
 - **RLS:** minden táblán SELECT a bejelentkezett felhasználóknak. Írni csak a service role tud.
 
 ## Data Flow

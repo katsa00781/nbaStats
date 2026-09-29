@@ -113,6 +113,7 @@ nbastats/
 │   │   ├── schemas.ts          # rendszerhatár-validáció (unknown → típusos), EspnSchemaError
 │   │   ├── map-shots.ts        # koordináta → távolság / zóna / close-mid (CLOSE_MAX_FT = 8)
 │   │   ├── map-boxscore.ts     # summary → staged sorok ESPN ID-kkel + konzisztencia-figyelmeztetések
+│   │   ├── raw-payload.ts      # nyers summary ↔ gzip bytea hex literál (espn_game_raw.payload_gz)
 │   │   └── write-game.ts       # upsert service role klienssel, ESPN ID → UUID feloldás
 │   ├── supabase.ts             # böngészős kliens (globalThis singleton) + Database típus
 │   ├── supabase-admin.ts       # getSupabaseAdmin() – service role, csak szerver
@@ -136,7 +137,7 @@ nbastats/
 
 ## Adatbázis táblák (Supabase PostgreSQL)
 
-A séma a `migrations/001-initial-schema.sql`-ben van, a TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/001-initial-schema.sql` + `002-raw-gzip-seasons-followed-team.sql`-ben van, a TS-tükre a `lib/supabase.ts` `Database` típusa.
 
 | Tábla | Tartalom | Dedup kulcs |
 |-------|---------|-------------|
@@ -147,8 +148,8 @@ A séma a `migrations/001-initial-schema.sql`-ben van, a TS-tükre a `lib/supaba
 | `player_game_stats` | Játékos box score (egyetlen tábla `season_id`-val), `team_id` meccsenként, `did_not_play`, close/mid a dobásokból | `(game_id, player_id)` |
 | `team_game_stats` | Csapat box score + paint / fast break / off-TO pont | `(game_id, team_id)` |
 | `shot_events` | Mezőnydobások: nyers x/y lábban (kosár a (25, 0) pontban), `distance_ft`, `zone`, `shot_value`, `made` | `(game_id, espn_play_id)` |
-| `espn_game_raw` | Nyers summary JSON (újra-parse-oláshoz) | `espn_event_id` |
-| `app_settings` | Egysoros tábla: `followed_team_id` | `id = true` |
+| `espn_game_raw` | Nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, `lib/espn/raw-payload.ts`), újra-parse-oláshoz | `espn_event_id` |
+| `app_settings` | Egysoros tábla: `followed_team_id` (Los Angeles Lakers, ESPN `13`) | `id = true` |
 
 - **Hazai/vendég modell, nincs `our_team_id`.** Egy csapat meccsei: `.or(`home_team_id.eq.${id},away_team_id.eq.${id}`)`.
 - **Név alapján soha nem párosítunk entitást.** Minden író ESPN-azonosítóra épülő kulcsra upsertel.
@@ -363,7 +364,7 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - **Dobáskoordináta:** lábban, a kosár a (25, 0) pontban, az y a kosártól mért távolság. A büntetők érvénytelen koordinátát kapnak, ezeket kiszűrjük. A zónákat és a close/mid határt (8 láb) csak a `map-shots.ts` definiálja (T10).
 - **Batch upsert előtt deduplikálni kell a kulcsra** (T5): ha egy batch-en belül ütközik a kulcs, a teljes insert elbukik.
 - **Minden import szkriptnek van `--dry-run` módja**, ami DB nélkül validál és kiír.
-- **A nyers JSON az `espn_game_raw`-ba kerül.** Formátumváltáskor innen parse-olunk újra, nem töltünk le.
+- **A nyers JSON gzip-elve az `espn_game_raw.payload_gz`-be kerül** (`lib/espn/raw-payload.ts`). Formátumváltáskor innen parse-olunk újra, nem töltünk le.
 - **Import-író változás csak push után hat** az ütemezett GitHub Actions futásra. A push is része a lezárásnak (T7).
 
 ```bash

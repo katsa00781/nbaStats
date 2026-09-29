@@ -4,8 +4,8 @@
 // DB-hiba után a meccs újrafuttatása rendbe teszi az állapotot.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Json } from '@/lib/supabase';
 import type { StagedGame } from '@/lib/espn/map-boxscore';
+import { encodeRawPayload } from '@/lib/espn/raw-payload';
 
 interface IdRow {
   id: string;
@@ -140,7 +140,7 @@ export async function writeGame(db: SupabaseClient, staged: StagedGame, rawPaylo
     {
       espn_event_id: staged.game.espn_event_id,
       game_id: gameId,
-      payload: rawPayload as Json,
+      payload_gz: encodeRawPayload(rawPayload),
       fetched_at: new Date().toISOString(),
     },
     { onConflict: 'espn_event_id' },

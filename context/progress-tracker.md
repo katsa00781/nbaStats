@@ -41,7 +41,7 @@
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
 2. ~~Első éles import + ismétlés~~: kész (2026-03-01, 11/11 meccs, idempotens).
 3. A `.env.local` 8. sorának javítása: az `ANTHROPIC_API_KEY` értéke után hiányzik a sortörés, a végére ragadt `NEXT_PUBLIC_SUPABASE_URL=` maradékot törölni kell. A Supabase-változók maradhatnak (`ugkettlebell`).
-4. **Migráció 002** (`migrations/002-season-2027.sql`) futtatása az SQL Editorban, utána `npm run ingest:schedule -- --season 2027`.
+4. ~~Migráció 002 + menetrend-import~~: kész (2026-09-30).
 5. Admin felhasználó: az Auth közös az ASEStatsszel, így a meglévő ASEStats admin (`user_metadata.role = "admin"`) itt is admin.
 
 ## Következő lépések (roadmap)
@@ -49,7 +49,7 @@
 1. **Ingest teljesítése:**
    - ~~előbb a T4/T5/T6 teendők~~: kész (2026-09-30);
    - ~~`ingest-games.ts --season` visszatöltés~~: kész, 2025/26 betöltve;
-   - `ingest-schedule.ts` a jövőbeli meccsekhez: kód kész, élesítés a migráció 002 után;
+   - ~~`ingest-schedule.ts` a jövőbeli meccsekhez~~: kész, a 2026/27 menetrendje (1200 meccs) bent van;
    - `ingest-standings.ts` a konferencia- és divízióadatokkal;
    - GitHub Actions cron naponta 10:00 CET-kor.
 2. **Adat-hookok és alapnézetek:** Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella. Ide tartozik a `player_season_stats_by_season` view is (migráció 003).

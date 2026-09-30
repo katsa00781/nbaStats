@@ -28,7 +28,8 @@ Szerkezet:
   - Olbrich (CHI) ESPN-rekordja ID és statisztika nélküli, de 13 meccsen játszott (csapatösszeg-eltérés);
   - play-by-play ↔ box score ±1–3 dobás/FGA eltérés kb. 50 csapat-meccsen (kb. 2%), nem duplikáció, nem shooting foul
   - **Döntés (felhasználó):** All-Star kihagyás + törlés; a Cup-döntő marad; ±3-ig `ℹ`, fölötte `⚠`. A > 60 láb hibát javítottam; Olbrich marad `⚠` (a forrás hibás)
-- [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal. **Kód kész; élesítés a migráció 002 kézi futtatása után.**
+- [x] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal (élesítve 2026-09-30: 1200 meccs a 2026/27-re)
+- [ ] A csapatonkénti 2 NBA Cup-függő alapszakasz-meccs (30 meccs) felvétele, amikor az ESPN közzéteszi – a napi `ingest-schedule` futás ezt magától elvégzi (a cronba be kell tenni)
 - [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
 - [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
 
@@ -82,6 +83,7 @@ Szerkezet:
 
 - **Tárhely-döntés (felhasználó):** két szezon marad; `migrations/002-season-2027.sql` felveszi a 2026/27-es szezonsort (ESPN ablak: 2026-09-30 – 2027-06-25). Commit `8b4124e`.
 - **Kód:** `fetchTeamSchedule()` (`client.ts`, `seasontype` paraméterrel – nélküle az ESPN csak az előszezont adja); `parseTeamSchedule()` (`schemas.ts`); `lib/espn/write-schedule.ts`: `stageSchedule()` (dedup az event ID-re, mert minden meccs két csapat menetrendjében szerepel; státusz; szezon-kapu) és `writeSchedule()` (500-as batch upsert; a `final` / `in_progress` sorokhoz nem nyúl); `requireSeason()` közös a `write-game.ts`-ben; `ingest-schedule.ts` + `npm run ingest:schedule`.
+- **Élesítés:** a felhasználó lefuttatta a 002-t; `--season 2027` kétszer: 1200 meccs mindkétszer (idempotens), csapatonként 80, mind `scheduled`, mindnek van kezdési időpontja; a 2025/26 érintetlen (1322 `final`).
 - **Ellenőrzés:** dry-run `--season 2027`: 1200 alapszakasz-meccs (2026-10-20 → 2027-04-11) = 30 × 80 / 2 – a csapatonkénti 2 NBA Cup-függő meccset az ESPN később teszi közzé; exit 0. `tsc`, `eslint` hibátlan.
 
 ### 2026-09-30 – Adatminőségi javítások a visszatöltés után ✓ (commit `ce438a3`)

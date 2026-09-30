@@ -48,6 +48,9 @@ export interface EspnScoreboardEvent {
   name: string;
   state: 'pre' | 'in' | 'post';
   completed: boolean;
+  /** ESPN szezonév (záró év) és -típus (1 előszezon, 2 alapszakasz, 3 rájátszás, 5 play-in). */
+  seasonYear: number;
+  seasonType: number;
 }
 
 export function parseScoreboard(json: unknown): EspnScoreboardEvent[] {
@@ -60,11 +63,14 @@ export function parseScoreboard(json: unknown): EspnScoreboardEvent[] {
     if (state !== 'pre' && state !== 'in' && state !== 'post') {
       throw new EspnSchemaError(`${path}.status.type.state`, 'pre | in | post');
     }
+    const season = obj(event.season, `${path}.season`);
     return {
       id: str(event.id, `${path}.id`),
       name: str(event.name, `${path}.name`),
       state,
       completed: optBool(statusType.completed),
+      seasonYear: num(season.year, `${path}.season.year`),
+      seasonType: num(season.type, `${path}.season.type`),
     };
   });
 }

@@ -5,7 +5,7 @@
 Azonos az ASEStatsszel, **Playwright nélkül**:
 - Next.js 16 (App Router) + React 19 + TypeScript 5 strict
 - Tailwind CSS 4 (CSS-first, `@theme inline`) + shadcn/ui (New York) + Radix
-- Supabase (PostgreSQL, Auth)
+- Supabase (PostgreSQL, Auth): saját `nba` séma az ASEStatsszel közös `ugkettlebell` projektben (lásd Storage Model)
 - Chart.js / Recharts, Lucide, Sonner
 - tsx a CLI-hez
 - AI: OpenAI / Claude (`lib/ai-client.ts`)
@@ -26,7 +26,13 @@ Azonos az ASEStatsszel, **Playwright nélkül**:
 
 ## Storage Model
 
-A séma a `migrations/001-initial-schema.sql` + `002-raw-gzip-seasons-followed-team.sql` fájlban él, a TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/supabase.ts` `Database` típusa.
+
+**Elhelyezés (döntés: 2026-09-30):**
+- A free tier 2 projektes korlátja miatt nincs önálló projekt. Az NBAStats az ASEStats `ugkettlebell` projektjében él, **saját `nba` Postgres sémában**.
+- A `public` sémában az ASEStats táblái vannak, 6 azonos névvel (`seasons`, `teams`, `players`, `games`, `player_game_stats`, `team_game_stats`). Ezért minden SQL `nba.`-minősített, és minden kliens `db: { schema: 'nba' }` beállítással jön létre.
+- Az Auth (`auth.users`) közös: ugyanazok a felhasználók és ugyanaz az admin szerepkör.
+- Tárhely: a 500 MB közös (ASEStats 129 MB, 2026-09-30). Egy NBA szezon kb. 130–170 MB, ezért egyszerre egy szezont tárolunk (2025/2026).
 
 - `seasons`: `espn_year` UNIQUE, a szezon záró éve (2025 = 2024/2025).
 - `teams`: `espn_team_id` UNIQUE. `players`: `espn_athlete_id` UNIQUE. A csapattagság meccsenként a `player_game_stats.team_id`-ben él, így a cserék is követhetők.
@@ -43,9 +49,9 @@ A séma a `migrations/001-initial-schema.sql` + `002-raw-gzip-seasons-followed-t
   - Nyers koordináta lábban, a kosár a (25, 0) pontban.
   - A `distance_ft` és a `zone` (rim/paint/mid/corner3/above_break3) számított.
   - Büntető nem kerül ide.
-- `espn_game_raw`: a nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, kb. 38 KB/meccs; migráció 002), újra-parse-oláshoz. Kódolás/dekódolás: `lib/espn/raw-payload.ts`.
-- `app_settings`: egysoros tábla, `followed_team_id` = követett csapat: **Los Angeles Lakers** (ESPN `13`, migráció 002).
-- `seasons` start/end: a migráció 002 tölti ki az ESPN szezonablakából (2024–2026); ehhez veti a szezon-kapu a `game_date`-et.
+- `espn_game_raw`: a nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, kb. 38 KB/meccs), újra-parse-oláshoz. Kódolás/dekódolás: `lib/espn/raw-payload.ts`.
+- `app_settings`: egysoros tábla, `followed_team_id` = követett csapat: **Los Angeles Lakers** (ESPN `13`).
+- `seasons` start/end: a migráció tölti ki az ESPN szezonablakából (csak 2026 = 2025/2026); ehhez veti a szezon-kapu a `game_date`-et.
 - **RLS:** minden táblán SELECT a bejelentkezett felhasználóknak. Írni csak a service role tud.
 
 ## Data Flow
@@ -76,3 +82,4 @@ Supabase (games, player_game_stats, team_game_stats, shot_events, espn_game_raw)
 7. A kanonikus stat-formulák a `lib/stat-formulas.ts`-ben vannak. A százalékok összegzett dobásokból számolódnak.
 8. TypeScript strict, `any` tilos.
 9. Egyetlen böngészős Supabase kliens van (`lib/supabase.ts`). Szerveren a `getSupabaseAdmin()`, CLI-ben a szkript saját service role kliense fut.
+10. Az NBAStats csak az `nba` sémát írja és olvassa; a közös projekt `public` sémájához (ASEStats) nem nyúl.

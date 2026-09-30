@@ -7,7 +7,7 @@
 - Repó felállítva az ASEStats configjaiból; a függőségek ugyanazok, Playwright nélkül.
 - Átmásolva a Dark Command Center design, a `components/ui/*`, az auth és az AI-kliens, valamint a domain-független `lib` modulok. A branding NBAStats-ra cserélve.
 - Az app-váz kész (`app/page.tsx`): auth guard, sidebar és topbar. A nézetek helyén „épül” üzenet áll.
-- Alapséma: `migrations/001-initial-schema.sql`. **Még nincs lefuttatva**: kézzel kell, egy új Supabase projektben.
+- Alapséma: `migrations/001-initial-schema.sql`.
 - ESPN adapter (`lib/espn/*`) és `ingest-games.ts --date [--dry-run]`.
   - A dry-run a 2025-03-01-i 6 meccsen 6/6-os eredményt adott, konzisztencia-figyelmeztetés nélkül.
   - Ellenőrizve: pontösszeg, FGA-összeg, dobásszám = FGA, close+mid = kétpontos kísérlet.
@@ -17,16 +17,23 @@
 
 **Adatbázis-előkészítés kész (2026-09-29):** migráció 002.
 
-- A nyers ESPN JSON gzip-elt `bytea`-ként tárolódik (`espn_game_raw.payload_gz`, `lib/espn/raw-payload.ts`): kb. 38 KB/meccs 368 KB helyett. Így 3 szezon belefér a free tierbe.
-- A három visszatöltendő szezon (2023/24, 2024/25, 2025/26) az ESPN szezonablakával előre fel van véve; ez a szezon-kapu (T4) alapja.
+- A nyers ESPN JSON gzip-elt `bytea`-ként tárolódik (`espn_game_raw.payload_gz`, `lib/espn/raw-payload.ts`): kb. 38 KB/meccs 368 KB helyett.
+- A szezon az ESPN szezonablakával előre fel van véve; ez a szezon-kapu (T4) alapja.
 - Követett csapat: Los Angeles Lakers (ESPN `13`).
 - Ellenőrzés: gzip round-trip egy valódi summary-n (azonos JSON, újra-parse figyelmeztetés nélkül), `tsc`, `lint`, `build` hibátlan. A SQL-t helyi Postgres hiányában nem futtattam; az első futás a Supabase-ben lesz.
 
+**Adatbázis-elhelyezés átdöntve (2026-09-30):** `nba` séma a közös `ugkettlebell` projektben.
+
+- Az első futtatás kiderítette, hogy a `.env.local` az ASEStats projektjére (`ugkettlebell`) mutat. A 001 ott `column "game_date" does not exist` hibával elbukott, mert az ASEStats `games` táblája miatt a `create table if not exists` kimaradt. A tranzakció visszagördült, ellenőrizve: NBA-tábla nem maradt a `public` sémában.
+- Harmadik Supabase projekt fizetős lenne (kb. 20 USD/hó), ezt a felhasználó nem vállalja; a Synology DS218play adatbázisnak alkalmatlan.
+- Döntés (felhasználó): saját `nba` séma az `ugkettlebell` projektben, és csak a 2025/2026-os szezon.
+- Mérés: egy summary gzip-elve kb. 38 KB, 150–180 mezőnydobás. Egy szezon kb. 130–170 MB, az ASEStats 129 MB mellett kb. 260–300 MB lesz az 500-ból.
+- **Folyamatban:** a migráció átírása az `nba` sémára, a kliensek sémabeállítása.
+
 ## Kézi teendők (felhasználó)
 
-1. Új Supabase projekt létrehozása, majd az SQL Editorban sorban: `migrations/001-initial-schema.sql`, `migrations/002-raw-gzip-seasons-followed-team.sql`.
-   - Ellenőrzés: `select espn_year, start_date, end_date from seasons;` → 3 sor; `select t.abbreviation from app_settings s join teams t on t.id = s.followed_team_id;` → `LAL`.
-2. A `.env.local` kitöltése a `.env.local.example` alapján, a `SUPABASE_SERVICE_ROLE_KEY`-jel együtt.
+1. **A jelenlegi migrációkat NE futtasd** az `ugkettlebell` projektben, amíg az `nba` sémás változat el nem készül.
+2. A `.env.local` 8. sorának javítása: az `ANTHROPIC_API_KEY` értéke után hiányzik a sortörés, a végére ragadt `NEXT_PUBLIC_SUPABASE_URL=` maradékot törölni kell. A Supabase-változók maradhatnak (`ugkettlebell`).
 3. Első éles import: `npm run ingest:games -- --date 2025-03-01`. Ezt egy második futtatással érdemes megismételni; a sorszám nem nőhet.
 4. Admin felhasználó: a Supabase Auth-ban `user_metadata.role = "admin"`.
 
@@ -46,11 +53,11 @@
 
 ## Eldöntött kérdések (2026-09-29)
 
-- Visszatöltés: az utolsó 3 szezon (2023/24, 2024/25, 2025/26), alapszakasz + play-in + rájátszás, előszezon nélkül.
+- Visszatöltés: ~~az utolsó 3 szezon~~ → **csak a 2025/26-os szezon** (2026-09-30), alapszakasz + play-in + rájátszás, előszezon nélkül.
 - Követett csapat: Los Angeles Lakers.
 - Nyers JSON: gzip `bytea` (free tier marad).
-- A Supabase projektet a felhasználó hozza létre, és ő futtatja a migrációkat.
+- Adatbázis: ~~önálló Supabase projekt~~ → **`nba` séma az ASEStats `ugkettlebell` projektjében** (2026-09-30). A migrációkat a felhasználó futtatja.
 
 ## Nyitott kérdések
 
-- Nincs.
+- A 2026/27-es NBA-szezon (október vége) előtt tárhely-döntés kell: a régi szezon törlése, vagy költözés (pl. saját szerver, lásd `BACKLOG.md`).

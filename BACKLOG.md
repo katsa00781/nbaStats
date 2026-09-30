@@ -1,6 +1,6 @@
 # Backlog
 
-Utolsó frissítés: 2026-09-29
+Utolsó frissítés: 2026-09-30
 
 Szerkezet:
 1. Nyitott feladatok
@@ -13,11 +13,12 @@ Szerkezet:
 
 ### Következő – Ingest teljesítése (roadmap 1.)
 
-- [x] **Adatbázis-előkészítés (migráció 002):** gzip-elt nyers JSON, a 3 szezon határai, Lakers követett csapat. **Kézi futtatás a 001 után.**
+- [x] **Adatbázis-előkészítés (migráció 002):** gzip-elt nyers JSON, a 3 szezon határai, Lakers követett csapat.
+- [ ] **Áthelyezés az `nba` sémába** a közös `ugkettlebell` projektben: a 001 + 002 összevonása egy `nba.`-minősített migrációba (csak a 2026-os szezon), jogosultságok, a kliensek `db.schema` beállítása, `Database` típus. **Kézi futtatás + Exposed schemas beállítás.**
 - [ ] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
 - [ ] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
 - [ ] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
-- [ ] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25–30 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja. Scope: 2024, 2025, 2026; `season_type` 2, 3, 5 (előszezon nélkül)
+- [ ] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25–30 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja. Scope: 2026 (2025/26); `season_type` 2, 3, 5 (előszezon nélkül)
 - [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal
 - [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
 - [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
@@ -41,13 +42,15 @@ Szerkezet:
 ### Később / ötletek
 
 - [ ] Play-by-play tárolás: win probability, run-ok, clutch. Supabase tier-döntés kell hozzá.
+- [ ] **Tárhely-döntés a 2026/27-es szezon előtt** (október vége): a közös 500 MB-ba két NBA szezon nem fér. Opciók: régi szezon törlése / nyers JSON kiköltöztetése / saját szerver (pl. otthoni NAS Dockerrel, önhosztolt Postgres vagy Supabase).
 - [ ] GameScore / PIE a FIBA valuation mellé
 - [ ] Élő meccsállapot (scoreboard polling)
 - [ ] Tartalék adatforrás-adapter (balldontlie), ha az ESPN formátuma eltörik
 
-### Eldöntött kérdések (2026-09-29)
+### Eldöntött kérdések (2026-09-29, módosítva 2026-09-30)
 
-- Visszatöltés: az utolsó 3 szezon (2023/24, 2024/25, 2025/26), alapszakasz + play-in + rájátszás, előszezon nélkül.
+- Adatbázis (2026-09-30): saját `nba` séma az ASEStats `ugkettlebell` Supabase projektjében. A harmadik projekt fizetős lenne; a közös `public` sémában 6 táblanév ütközik.
+- Visszatöltés (2026-09-30): csak a 2025/26-os szezon, alapszakasz + play-in + rájátszás, előszezon nélkül. A közös 500 MB-ba több nem fér.
 - Követett csapat: Los Angeles Lakers (ESPN `13`).
 - Nyers JSON: gzip `bytea`, hogy 3 szezon beleférjen a free tierbe.
 
@@ -60,6 +63,13 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Döntés: `nba` séma a közös projektben, egy szezon
+
+- **Hiba:** a 001 az SQL Editorban `42703: column "game_date" does not exist` hibát adott. Ok: a `.env.local` az ASEStats `ugkettlebell` projektjére mutat, ott már van `games` tábla (más oszlopokkal), így a `create table if not exists` kimaradt, és az első index elbukott. A tranzakció visszagördült; Supabase MCP-vel ellenőrizve, NBA-tábla nem maradt.
+- **Felmérés** (csak olvasás): 2 aktív free projekt (`familyBudget` 19 MB, `ugkettlebell` 129 MB); a 9 NBA-táblából 6 névre létezik az ASEStats `public` sémájában.
+- **Mérés:** 3 valódi summary (2026-03-01): nyersen 373–411 KB, gzip-pel 37–39 KB, 147–179 mezőnydobás. Egy szezon becslése kb. 130–170 MB.
+- **Döntés (felhasználó):** `nba` séma az `ugkettlebell` projektben, csak a 2025/26-os szezon. A CLAUDE.md és a context fájlok frissítve.
 
 ### 2026-09-29 – Adatbázis-előkészítés a visszatöltéshez ✓
 
@@ -163,3 +173,4 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | T28 | A Deno Edge Function importjai eltörték a `next build` típusellenőrzését (H4) | Ha lesz `supabase/functions/`, azt fel kell venni a `tsconfig.json` `exclude` listájába | Edge Function esetén |
 | T29 | A spawn-alapú import route-ok serverlessben nem működtek (Vercel deploy) | Nincs spawn. Az import CLI / Actions, vagy a route közvetlenül a `lib/espn/*`-t hívja | ✓ architektúra |
 | T30 | Gép-szintű függőség (Playwright böngésző-bináris) hiányzott, és az import „1 kóddal” állt le, ok nélkül (H2) | Nincs Playwright. Hibánál a teljes kimenet (stdout/stderr) mindig látszik a UI-ban és az Actions logban | ✓ nincs bináris-függőség |
+| T31 | *(NBAStats, 2026-09-30)* Az ASEStatsből átvett `.env.local` az ASEStats projektjére mutatott; a `create table if not exists` az ott meglévő, más szerkezetű `games` táblán csendben kihagyott, és csak egy későbbi index bukott el | Közös projektben minden SQL sémával minősített (`nba.`). Migráció előtt ellenőrizni kell, melyik projektre mutat a `.env.local` | ✓ `nba` séma |

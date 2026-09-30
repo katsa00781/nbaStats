@@ -23,7 +23,7 @@ A részletes context fájlok itt találhatók, implementáció előtt el kell ol
 
 Az **NBAStats** belső NBA statisztikai és elemzési platform, az ASEStats (`../asestats`, magyar NB I, ASE) testvérprojektje. Az alkalmazás:
 - automatikusan gyűjti a meccsadatokat az **ESPN nyilvános JSON API-jából** (`lib/espn/*`, sima `fetch`, Playwright nélkül);
-- Supabase (PostgreSQL) adatbázisban tárolja őket. Ez **önálló Supabase projekt**, nem közös az ASEStatsszel;
+- Supabase (PostgreSQL) adatbázisban tárolja őket, **saját `nba` sémában, az ASEStatsszel közös `ugkettlebell` projektben** (a free tier 2 projektes korlátja miatt). Az Auth és a felhasználók közösek, a táblák nem;
 - Next.js dashboardon jeleníti meg őket, szezon és csapat szerinti szűréssel;
 - **hibrid nézőpontból** dolgozik: a teljes ligát (30 csapat) tárolja, de a pregame scouting és a postgame AI riportok a **követett csapat** (`app_settings.followed_team_id`) szemszögéből készülnek. A többi csapat adja a benchmarkokat;
 - magyar UI-t és magyar nyelvű AI riportokat ad (OpenAI / Claude);
@@ -137,11 +137,11 @@ nbastats/
 
 ## Adatbázis táblák (Supabase PostgreSQL)
 
-A séma a `migrations/001-initial-schema.sql` + `002-raw-gzip-seasons-followed-team.sql`-ben van, a TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/001-initial-schema.sql`-ben van, **minden tábla az `nba` Postgres sémában**. A TS-tükre a `lib/supabase.ts` `Database` típusa.
 
 | Tábla | Tartalom | Dedup kulcs |
 |-------|---------|-------------|
-| `seasons` | Szezonok; az `espn_year` a záró év (2025 = 2024/2025) | `espn_year` |
+| `seasons` | Szezonok; az `espn_year` a záró év (2026 = 2025/2026, ez az egyetlen betöltött szezon) | `espn_year` |
 | `teams` | Csapatok (név, rövidítés, konferencia, divízió, logó) | `espn_team_id` |
 | `players` | Játékos-törzsadat (név, pozíció, mez, headshot). A csapattagság NEM itt van | `espn_athlete_id` |
 | `games` | Meccsek: `home_team_id`, `away_team_id`, `home_score`, `away_score`, `status`, `season_type`, `game_date` (US Eastern) | `espn_event_id` |
@@ -151,6 +151,11 @@ A séma a `migrations/001-initial-schema.sql` + `002-raw-gzip-seasons-followed-t
 | `espn_game_raw` | Nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, `lib/espn/raw-payload.ts`), újra-parse-oláshoz | `espn_event_id` |
 | `app_settings` | Egysoros tábla: `followed_team_id` (Los Angeles Lakers, ESPN `13`) | `id = true` |
 
+- **Séma-izoláció (közös projekt):** a `public` sémában az ASEStats táblái élnek, köztük 6 azonos nevű (`seasons`, `teams`, `players`, `games`, `player_game_stats`, `team_game_stats`).
+  - Minden NBAStats SQL `nba.`-minősített; migráció a `public` sémához nem nyúlhat.
+  - Minden Supabase kliens az `nba` sémára állítva jön létre (`db: { schema: DB_SCHEMA }`).
+  - Az `nba` séma a Supabase Dashboardon ki van téve az API-ra (Settings → API → Exposed schemas).
+- **Tárhelykeret:** a free tier 500 MB-ja közös az ASEStatsszel (2026-09-30: ASEStats 129 MB; egy NBA szezon becslése kb. 130–170 MB). Egyszerre egy NBA szezont tárolunk; a következő szezon előtt tárhely-döntés kell.
 - **Hazai/vendég modell, nincs `our_team_id`.** Egy csapat meccsei: `.or(`home_team_id.eq.${id},away_team_id.eq.${id}`)`.
 - **Név alapján soha nem párosítunk entitást.** Minden író ESPN-azonosítóra épülő kulcsra upsertel.
 - **Szezonon belüli csere:** a játékos csapata a `player_game_stats.team_id`-ből jön, nem a `players` táblából.

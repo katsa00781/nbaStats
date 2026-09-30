@@ -4,13 +4,16 @@
 //   npx tsx ingest-games.ts --date 2025-03-01 --dry-run   # DB nélkül, csak validál és kiír
 //   npx tsx ingest-games.ts --date 2025-03-01             # írás Supabase-be (service role)
 //
-// Csak a lezárt (final) meccseket dolgozza fel. A dátum amerikai keleti parti nap.
+// Csak a lezárt (final) alapszakasz / play-in / rájátszás meccseket dolgozza fel.
+// A dátum amerikai keleti parti nap.
+// Kilépési kód: 0 = rendben, 1 = legalább egy meccs elbukott, 2 = figyelmeztetés volt.
 
 import * as dotenv from 'dotenv';
 import { createNbaClient } from '@/lib/db-schema';
 import { fetchScoreboard, fetchSummary } from '@/lib/espn/client';
 import { parseScoreboard, parseSummary } from '@/lib/espn/schemas';
 import { mapSummary, type StagedGame } from '@/lib/espn/map-boxscore';
+import { assertInSeasonWindow, defaultSeasonWindow, isIngestedSeasonType } from '@/lib/espn/season-gate';
 import { writeGame } from '@/lib/espn/write-game';
 
 interface CliArgs {
@@ -76,24 +79,48 @@ async function main(): Promise<void> {
   const finals = events.filter(e => e.state === 'post' && e.completed);
   console.log(`${date}: ${events.length} meccs, ebből lezárt: ${finals.length}${dryRun ? ' (dry-run, nincs DB írás)' : ''}`);
 
-  let failed = 0;
+  const failures: string[] = [];
+  const warned: string[] = [];
+  let skipped = 0;
   for (const event of finals) {
     try {
       const raw = await fetchSummary(event.id);
       const staged = mapSummary(parseSummary(raw));
+      if (!isIngestedSeasonType(staged.game.season_type)) {
+        skipped++;
+        console.log(`\n  ℹ ${event.name} (${event.id}): szezontípus ${staged.game.season_type} (nem alapszakasz / play-in / rájátszás), kihagyva`);
+        continue;
+      }
       printSummary(staged);
+      // Dry-runban nincs DB: a tág szezonablakot ellenőrizzük; élesben a writeGame
+      // a nba.seasons pontos határaival (T4).
+      if (!db) assertInSeasonWindow(staged.game.game_date, defaultSeasonWindow(staged.season.espn_year));
       if (db) {
         const result = await writeGame(db, staged, raw);
         console.log(`  ✓ mentve (game ${result.gameId})`);
       }
+      for (const warning of staged.warnings) warned.push(`${event.name} (${event.id}): ${warning}`);
     } catch (error) {
-      failed++;
-      console.error(`  ✗ ${event.name} (${event.id}):`, error instanceof Error ? error.message : error);
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push(`${event.name} (${event.id}): ${message}`);
+      console.error(`  ✗ ${event.name} (${event.id}): ${message}`);
     }
   }
 
-  console.log(`\nKész: ${finals.length - failed}/${finals.length} meccs feldolgozva.`);
-  if (failed > 0) process.exit(1);
+  // Összesítő (T6): az ütemezett futás ne legyen „zöld” hiba vagy figyelmeztetés mellett.
+  const processed = finals.length - failures.length - skipped;
+  console.log(`\nKész: ${processed}/${finals.length} meccs feldolgozva${skipped > 0 ? `, ${skipped} kihagyva (szezontípus)` : ''}.`);
+  if (warned.length > 0) {
+    console.warn(`Figyelmeztetés: ${warned.length}`);
+    for (const line of warned) console.warn(`  ⚠ ${line}`);
+  }
+  if (failures.length > 0) {
+    console.error(`Hiba: ${failures.length} meccs`);
+    for (const line of failures) console.error(`  ✗ ${line}`);
+  }
+  // 1 = legalább egy meccs elbukott; 2 = minden meccs lefutott, de volt figyelmeztetés.
+  if (failures.length > 0) process.exit(1);
+  if (warned.length > 0) process.exit(2);
 }
 
 main().catch(error => {

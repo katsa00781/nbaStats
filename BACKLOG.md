@@ -17,9 +17,9 @@ Szerkezet:
 - [x] **Áthelyezés az `nba` sémába** a közös `ugkettlebell` projektben: a 001 + 002 összevonása egy `nba.`-minősített migrációba (csak a 2026-os szezon), jogosultságok, `createNbaClient()`, `Database` típus. **Kézi futtatás + Exposed schemas beállítás hátravan.**
 - [x] **ESPN ID nélküli játékos a box score-ban** (2026-03-01, MIL–CHI, ESPN `401810725`: `athletes[10]` „Olbrich”, `athlete` csak `shortName`-mel, COACH'S DECISION). Most a teljes meccs elbukik `EspnSchemaError`-ral. Döntés kell (névpárosítás tilos, T2): a sor kihagyása figyelmeztetéssel és a csapat-összeg ellenőrzése, vagy a meccs elutasítása. **Döntés:** statisztika nélkül kihagyjuk `ℹ` tájékoztatással, statisztikával továbbra is hiba
 - [x] **Dobásszám ≠ FGA: a „Heave Jump Shot” nem számít FGA-nak** (2026-03-01: 5 meccsen csapatonként +1). Kivizsgálva a nyers JSON-on: játékosszinten minden eltérés pontosan egy `type.text = "Heave Jump Shot"` dobás (pl. Brunson 2. negyed 0.4, Wembanyama 3. negyed 0.3, MPJ 4. negyed 0.1); az ESPN box score FGA-ja ezeket nem tartalmazza. Döntés kell: a heave kimaradjon a `shot_events`-ből / a close-mid bontásból, vagy flaggel tároljuk, és az egyeztetés vonja le. A figyelmeztetést nem szabad elnémítani (T6, T19). **Döntés:** a kihagyott heave kimarad, a bedobott marad
-- [ ] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
-- [ ] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
-- [ ] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
+- [x] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
+- [x] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
+- [x] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
 - [ ] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25–30 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja. Scope: 2026 (2025/26); `season_type` 2, 3, 5 (előszezon nélkül)
 - [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal
 - [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
@@ -65,6 +65,17 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Szezon-kapu, dedup, exit kód (T4, T5, T6) ✓
+
+- **`lib/espn/season-gate.ts` (új):** `isIngestedSeasonType()` (2, 3, 5), `assertInSeasonWindow()`, `defaultSeasonWindow()` a dry-runhoz, `SeasonGateError`.
+- **`lib/espn/write-game.ts`:** az `ensureSeason` helyett `resolveSeason`: a szezonnak léteznie kell az `nba.seasons`-ben (nem hoz létre újat, mert egyszerre egy szezon fér a keretbe), és a `game_date` a határai közé esik. Írás előtt fut.
+- **`lib/espn/map-boxscore.ts`:** `dedupeShots()`: azonos tartalmú ismétlés → `ℹ`, eltérő tartalom azonos play ID-val → `⚠`; duplikált játékossor → `⚠`, az első marad.
+- **`ingest-games.ts`:** előszezon kihagyása `ℹ`-vel; dry-run szezonablak; összesítő a futás végén; exit 0 / 1 (hiba) / 2 (figyelmeztetés).
+- **Ellenőrzés:**
+  - célzott tesztek valódi summary-n: azonos dup → 145 dobás marad + `ℹ`; eltérő dup → `⚠`; duplikált játékossor → 26 sor + `⚠`; dátumablak 2025-09-15 / 2026-07-01 → hiba, 2026-03-01 → rendben;
+  - éles 2026-03-01 → 11/11, exit 0; éles 2025-03-01 → 6/6 szezon-kapu hiba, exit 1, a DB változatlan (1 szezon, 11 meccs, 1909 dobás); dry-run 2025-10-05 → 2 előszezoni meccs kihagyva, exit 0;
+  - `tsc`, `eslint` hibátlan.
 
 ### 2026-09-30 – Heave-dobás és ESPN ID nélküli játékos ✓
 
@@ -158,9 +169,9 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | T1 | A PostgREST **némán 1000 sornál csonkol**. A liga-átlagok csonkolt adatból számolódtak (javítási sprint, 1. fázis) | 1000 sor fölött kötelező a `fetchAllRows()`. NBA-méretben ez szinte minden szezon-lekérdezés | Helper átvéve; a hookoknál kötelező |
 | T2 | Név alapú párosítás miatt duplikált `teams` és `players` sorok, a névdrift („OSE Lions”) új csapatot hozott létre (H3, H7) | Csak ESPN-ID alapú upsert, DB-szintű UNIQUE kulccsal. Név alapján semmit nem hozunk létre és nem párosítunk | ✓ séma + `write-game.ts` |
 | T3 | Az import félúton szállt el, félig megírt állapotot hagyva. A 0 kiolvasott sor „sikeres” futás volt (H3) | Minden ID-t írás előtt feloldunk; az üres vagy hibás forrás hiba, nem siker | Részben: az upsert idempotens, egy meccs újrafuttatása rendbe tesz. Az üres nap nem hiba (az NBA-ban van ilyen) |
-| T4 | Rossz slug/szezon párosítás miatt 276 meccs rossz `season_id` alá került, a szezonátlagok két szezont kevertek (ismert hiba 6, H3 szezon-kapu) | A szezon az ESPN `header.season.year`-ből jön, és a dátumot a szezon határaihoz vetjük | **Teendő:** szezon-kapu |
-| T5 | A forrás ugyanazt a dobást 2–3-szor küldte (309 elem, 125 egyedi), a teljes batch insert elbukott, a meccs dobástérképe elveszett (H9). A tabellát is duplán renderelte (H5) | Batch upsert előtt deduplikálunk a kulcsra, mert kulcsütközés esetén a teljes batch elbukik | **Teendő:** dedup a `write-game.ts`-ben |
-| T6 | A dobástérkép-hiba csak `console.warn` volt, a GitHub Actions futás zöld maradt adatvesztés mellett (H9, nyitott) | Konzisztencia-figyelmeztetésnél nem-nulla exit és összesítő a futás végén | **Teendő** |
+| T4 | Rossz slug/szezon párosítás miatt 276 meccs rossz `season_id` alá került, a szezonátlagok két szezont kevertek (ismert hiba 6, H3 szezon-kapu) | A szezon az ESPN `header.season.year`-ből jön, és a dátumot a szezon határaihoz vetjük | ✓ `season-gate.ts` + `write-game.ts` |
+| T5 | A forrás ugyanazt a dobást 2–3-szor küldte (309 elem, 125 egyedi), a teljes batch insert elbukott, a meccs dobástérképe elveszett (H9). A tabellát is duplán renderelte (H5) | Batch upsert előtt deduplikálunk a kulcsra, mert kulcsütközés esetén a teljes batch elbukik | ✓ dedup a `map-boxscore.ts`-ben |
+| T6 | A dobástérkép-hiba csak `console.warn` volt, a GitHub Actions futás zöld maradt adatvesztés mellett (H9, nyitott) | Konzisztencia-figyelmeztetésnél nem-nulla exit és összesítő a futás végén | ✓ exit 2 + összesítő |
 | T7 | Az importjavítás csak helyben volt commitolva, az Actions a régi `origin` kódot futtatta: `NULL` `opponent_team_id`, elveszett dobások (H11, H12) | Import-író változásnál a push is a lezárás része | Szabály a CLAUDE.md-ben |
 | T8 | A 0 perces DNP sorok egyik import útvonalon megjelentek, a másikon nem, és torzították a meccsszámot (H5, legacy) | A DNP-t explicit `did_not_play` flaggel tároljuk; minden aggregáció kiszűri | ✓ séma; view-nál kötelező |
 | T9 | A `players` (szezon, csapat, név) kulcsa nem tudta ábrázolni a szezon közbeni igazolást (legacy adattisztítás) | A csapat meccs-soronként a `player_game_stats.team_id`-ben van; a játékos-törzs csapatfüggetlen | ✓ séma |

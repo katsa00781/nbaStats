@@ -6,6 +6,7 @@
 import type { NbaClient } from '@/lib/db-schema';
 import type { StagedGame } from '@/lib/espn/map-boxscore';
 import { encodeRawPayload } from '@/lib/espn/raw-payload';
+import { assertInSeasonWindow, SeasonGateError, type SeasonWindow } from '@/lib/espn/season-gate';
 
 interface IdRow {
   id: string;
@@ -15,24 +16,23 @@ function assertOk(error: { message: string } | null, step: string): void {
   if (error) throw new Error(`${step}: ${error.message}`);
 }
 
-async function ensureSeason(db: NbaClient, staged: StagedGame): Promise<string> {
-  const { data: existing, error: selectError } = await db
+/**
+ * Szezon-kapu (T4) írás előtt: a szezonnak már léteznie kell (a migráció veszi
+ * fel – a közös tárhelykeretbe egyszerre egy szezon fér, ezért az import nem hoz
+ * létre újat), és a meccs napja a szezon határai közé esik.
+ */
+async function resolveSeason(db: NbaClient, staged: StagedGame): Promise<string> {
+  const { data, error } = await db
     .from('seasons')
-    .select('id')
+    .select('id, espn_year, start_date, end_date')
     .eq('espn_year', staged.season.espn_year)
-    .maybeSingle<IdRow>();
-  assertOk(selectError, 'seasons select');
-  if (existing) return existing.id;
-
-  // Új szezon: a kézzel beállított start/end dátumot nem írjuk felül, ezért
-  // csak beszúrunk (ütközésnél újraolvasunk).
-  const { error: insertError } = await db
-    .from('seasons')
-    .upsert(staged.season, { onConflict: 'espn_year', ignoreDuplicates: true });
-  assertOk(insertError, 'seasons insert');
-  const { data, error } = await db.from('seasons').select('id').eq('espn_year', staged.season.espn_year).single<IdRow>();
-  assertOk(error, 'seasons reselect');
-  return (data as IdRow).id;
+    .maybeSingle<IdRow & SeasonWindow>();
+  assertOk(error, 'seasons select');
+  if (!data) {
+    throw new SeasonGateError(`a ${staged.season.espn_year}-es szezon (${staged.season.name}) nincs felvéve az nba.seasons-ben`);
+  }
+  assertInSeasonWindow(staged.game.game_date, data);
+  return data.id;
 }
 
 async function upsertIdMap(
@@ -66,7 +66,7 @@ export interface WriteResult {
 }
 
 export async function writeGame(db: NbaClient, staged: StagedGame, rawPayload: unknown): Promise<WriteResult> {
-  const seasonId = await ensureSeason(db, staged);
+  const seasonId = await resolveSeason(db, staged);
   const teamIds = await upsertIdMap(db, 'teams', 'espn_team_id', staged.teams);
   const playerIds = staged.players.length > 0
     ? await upsertIdMap(db, 'players', 'espn_athlete_id', staged.players)

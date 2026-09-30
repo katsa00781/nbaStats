@@ -114,6 +114,7 @@ nbastats/
 │   │   ├── map-shots.ts        # koordináta → távolság / zóna / close-mid (CLOSE_MAX_FT = 8)
 │   │   ├── map-boxscore.ts     # summary → staged sorok ESPN ID-kkel + konzisztencia-figyelmeztetések
 │   │   ├── raw-payload.ts      # nyers summary ↔ gzip bytea hex literál (espn_game_raw.payload_gz)
+│   │   ├── season-gate.ts      # szezon-kapu (T4): szezontípus-szűrés + dátumablak
 │   │   └── write-game.ts       # upsert service role klienssel, ESPN ID → UUID feloldás
 │   ├── db-schema.ts            # DB_SCHEMA = 'nba', createNbaClient() + NbaClient – MINDEN Supabase kliens ezen át
 │   ├── supabase.ts             # böngészős kliens (globalThis singleton) + Database típus
@@ -370,7 +371,12 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - **Dobáskoordináta:** lábban, a kosár a (25, 0) pontban, az y a kosártól mért távolság. A büntetők érvénytelen koordinátát kapnak, ezeket kiszűrjük. A zónákat és a close/mid határt (8 láb) csak a `map-shots.ts` definiálja (T10).
 - **Heave:** a kihagyott negyedvégi „Heave Jump Shot” nem FGA az ESPN box score-ban, ezért nem kerül a `shot_events`-be és a close/mid bontásba (`isMissedHeave()`, `map-shots.ts`). A bedobott heave marad.
 - **ESPN ID nélküli játékos:** ha nincs statisztikája, a sort kihagyjuk, és `ℹ` tájékoztatást írunk (`notices`, nem `warnings`). Ha van statisztikája, `EspnSchemaError` (név alapján nem párosítunk, T2).
-- **Batch upsert előtt deduplikálni kell a kulcsra** (T5): ha egy batch-en belül ütközik a kulcs, a teljes insert elbukik.
+- **Batch upsert előtt deduplikálni kell a kulcsra** (T5): ha egy batch-en belül ütközik a kulcs, a teljes insert elbukik. A `map-boxscore.ts` szűr: azonos tartalmú dobás-ismétlés → `ℹ`, azonos play ID eltérő tartalommal vagy duplikált játékossor → `⚠`.
+- **Szezon-kapu (T4, `lib/espn/season-gate.ts`):**
+  - csak alapszakasz (2), rájátszás (3) és play-in (5); az előszezon `ℹ`-vel kimarad;
+  - élesben a szezonnak léteznie kell az `nba.seasons`-ben (az import nem hoz létre szezont), és a `game_date` a `start_date`/`end_date` közé esik, különben a meccs írás előtt elbukik;
+  - dry-runban a tág ablak (aug. 1. – júl. 31.) az ellenőrzés.
+- **Kilépési kód (T6):** 0 = rendben, 1 = legalább egy meccs elbukott, 2 = figyelmeztetés volt. A futás végén összesítő listázza a hibákat és figyelmeztetéseket; a `ℹ` tájékoztatás nem ront a kódon.
 - **Minden import szkriptnek van `--dry-run` módja**, ami DB nélkül validál és kiír.
 - **A nyers JSON gzip-elve az `espn_game_raw.payload_gz`-be kerül** (`lib/espn/raw-payload.ts`). Formátumváltáskor innen parse-olunk újra, nem töltünk le.
 - **Import-író változás csak push után hat** az ütemezett GitHub Actions futásra. A push is része a lezárásnak (T7).

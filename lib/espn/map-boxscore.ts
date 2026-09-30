@@ -3,7 +3,7 @@
 // feloldása az író (ingest) dolga. Tiszta függvények, hálózat és DB nélkül.
 
 import type { GameStatus, ShotZone, TableInsert } from '@/lib/supabase';
-import type { EspnGameSummary, EspnTeamBox } from '@/lib/espn/schemas';
+import type { EspnGameSummary, EspnShotPlay, EspnTeamBox } from '@/lib/espn/schemas';
 import { closeMidByAthlete, isMissedHeave, shotDistanceFt, shotZone } from '@/lib/espn/map-shots';
 
 type PlayerLineStats = Omit<TableInsert<'player_game_stats'>, 'game_id' | 'player_id' | 'team_id' | 'season_id'>;
@@ -110,12 +110,35 @@ function teamLine(box: EspnTeamBox, opponent: EspnTeamBox, points: number): Stag
   };
 }
 
+/**
+ * Batch upsert előtti dedup a (game_id, espn_play_id) kulcsra (T5): kulcsütközésnél
+ * a teljes batch elbukna. Azonos tartalmú ismétlés → egy marad, tájékoztatással;
+ * azonos ID eltérő tartalommal → az első marad, figyelmeztetéssel.
+ */
+function dedupeShots(shots: EspnShotPlay[], notices: string[], warnings: string[]): EspnShotPlay[] {
+  const byId = new Map<string, EspnShotPlay>();
+  let identical = 0;
+  for (const shot of shots) {
+    const first = byId.get(shot.playId);
+    if (!first) {
+      byId.set(shot.playId, shot);
+    } else if (JSON.stringify(first) === JSON.stringify(shot)) {
+      identical++;
+    } else {
+      warnings.push(`eltérő tartalmú dobás-esemény azonos ESPN play ID-val (${shot.playId}), az első maradt`);
+    }
+  }
+  if (identical > 0) notices.push(`${identical} duplikált dobás-esemény (azonos play ID és tartalom) kiszűrve`);
+  return [...byId.values()];
+}
+
 export function mapSummary(summary: EspnGameSummary): StagedGame {
   const [home, away] = summary.competitors;
   const warnings: string[] = [];
   const notices: string[] = [];
-  // Csak az FGA-nak számító dobások: a kihagyott heave-ek kiesnek (map-shots.ts).
-  const fieldGoalShots = summary.shots.filter(shot => !isMissedHeave(shot));
+  // Csak az FGA-nak számító dobások: a kihagyott heave-ek kiesnek (map-shots.ts),
+  // a duplikált play ID-k pedig még a close/mid bontás és az egyeztetés előtt.
+  const fieldGoalShots = dedupeShots(summary.shots.filter(shot => !isMissedHeave(shot)), notices, warnings);
   const closeMid = closeMidByAthlete(fieldGoalShots);
   const hasShots = summary.shots.length > 0;
 
@@ -130,6 +153,12 @@ export function mapSummary(summary: EspnGameSummary): StagedGame {
 
   for (const box of summary.teamBoxes) {
     for (const athlete of box.athletes) {
+      // A (game_id, player_id) kulcs egy batch-en belül nem ütközhet (T5); a
+      // duplikált játékossor kétes adat, ezért figyelmeztetés, nem csendes szűrés.
+      if (players.has(athlete.espnAthleteId)) {
+        warnings.push(`${box.espnTeamId}: duplikált játékossor (ESPN ${athlete.espnAthleteId}, ${athlete.name}), az első maradt`);
+        continue;
+      }
       players.set(athlete.espnAthleteId, {
         espn_athlete_id: athlete.espnAthleteId,
         name: athlete.name,

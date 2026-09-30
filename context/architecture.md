@@ -20,7 +20,8 @@ Azonos az ASEStatsszel, **Playwright nélkül**:
   - `schemas.ts`: validálás `unknown` → típusos alak, `EspnSchemaError`;
   - `map-shots.ts`: koordináta → távolság / zóna / close-mid;
   - `map-boxscore.ts`: összefoglaló → „staged” sorok ESPN ID-kkel + konzisztencia-figyelmeztetések;
-  - `write-game.ts`: upsert service role klienssel, ESPN ID → UUID feloldás.
+  - `season-gate.ts`: szezon-kapu (szezontípus + dátumablak, T4);
+  - `write-game.ts`: upsert service role klienssel, ESPN ID → UUID feloldás; írás előtt a szezon-kapu (a szezonnak léteznie kell).
 - Gyökér `ingest-*.ts`: CLI import szkriptek (dotenv `.env.local`), mindegyik `--dry-run` móddal.
 - `migrations/`: SQL, **csak kézzel** futtatva a Supabase SQL Editorban.
 

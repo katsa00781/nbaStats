@@ -246,9 +246,11 @@ function parseTeamBoxes(boxscore: Obj): EspnTeamBox[] {
   });
 }
 
-// A büntetőknél az ESPN érvénytelen koordinátát küld (≈ -2^31); a pálya
-// félpályás tartománya bőven -10..60 lábon belül van.
-const isCourtCoordinate = (x: number, y: number) => x >= -5 && x <= 55 && y >= -10 && y <= 60;
+// A büntetőknél az ESPN érvénytelen koordinátát küld (≈ -2^31). A pálya 94 láb
+// hosszú, a kosár 5,25 lábra van az alapvonaltól, így a saját térfélről dobott
+// távoli dobás y-ja kb. 89 lábig terjedhet (korábban y ≤ 60 volt, ami a 61–70
+// lábas dobásokat – köztük bedobott hármasokat – hibásan kiszűrte).
+const isCourtCoordinate = (x: number, y: number) => x >= -5 && x <= 55 && y >= -10 && y <= 95;
 
 function parseShots(plays: unknown[]): { shots: EspnShotPlay[]; skipped: number } {
   const shots: EspnShotPlay[] = [];

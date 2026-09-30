@@ -6,7 +6,10 @@ import type { GameStatus, ShotZone, TableInsert } from '@/lib/supabase';
 import type { EspnGameSummary, EspnShotPlay, EspnTeamBox } from '@/lib/espn/schemas';
 import { closeMidByAthlete, isMissedHeave, shotDistanceFt, shotZone } from '@/lib/espn/map-shots';
 
-type PlayerLineStats = Omit<TableInsert<'player_game_stats'>, 'game_id' | 'player_id' | 'team_id' | 'season_id'>;
+/** Csapatonként ennyi dobás-esemény ↔ FGA eltérés még csak tájékoztatás (döntés: 2026-09-30). */
+const SHOT_FGA_TOLERANCE = 3;
+
+type PlayerLineStats =Omit<TableInsert<'player_game_stats'>, 'game_id' | 'player_id' | 'team_id' | 'season_id'>;
 type TeamLineStats = Omit<TableInsert<'team_game_stats'>, 'game_id' | 'team_id' | 'opponent_team_id' | 'season_id'>;
 
 export interface StagedPlayerLine extends PlayerLineStats {
@@ -218,7 +221,13 @@ export function mapSummary(summary: EspnGameSummary): StagedGame {
     const shotCount = fieldGoalShots.filter(s => s.espnTeamId === line.espnTeamId).length;
     if (sumPoints !== line.points) warnings.push(`${line.espnTeamId}: játékospont-összeg ${sumPoints} ≠ csapatpont ${line.points}`);
     if (sumFga !== line.fga) warnings.push(`${line.espnTeamId}: játékos FGA-összeg ${sumFga} ≠ csapat FGA ${line.fga}`);
-    if (hasShots && shotCount !== line.fga) warnings.push(`${line.espnTeamId}: ${shotCount} dobás-esemény ≠ ${line.fga} FGA`);
+    if (hasShots && shotCount !== line.fga) {
+      const message = `${line.espnTeamId}: ${shotCount} dobás-esemény ≠ ${line.fga} FGA`;
+      // A play-by-play és a box score kis eltérése az ESPN-adat sajátja (2025/26: kb. 2%
+      // csapat-meccs, nem duplikáció) → tájékoztatás; ennél nagyobb eltérés figyelmeztetés.
+      if (Math.abs(shotCount - line.fga) <= SHOT_FGA_TOLERANCE) notices.push(message);
+      else warnings.push(message);
+    }
   }
 
   return {

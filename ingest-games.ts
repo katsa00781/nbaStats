@@ -20,6 +20,7 @@ import { easternDate, mapSummary, type StagedGame } from '@/lib/espn/map-boxscor
 import {
   assertInSeasonWindow,
   defaultSeasonWindow,
+  isFranchiseTeam,
   isIngestedSeasonType,
   type SeasonWindow,
 } from '@/lib/espn/season-gate';
@@ -144,6 +145,11 @@ async function processEvent(event: EspnScoreboardEvent, ctx: RunContext, stats: 
       console.log(`  ℹ ${event.name} (${event.id}): szezontípus ${staged.game.season_type}, kihagyva`);
       return;
     }
+    if (!isFranchiseTeam(staged.game.homeEspnTeamId) || !isFranchiseTeam(staged.game.awayEspnTeamId)) {
+      stats.skippedType++;
+      console.log(`  ℹ ${event.name} (${event.id}): nem NBA-csapatok (All-Star), kihagyva`);
+      return;
+    }
     if (ctx.verbose) printSummary(staged);
     else printCompact(staged);
     // Dry-runban nincs DB: a tág szezonablakot ellenőrizzük; élesben a writeGame
@@ -243,7 +249,7 @@ async function main(): Promise<void> {
   // Összesítő (T6): az ütemezett futás ne legyen „zöld” hiba vagy figyelmeztetés mellett.
   const skipped = [
     stats.skippedStored > 0 ? `${stats.skippedStored} már mentve` : '',
-    stats.skippedType > 0 ? `${stats.skippedType} szezontípus miatt kihagyva` : '',
+    stats.skippedType > 0 ? `${stats.skippedType} szezontípus / All-Star miatt kihagyva` : '',
   ].filter(Boolean).join(', ');
   console.log(`\nKész: ${stats.processed} meccs feldolgozva${skipped ? ` (${skipped})` : ''}, ${stats.failures.length} hiba.`);
   if (stats.warned.length > 0) {

@@ -326,6 +326,43 @@ export function parseSummary(json: unknown): EspnGameSummary {
   };
 }
 
+// ── Tabella: konferencia → divízió → csapat (standings?level=3) ───────────
+
+export interface EspnTeamAlignment {
+  espnTeamId: string;
+  /** ESPN rövid név: "East" | "West". */
+  conference: string;
+  /** Divízió neve, pl. "Atlantic". */
+  division: string;
+}
+
+/** A liga felosztása. Hiányzó szint vagy üres divízió EspnSchemaError. */
+export function parseDivisionStandings(json: unknown): EspnTeamAlignment[] {
+  const root = obj(json, 'standings');
+  const result: EspnTeamAlignment[] = [];
+  arr(root.children, 'standings.children').forEach((c, i) => {
+    const cPath = `standings.children[${i}]`;
+    const conference = obj(c, cPath);
+    const conferenceName = str(conference.abbreviation, `${cPath}.abbreviation`);
+    arr(conference.children, `${cPath}.children`).forEach((d, j) => {
+      const dPath = `${cPath}.children[${j}]`;
+      const division = obj(d, dPath);
+      const divisionName = str(division.name, `${dPath}.name`);
+      const entries = arr(obj(division.standings, `${dPath}.standings`).entries, `${dPath}.standings.entries`);
+      if (entries.length === 0) throw new EspnSchemaError(`${dPath}.standings.entries`, 'nem üres tömb');
+      entries.forEach((e, k) => {
+        const ePath = `${dPath}.standings.entries[${k}]`;
+        result.push({
+          espnTeamId: str(obj(obj(e, ePath).team, `${ePath}.team`).id, `${ePath}.team.id`),
+          conference: conferenceName,
+          division: divisionName,
+        });
+      });
+    });
+  });
+  return result;
+}
+
 // ── Csapat-menetrend (teams/{id}/schedule) ─────────────────────────────────
 
 export interface EspnScheduleEvent {

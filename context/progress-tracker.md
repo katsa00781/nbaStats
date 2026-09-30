@@ -50,7 +50,7 @@
    - ~~előbb a T4/T5/T6 teendők~~: kész (2026-09-30);
    - ~~`ingest-games.ts --season` visszatöltés~~: kész, 2025/26 betöltve;
    - ~~`ingest-schedule.ts` a jövőbeli meccsekhez~~: kész, a 2026/27 menetrendje (1200 meccs) bent van;
-   - `ingest-standings.ts` a konferencia- és divízióadatokkal;
+   - ~~`ingest-standings.ts` a konferencia- és divízióadatokkal~~: kész (2026-09-30);
    - GitHub Actions cron naponta 10:00 CET-kor.
 2. **Adat-hookok és alapnézetek:** Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella. Ide tartozik a `player_season_stats_by_season` view is (migráció 003).
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.

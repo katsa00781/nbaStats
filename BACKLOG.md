@@ -30,7 +30,8 @@ Szerkezet:
   - **Döntés (felhasználó):** All-Star kihagyás + törlés; a Cup-döntő marad; ±3-ig `ℹ`, fölötte `⚠`. A > 60 láb hibát javítottam; Olbrich marad `⚠` (a forrás hibás)
 - [x] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal (élesítve 2026-09-30: 1200 meccs a 2026/27-re)
 - [ ] A csapatonkénti 2 NBA Cup-függő alapszakasz-meccs (30 meccs) felvétele, amikor az ESPN közzéteszi – a napi `ingest-schedule` futás ezt magától elvégzi (a cronba be kell tenni)
-- [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
+- [x] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben (2026-09-30)
+- [ ] Döntés a Tabella nézet előtt: a győzelem–vereség a `games`-ből számolható, de a hivatalos kiemelés (seed), GB, sorozat és clinch jelzés csak az ESPN tabellában van → ezekhez új tábla kellene (séma-változtatás, rákérdezni)
 - [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
 
 ### Adatréteg és alapnézetek (roadmap 2.)
@@ -78,6 +79,12 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Konferencia és divízió (`ingest-standings.ts`) ✓
+
+- **Kód:** `fetchDivisionStandings()` (`client.ts`, második alap-URL: `apis/v2`); `parseDivisionStandings()` (`schemas.ts`: konferencia → divízió → csapat, üres divízió hiba); `lib/espn/write-teams.ts`: `checkAlignment()` (30 NBA-csapat, egyszer, 2 × 3 × 5 – eltérésnél nincs írás) és `writeTeamAlignment()` (csak a változott sort frissíti, új csapatot nem hoz létre); `ingest-standings.ts` + `npm run ingest:standings`.
+- **Értékek:** `conference` = ESPN rövid név (`East` / `West`), `division` = név (`Atlantic`, `Central`, `Southeast`, `Northwest`, `Pacific`, `Southwest`).
+- **Ellenőrzés:** célzott teszt (hiányzó + duplikált csapat, All-Star csapat → hibák); dry-run és éles `--season 2027`: 30 csapat változott, a második futás 0 (idempotens); a DB-ben 6 × 5 csapat, a valós NBA-felosztással egyezik. `tsc`, `eslint` hibátlan.
 
 ### 2026-09-30 – Menetrend-import (`ingest-schedule.ts`)
 

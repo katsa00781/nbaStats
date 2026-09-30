@@ -116,7 +116,8 @@ nbastats/
 │   │   ├── raw-payload.ts      # nyers summary ↔ gzip bytea hex literál (espn_game_raw.payload_gz)
 │   │   ├── season-gate.ts      # szezon-kapu (T4): szezontípus-szűrés + dátumablak
 │   │   ├── write-game.ts       # upsert service role klienssel, ESPN ID → UUID feloldás, requireSeason()
-│   │   └── write-schedule.ts   # menetrend (scheduled/postponed/canceled) – lezárt meccshez nem nyúl
+│   │   ├── write-schedule.ts   # menetrend (scheduled/postponed/canceled) – lezárt meccshez nem nyúl
+│   │   └── write-teams.ts      # konferencia/divízió a tabellából + szerkezeti ellenőrzés (2 × 3 × 5)
 │   ├── db-schema.ts            # DB_SCHEMA = 'nba', createNbaClient() + NbaClient – MINDEN Supabase kliens ezen át
 │   ├── supabase.ts             # böngészős kliens (globalThis singleton) + Database típus
 │   ├── supabase-admin.ts       # getSupabaseAdmin() – service role, csak szerver
@@ -133,6 +134,7 @@ nbastats/
 ├── context/                    # projekt spec és kontextus fájlok
 ├── ingest-games.ts             # CLI: npm run ingest:games -- --date YYYY-MM-DD | --season YYYY [--dry-run]
 ├── ingest-schedule.ts          # CLI: npm run ingest:schedule -- --season YYYY [--dry-run]
+├── ingest-standings.ts         # CLI: npm run ingest:standings -- --season YYYY [--dry-run]
 ├── BACKLOG.md
 └── .env.local                  # titkos változók – soha nem kerül git-be
 ```
@@ -146,7 +148,7 @@ A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben),
 | Tábla | Tartalom | Dedup kulcs |
 |-------|---------|-------------|
 | `seasons` | Szezonok; az `espn_year` a záró év (2026 = 2025/2026 betöltve, 2027 = 2026/2027 folyamatban) | `espn_year` |
-| `teams` | Csapatok (név, rövidítés, konferencia, divízió, logó) | `espn_team_id` |
+| `teams` | Csapatok (név, rövidítés, konferencia `East`/`West`, divízió pl. `Atlantic`, logó) | `espn_team_id` |
 | `players` | Játékos-törzsadat (név, pozíció, mez, headshot). A csapattagság NEM itt van | `espn_athlete_id` |
 | `games` | Meccsek: `home_team_id`, `away_team_id`, `home_score`, `away_score`, `status`, `season_type`, `game_date` (US Eastern) | `espn_event_id` |
 | `player_game_stats` | Játékos box score (egyetlen tábla `season_id`-val), `team_id` meccsenként, `did_not_play`, close/mid a dobásokból | `(game_id, player_id)` |
@@ -392,6 +394,7 @@ npm run ingest:games -- --season 2026                 # szezon-visszatöltés; a
 npm run ingest:games -- --season 2026 --from 2026-03-01 --to 2026-03-31   # részintervallum
 npm run ingest:schedule -- --season 2027 --dry-run    # menetrend validálása (30 csapat × 3 szezontípus)
 npm run ingest:schedule -- --season 2027              # jövőbeli meccsek írása; lezárt meccshez nem nyúl
+npm run ingest:standings -- --season 2027             # teams.conference (East/West) + division (Atlantic…)
 ```
 
 ---

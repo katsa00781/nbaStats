@@ -3,6 +3,8 @@
 // visszalépés. A válasz `unknown` – a validálás a schemas.ts dolga.
 
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+/** A tabella más útvonalon él (apis/v2), ugyanazzal a throttle-lel és retry-jal. */
+const ESPN_STANDINGS_BASE = 'https://site.api.espn.com/apis/v2/sports/basketball/nba';
 const MIN_INTERVAL_MS = 1000;
 const MAX_RETRIES = 3;
 
@@ -23,8 +25,8 @@ export class EspnHttpError extends Error {
   }
 }
 
-async function espnGet(path: string, params: Record<string, string> = {}): Promise<unknown> {
-  const url = new URL(`${ESPN_BASE}/${path}`);
+async function espnGet(path: string, params: Record<string, string> = {}, base = ESPN_BASE): Promise<unknown> {
+  const url = new URL(`${base}/${path}`);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
 
   for (let attempt = 0; ; attempt++) {
@@ -50,3 +52,7 @@ export const fetchSummary = (eventId: string) => espnGet('summary', { event: eve
  */
 export const fetchTeamSchedule = (espnTeamId: string, seasonYear: number, seasonType: number) =>
   espnGet(`teams/${espnTeamId}/schedule`, { season: String(seasonYear), seasontype: String(seasonType) });
+
+/** Tabella konferencia → divízió → csapat bontásban (`level=3`). */
+export const fetchDivisionStandings = (seasonYear: number) =>
+  espnGet('standings', { season: String(seasonYear), level: '3' }, ESPN_STANDINGS_BASE);

@@ -15,6 +15,16 @@ const RIM_MAX_FT = 4;
 /** Az NBA sarokhármas sávja: az alapvonaltól 14 lábig, a kosár ~5,25 lábra van az alapvonaltól. */
 const CORNER_MAX_Y = 14 - 5.25;
 
+/**
+ * Kihagyott negyedvégi „heave” (ESPN `type.text`: "Heave Jump Shot"): az ESPN box
+ * score nem számolja FGA-nak (2025/26, mérve: 2026-03-01, minden negyedben).
+ * Ezért nem kerül a `shot_events`-be és a close/mid bontásba. A bedobott heave
+ * pontot ér, így az FGM/FGA része – azt megtartjuk; ha mégsem egyezne, a
+ * dobásszám = FGA ellenőrzés jelzi.
+ */
+export const isMissedHeave = (shot: Pick<EspnShotPlay, 'typeText' | 'made'>): boolean =>
+  !shot.made && /\bheave\b/i.test(shot.typeText ?? '');
+
 export const shotDistanceFt = (x: number, y: number): number =>
   Math.round(Math.hypot(x - HOOP_X, y) * 10) / 10;
 

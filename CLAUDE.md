@@ -368,6 +368,8 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - Minden válasz a `lib/espn/schemas.ts`-en megy át. Új mezőt ott kell validálni, nem a leképezésben. Séma-eltérésnél `EspnSchemaError` jön, pontos útvonallal.
 - A `map-boxscore.ts` konzisztencia-figyelmeztetéseket ad: pontösszeg, FGA-összeg, dobásszám = FGA. **Ha figyelmeztetés jön, az adatot ellenőrizni kell, nem elnémítani** (T6, T19).
 - **Dobáskoordináta:** lábban, a kosár a (25, 0) pontban, az y a kosártól mért távolság. A büntetők érvénytelen koordinátát kapnak, ezeket kiszűrjük. A zónákat és a close/mid határt (8 láb) csak a `map-shots.ts` definiálja (T10).
+- **Heave:** a kihagyott negyedvégi „Heave Jump Shot” nem FGA az ESPN box score-ban, ezért nem kerül a `shot_events`-be és a close/mid bontásba (`isMissedHeave()`, `map-shots.ts`). A bedobott heave marad.
+- **ESPN ID nélküli játékos:** ha nincs statisztikája, a sort kihagyjuk, és `ℹ` tájékoztatást írunk (`notices`, nem `warnings`). Ha van statisztikája, `EspnSchemaError` (név alapján nem párosítunk, T2).
 - **Batch upsert előtt deduplikálni kell a kulcsra** (T5): ha egy batch-en belül ütközik a kulcs, a teljes insert elbukik.
 - **Minden import szkriptnek van `--dry-run` módja**, ami DB nélkül validál és kiír.
 - **A nyers JSON gzip-elve az `espn_game_raw.payload_gz`-be kerül** (`lib/espn/raw-payload.ts`). Formátumváltáskor innen parse-olunk újra, nem töltünk le.

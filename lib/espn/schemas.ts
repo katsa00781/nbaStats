@@ -106,6 +106,8 @@ export interface EspnTeamBox {
   /** statisztika-név → displayValue */
   stats: Record<string, string>;
   athletes: EspnAthleteLine[];
+  /** ESPN ID és statisztika nélküli, kihagyott sorok (rövid név vagy útvonal). */
+  skippedAthletes: string[];
 }
 
 export interface EspnShotPlay {
@@ -161,10 +163,21 @@ function parseCompetitor(raw: unknown, path: string): EspnCompetitor {
   };
 }
 
-function parseAthlete(raw: unknown, keys: string[], path: string): EspnAthleteLine {
+/** Üres stat-tömb, vagy minden érték nulla / üres ("0", "0-0", "+0", "--"). */
+const isStatless = (values: unknown[]): boolean =>
+  values.every(v => v === 0 || (typeof v === 'string' && /^(?:[+-]?0(?:-0)?|--)?$/.test(v)));
+
+/**
+ * ESPN ID nélküli sor: az ESPN néha csak `shortName`-mel küld egy keretbe frissen
+ * került, pályára nem lépett játékost (2026-03-01, MIL–CHI). Név alapján nem
+ * párosítunk (T2), ezért statisztika nélkül kihagyjuk (`null`); ha van
+ * statisztikája, az adatvesztés lenne → EspnSchemaError, mint eddig.
+ */
+function parseAthlete(raw: unknown, keys: string[], path: string): EspnAthleteLine | null {
   const line = obj(raw, path);
   const athlete = obj(line.athlete, `${path}.athlete`);
   const values = arr(line.stats, `${path}.stats`);
+  if (athlete.id === undefined && isStatless(values)) return null;
   const stats: Record<string, string> = {};
   // DNP játékosnál a stats tömb üres – ilyenkor nincs mit párosítani.
   if (values.length > 0) {
@@ -209,11 +222,21 @@ function parseTeamBoxes(boxscore: Obj): EspnTeamBox[] {
     const espnTeamId = str(obj(entry.team, `${path}.team`).id, `${path}.team.id`);
     const group = obj(arr(entry.statistics, `${path}.statistics`)[0], `${path}.statistics[0]`);
     const keys = arr(group.keys, `${path}.statistics[0].keys`).map((k, j) => str(k, `${path}.statistics[0].keys[${j}]`));
-    const athletes = arr(group.athletes, `${path}.statistics[0].athletes`)
-      .map((a, j) => parseAthlete(a, keys, `${path}.statistics[0].athletes[${j}]`));
+    const athletes: EspnAthleteLine[] = [];
+    const skippedAthletes: string[] = [];
+    arr(group.athletes, `${path}.statistics[0].athletes`).forEach((a, j) => {
+      const athletePath = `${path}.statistics[0].athletes[${j}]`;
+      const parsed = parseAthlete(a, keys, athletePath);
+      if (parsed) {
+        athletes.push(parsed);
+      } else {
+        const athlete = obj(obj(a, athletePath).athlete, `${athletePath}.athlete`);
+        skippedAthletes.push(optStr(athlete.shortName) ?? optStr(athlete.displayName) ?? athletePath);
+      }
+    });
     const team = teamStats.get(espnTeamId);
     if (!team) throw new EspnSchemaError(`boxscore.teams[team.id=${espnTeamId}]`, 'csapat-összesítő');
-    return { espnTeamId, homeAway: team.homeAway, stats: team.stats, athletes };
+    return { espnTeamId, homeAway: team.homeAway, stats: team.stats, athletes, skippedAthletes };
   });
 }
 

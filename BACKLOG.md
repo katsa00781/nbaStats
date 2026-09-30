@@ -15,8 +15,8 @@ Szerkezet:
 
 - [x] **Adatbázis-előkészítés (migráció 002):** gzip-elt nyers JSON, a 3 szezon határai, Lakers követett csapat.
 - [x] **Áthelyezés az `nba` sémába** a közös `ugkettlebell` projektben: a 001 + 002 összevonása egy `nba.`-minősített migrációba (csak a 2026-os szezon), jogosultságok, `createNbaClient()`, `Database` típus. **Kézi futtatás + Exposed schemas beállítás hátravan.**
-- [ ] **ESPN ID nélküli játékos a box score-ban** (2026-03-01, MIL–CHI, ESPN `401810725`: `athletes[10]` „Olbrich”, `athlete` csak `shortName`-mel, COACH'S DECISION). Most a teljes meccs elbukik `EspnSchemaError`-ral. Döntés kell (névpárosítás tilos, T2): a sor kihagyása figyelmeztetéssel és a csapat-összeg ellenőrzése, vagy a meccs elutasítása
-- [ ] **Dobásszám ≠ FGA: a „Heave Jump Shot” nem számít FGA-nak** (2026-03-01: 5 meccsen csapatonként +1). Kivizsgálva a nyers JSON-on: játékosszinten minden eltérés pontosan egy `type.text = "Heave Jump Shot"` dobás (pl. Brunson 2. negyed 0.4, Wembanyama 3. negyed 0.3, MPJ 4. negyed 0.1); az ESPN box score FGA-ja ezeket nem tartalmazza. Döntés kell: a heave kimaradjon a `shot_events`-ből / a close-mid bontásból, vagy flaggel tároljuk, és az egyeztetés vonja le. A figyelmeztetést nem szabad elnémítani (T6, T19)
+- [x] **ESPN ID nélküli játékos a box score-ban** (2026-03-01, MIL–CHI, ESPN `401810725`: `athletes[10]` „Olbrich”, `athlete` csak `shortName`-mel, COACH'S DECISION). Most a teljes meccs elbukik `EspnSchemaError`-ral. Döntés kell (névpárosítás tilos, T2): a sor kihagyása figyelmeztetéssel és a csapat-összeg ellenőrzése, vagy a meccs elutasítása. **Döntés:** statisztika nélkül kihagyjuk `ℹ` tájékoztatással, statisztikával továbbra is hiba
+- [x] **Dobásszám ≠ FGA: a „Heave Jump Shot” nem számít FGA-nak** (2026-03-01: 5 meccsen csapatonként +1). Kivizsgálva a nyers JSON-on: játékosszinten minden eltérés pontosan egy `type.text = "Heave Jump Shot"` dobás (pl. Brunson 2. negyed 0.4, Wembanyama 3. negyed 0.3, MPJ 4. negyed 0.1); az ESPN box score FGA-ja ezeket nem tartalmazza. Döntés kell: a heave kimaradjon a `shot_events`-ből / a close-mid bontásból, vagy flaggel tároljuk, és az egyeztetés vonja le. A figyelmeztetést nem szabad elnémítani (T6, T19). **Döntés:** a kihagyott heave kimarad, a bedobott marad
 - [ ] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
 - [ ] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
 - [ ] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
@@ -65,6 +65,20 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Heave-dobás és ESPN ID nélküli játékos ✓
+
+- **Döntés (felhasználó):** a heave-dobások kimaradnak; az ESPN ID és statisztika nélküli játékos sora kihagyható.
+- **`lib/espn/map-shots.ts`:** `isMissedHeave()`: csak a *kihagyott* heave esik ki (a bedobott pontot ér, így FGM/FGA-része).
+- **`lib/espn/map-boxscore.ts`:** a close/mid bontás, a dobásszám = FGA ellenőrzés és a `shots` csak az FGA-dobásokból; új `heavesExcluded` és `notices` mező.
+- **`lib/espn/schemas.ts`:** az ID nélküli sor csak akkor esik ki (`skippedAthletes`), ha nincs statisztikája (üres, vagy minden érték 0 / `0-0` / `--`); statisztikával továbbra is `EspnSchemaError`.
+- **`ingest-games.ts`:** kiírja a kihagyott heave-ek számát és az `ℹ` tájékoztatást.
+- **Adatjavítás:** az első importból maradt 5 kihagyott heave törölve az `nba.shot_events`-ből (az upsert nem töröl).
+- **Ellenőrzés:**
+  - dry-run és éles import 2026-03-01: 11/11 meccs, figyelmeztetés nélkül, `ℹ` az Olbrich-sorra;
+  - DB: 11 meccs, 287 játékos-sor, 1909 dobás; 22/22 csapatsor dobásszám = FGA; minden játékosnál close + mid = kétpontos kísérlet;
+  - célzott teszt: statisztikával rendelkező ID nélküli sor → `EspnSchemaError`; bedobott heave megmarad;
+  - `tsc`, `eslint` hibátlan.
 
 ### 2026-09-30 – Első éles import az `nba` sémába ✓
 

@@ -4,7 +4,7 @@
 
 import type { GameStatus, ShotZone, TableInsert } from '@/lib/supabase';
 import type { EspnGameSummary, EspnTeamBox } from '@/lib/espn/schemas';
-import { closeMidByAthlete, shotDistanceFt, shotZone } from '@/lib/espn/map-shots';
+import { closeMidByAthlete, isMissedHeave, shotDistanceFt, shotZone } from '@/lib/espn/map-shots';
 
 type PlayerLineStats = Omit<TableInsert<'player_game_stats'>, 'game_id' | 'player_id' | 'team_id' | 'season_id'>;
 type TeamLineStats = Omit<TableInsert<'team_game_stats'>, 'game_id' | 'team_id' | 'opponent_team_id' | 'season_id'>;
@@ -45,8 +45,12 @@ export interface StagedGame {
   playerLines: StagedPlayerLine[];
   teamLines: StagedTeamLine[];
   shots: StagedShot[];
+  /** Kihagyott heave-dobások száma (nem FGA, lásd `isMissedHeave`). */
+  heavesExcluded: number;
   /** Belső konzisztencia-ellenőrzés eredménye; üres = rendben. */
   warnings: string[];
+  /** Tájékoztató: szándékos, szabály szerinti kihagyások (nem adathiba). */
+  notices: string[];
 }
 
 /** "5-9" → [5, 9]; hiányzó érték → [0, 0]. */
@@ -109,8 +113,17 @@ function teamLine(box: EspnTeamBox, opponent: EspnTeamBox, points: number): Stag
 export function mapSummary(summary: EspnGameSummary): StagedGame {
   const [home, away] = summary.competitors;
   const warnings: string[] = [];
-  const closeMid = closeMidByAthlete(summary.shots);
+  const notices: string[] = [];
+  // Csak az FGA-nak számító dobások: a kihagyott heave-ek kiesnek (map-shots.ts).
+  const fieldGoalShots = summary.shots.filter(shot => !isMissedHeave(shot));
+  const closeMid = closeMidByAthlete(fieldGoalShots);
   const hasShots = summary.shots.length > 0;
+
+  for (const box of summary.teamBoxes) {
+    for (const name of box.skippedAthletes) {
+      notices.push(`${box.espnTeamId}: ESPN ID és statisztika nélküli játékos kihagyva (${name})`);
+    }
+  }
 
   const players = new Map<string, TableInsert<'players'>>();
   const playerLines: StagedPlayerLine[] = [];
@@ -173,7 +186,7 @@ export function mapSummary(summary: EspnGameSummary): StagedGame {
     const own = playerLines.filter(p => p.espnTeamId === line.espnTeamId);
     const sumPoints = own.reduce((acc, p) => acc + p.points, 0);
     const sumFga = own.reduce((acc, p) => acc + p.fga, 0);
-    const shotCount = summary.shots.filter(s => s.espnTeamId === line.espnTeamId).length;
+    const shotCount = fieldGoalShots.filter(s => s.espnTeamId === line.espnTeamId).length;
     if (sumPoints !== line.points) warnings.push(`${line.espnTeamId}: játékospont-összeg ${sumPoints} ≠ csapatpont ${line.points}`);
     if (sumFga !== line.fga) warnings.push(`${line.espnTeamId}: játékos FGA-összeg ${sumFga} ≠ csapat FGA ${line.fga}`);
     if (hasShots && shotCount !== line.fga) warnings.push(`${line.espnTeamId}: ${shotCount} dobás-esemény ≠ ${line.fga} FGA`);
@@ -206,7 +219,7 @@ export function mapSummary(summary: EspnGameSummary): StagedGame {
     },
     playerLines,
     teamLines,
-    shots: summary.shots.map(shot => ({
+    shots: fieldGoalShots.map(shot => ({
       espnPlayId: shot.playId,
       espnTeamId: shot.espnTeamId,
       espnAthleteId: shot.espnAthleteId,
@@ -220,6 +233,8 @@ export function mapSummary(summary: EspnGameSummary): StagedGame {
       made: shot.made,
       shotType: shot.typeText,
     })),
+    heavesExcluded: summary.shots.length - fieldGoalShots.length,
     warnings,
+    notices,
   };
 }

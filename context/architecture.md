@@ -48,7 +48,7 @@ A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/s
 - `shot_events`: UNIQUE `(game_id, espn_play_id)`.
   - Nyers koordináta lábban, a kosár a (25, 0) pontban.
   - A `distance_ft` és a `zone` (rim/paint/mid/corner3/above_break3) számított.
-  - Büntető nem kerül ide.
+  - Büntető és kihagyott heave-dobás nem kerül ide (egyik sem FGA).
 - `espn_game_raw`: a nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, kb. 38 KB/meccs), újra-parse-oláshoz. Kódolás/dekódolás: `lib/espn/raw-payload.ts`.
 - `app_settings`: egysoros tábla, `followed_team_id` = követett csapat: **Los Angeles Lakers** (ESPN `13`).
 - `seasons` start/end: a migráció tölti ki az ESPN szezonablakából (csak 2026 = 2025/2026); ehhez veti a szezon-kapu a `game_date`-et.

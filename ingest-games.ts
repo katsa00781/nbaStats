@@ -51,7 +51,8 @@ function printSummary(staged: StagedGame): void {
   }, {});
 
   console.log(`\n${game.game_date}  ${away} ${game.away_score} @ ${home} ${game.home_score}  [${game.status}, ${game.periods} negyed, ESPN ${game.espn_event_id}]`);
-  console.log(`  játékos-sorok: ${staged.playerLines.length} (pályán: ${played.length}), csapat-sorok: ${staged.teamLines.length}, dobások: ${staged.shots.length}`);
+  console.log(`  játékos-sorok: ${staged.playerLines.length} (pályán: ${played.length}), csapat-sorok: ${staged.teamLines.length}, dobások: ${staged.shots.length}` +
+    (staged.heavesExcluded > 0 ? ` (+${staged.heavesExcluded} kihagyott heave, nem FGA)` : ''));
   console.log(`  zónák: ${Object.entries(zones).map(([zone, n]) => `${zone}=${n}`).join(', ')}`);
 
   const top = [...played].sort((a, b) => b.points - a.points).slice(0, 3);
@@ -63,6 +64,7 @@ function printSummary(staged: StagedGame): void {
       `close ${line.close_made}-${line.close_attempted}  mid ${line.mid_made}-${line.mid_attempted}  +/- ${line.plus_minus}`,
     );
   }
+  for (const notice of staged.notices) console.log(`  ℹ ${notice}`);
   for (const warning of staged.warnings) console.warn(`  ⚠ ${warning}`);
 }
 

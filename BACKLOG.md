@@ -16,7 +16,7 @@ Szerkezet:
 - [x] **Adatbázis-előkészítés (migráció 002):** gzip-elt nyers JSON, a 3 szezon határai, Lakers követett csapat.
 - [x] **Áthelyezés az `nba` sémába** a közös `ugkettlebell` projektben: a 001 + 002 összevonása egy `nba.`-minősített migrációba (csak a 2026-os szezon), jogosultságok, `createNbaClient()`, `Database` típus. **Kézi futtatás + Exposed schemas beállítás hátravan.**
 - [ ] **ESPN ID nélküli játékos a box score-ban** (2026-03-01, MIL–CHI, ESPN `401810725`: `athletes[10]` „Olbrich”, `athlete` csak `shortName`-mel, COACH'S DECISION). Most a teljes meccs elbukik `EspnSchemaError`-ral. Döntés kell (névpárosítás tilos, T2): a sor kihagyása figyelmeztetéssel és a csapat-összeg ellenőrzése, vagy a meccs elutasítása
-- [ ] **Dobásszám ≠ FGA** (2026-03-01, CLE–BKN, ESPN `401810724`: 76 dobás-esemény ≠ 75 FGA). Ki kell vizsgálni, nem elnémítani (T6, T19); valószínűleg ide kapcsolódik a T5 dobás-dedup
+- [ ] **Dobásszám ≠ FGA: a „Heave Jump Shot” nem számít FGA-nak** (2026-03-01: 5 meccsen csapatonként +1). Kivizsgálva a nyers JSON-on: játékosszinten minden eltérés pontosan egy `type.text = "Heave Jump Shot"` dobás (pl. Brunson 2. negyed 0.4, Wembanyama 3. negyed 0.3, MPJ 4. negyed 0.1); az ESPN box score FGA-ja ezeket nem tartalmazza. Döntés kell: a heave kimaradjon a `shot_events`-ből / a close-mid bontásból, vagy flaggel tároljuk, és az egyeztetés vonja le. A figyelmeztetést nem szabad elnémítani (T6, T19)
 - [ ] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
 - [ ] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
 - [ ] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
@@ -65,6 +65,13 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Első éles import az `nba` sémába ✓
+
+- A felhasználó lefuttatta a 001-et és kitette az `nba` sémát a Data API-ra. REST-ellenőrzés: `service_role` olvassa a `nba.seasons`-t (1 sor, 2026), `anon` → `42501`, az ASEStats `public.games` továbbra is 200.
+- `npm run ingest:games -- --date 2026-03-01`: 10/11 meccs mentve (MIL–CHI: ESPN ID nélküli játékos). A második futás után a sorszám változatlan (10 meccs, 263 játékos-sor, 20 csapat-sor, 1735 dobás, 10 nyers JSON): idempotens.
+- A nyers payload bináris gzip (`1f 8b`), 37–40 KB/meccs. A projekt 130 MB-on áll.
+- 5 dobás/FGA figyelmeztetés: az ok a heave-dobás (új nyitott feladat).
 
 ### 2026-09-30 – Áthelyezés az `nba` sémába ✓
 

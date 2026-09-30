@@ -31,16 +31,14 @@
 - **Kész:** a 001 + 002 összevonva egy `nba.`-minősített `migrations/001-initial-schema.sql`-be (csak a 2026-os szezon, jogosultságok az `nba` sémára); a 002 törölve.
 - **Kész:** `lib/db-schema.ts` (`createNbaClient()`, `NbaClient`); a böngészős, az admin és a CLI kliens ezen át az `nba` sémát használja. A `Database` típus kulcsa `nba`.
 - Ellenőrzés: a migráció PGlite-on (Postgres 17.5), Supabase-szerű szerepkörökkel és ütköző `public.games` táblával kétszer lefutott; a `public` érintetlen, az `authenticated` olvas, de nem ír, az `anon` nem olvas, a `service_role` ír (identity táblákba is). `tsc`, `eslint`, `build` hibátlan.
-- A 2026-03-01-i dry-run (11 meccs) két ingest-problémát hozott elő (lásd `BACKLOG.md`): ESPN ID nélküli játékos (MIL–CHI), és egy dobásszám ≠ FGA figyelmeztetés (CLE–BKN).
+- Első éles import (2026-03-01): 10/11 meccs, idempotens, a projekt 130 MB. Két ingest-probléma nyitott (lásd `BACKLOG.md`): ESPN ID nélküli játékos (MIL–CHI), és a heave-dobás, ami nem számít FGA-nak (5 figyelmeztetés).
 
 ## Kézi teendők (felhasználó)
 
-1. Az `ugkettlebell` projekt SQL Editorában: `migrations/001-initial-schema.sql` (csak ez az egy fájl).
-   - Ellenőrzés: `select espn_year, start_date, end_date from nba.seasons;` → 1 sor (2026); `select t.abbreviation from nba.app_settings s join nba.teams t on t.id = s.followed_team_id;` → `LAL`.
-2. Dashboard → Settings → API (Data API) → **Exposed schemas**: az `nba` hozzáadása. Enélkül a kliens `PGRST106` / „schema must be one of” hibát kap.
+1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
+2. ~~Első éles import + ismétlés~~: kész (2026-03-01, 10/11 meccs, idempotens).
 3. A `.env.local` 8. sorának javítása: az `ANTHROPIC_API_KEY` értéke után hiányzik a sortörés, a végére ragadt `NEXT_PUBLIC_SUPABASE_URL=` maradékot törölni kell. A Supabase-változók maradhatnak (`ugkettlebell`).
-4. Első éles import: `npm run ingest:games -- --date 2026-03-01` (a 2026-os szezon-sor miatt). Az ESPN ID nélküli játékos miatt 1 meccs jelenleg elbukik, lásd `BACKLOG.md`. Ezt egy második futtatással érdemes megismételni; a sorszám nem nőhet.
-5. Admin felhasználó: az Auth közös az ASEStatsszel, így a meglévő ASEStats admin (`user_metadata.role = "admin"`) itt is admin.
+4. Admin felhasználó: az Auth közös az ASEStatsszel, így a meglévő ASEStats admin (`user_metadata.role = "admin"`) itt is admin.
 
 ## Következő lépések (roadmap)
 

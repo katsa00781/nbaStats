@@ -21,12 +21,13 @@ Szerkezet:
 - [x] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
 - [x] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
 - [x] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25–30 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja. Scope: 2026 (2025/26); `season_type` 2, 3, 5 (előszezon nélkül)
-- [ ] **A visszatöltés utáni adatminőségi döntések** (2026-09-30, részletek a történetben):
+- [x] **A visszatöltés utáni adatminőségi döntések** (2026-09-30, részletek a történetben):
   - All-Star meccsek (4) és álcsapatok (3) az alapszakaszban (ESPN `season.type = 2`);
   - NBA Cup döntő (`401809839`, NY–SA) a hivatalos alapszakasz-statisztikán kívül esik;
   - hosszú (> 60 láb) dobások a pályán-kívüli koordináta-szűrő miatt kiesnek (5 eset) – hiba;
   - Olbrich (CHI) ESPN-rekordja ID és statisztika nélküli, de 13 meccsen játszott (csapatösszeg-eltérés);
   - play-by-play ↔ box score ±1–3 dobás/FGA eltérés kb. 50 csapat-meccsen (kb. 2%), nem duplikáció, nem shooting foul
+  - **Döntés (felhasználó):** All-Star kihagyás + törlés; a Cup-döntő marad; ±3-ig `ℹ`, fölötte `⚠`. A > 60 láb hibát javítottam; Olbrich marad `⚠` (a forrás hibás)
 - [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal
 - [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
 - [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
@@ -67,10 +68,21 @@ Szerkezet:
 - Az ESPN API nem hivatalos. Formátumváltáskor a `lib/espn/schemas.ts` pontos útvonallal hibát dob, a nyers JSON pedig az `espn_game_raw`-ból újra-parse-olható.
 - A dobáskoordináta 1 láb felbontású.
 - Ha az ESPN utólag töröl egy dobás-eseményt, az a `shot_events`-ben megmarad (upsert, törlés nincs).
+- A play-by-play és a box score az ESPN-adatban kb. 2% csapat-meccsen ±1–3 dobással eltér; ezért kb. 0,3% játékossornál `close + mid ≠ FGA − 3PA`. Kísérletszámhoz a box score, zónaarányhoz a dobás-események a forrás.
+- Olbrich (CHI) ESPN-rekordja ID és statisztika nélküli, de 12 meccsen játszott: ezeken a CHI játékossorainak összege kisebb a csapatsornál (a csapatsor helyes). Az ESPN javításáig ez `⚠`.
+- Az NBA Cup döntője alapszakasz-meccsként bent van (NY, SA: 83 meccs).
 
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Adatminőségi javítások a visszatöltés után ✓ (commit `ce438a3`)
+
+- **Kód:** `isFranchiseTeam()` (ESPN ID 1–30) a `season-gate.ts`-ben, az ingest ez alapján hagyja ki az All-Start; `SHOT_FGA_TOLERANCE = 3` a `map-boxscore.ts`-ben; `isCourtCoordinate` y ≤ 95 (eddig 60) a `schemas.ts`-ben.
+- **Újraparse a nyers JSON-ból** (mind az 1326 meccs, letöltés nélkül): 19 `⚠` marad, mind az Olbrich-féle CHI-meccsekről; 4 meccs dobásszáma +1.
+- **Adatjavítás:** 4 All-Star meccs (cascade-del a soraik) és 3 álcsapat törölve; a 4 érintett nap (2025-10-27, 2025-11-17, 2026-01-17, 2026-03-18) újraimportálva, exit 0.
+- **Ellenőrzés:** 30 csapat; 28 × 82 + 2 × 83 alapszakasz-meccs; 1231 + 85 + 6 = 1322 meccs; 234 884 dobás; árva játékos nincs; a 4 javított meccs dobásszáma +1. `tsc`, `eslint` hibátlan.
+- **Tanulság:** a saját elemző szkriptben is előjött a T1 (1000 soros csonkolás) – ott is `fetchAllRows` kell.
 
 ### 2026-09-30 – 2025/26-os szezon visszatöltése ✓ (figyelmeztetésekkel)
 

@@ -376,6 +376,8 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
   - csak alapszakasz (2), rájátszás (3) és play-in (5); az előszezon `ℹ`-vel kimarad;
   - élesben a szezonnak léteznie kell az `nba.seasons`-ben (az import nem hoz létre szezont), és a `game_date` a `start_date`/`end_date` közé esik, különben a meccs írás előtt elbukik;
   - dry-runban a tág ablak (aug. 1. – júl. 31.) az ellenőrzés.
+- **All-Star és NBA Cup:** az All-Star meccseket az ESPN alapszakaszként jelöli (álcsapatokkal): csak a 30 NBA-csapat (ESPN ID 1–30, `isFranchiseTeam()`) meccse kerül be. Az NBA Cup döntője bent marad (döntés: 2026-09-30), így a két döntősnek 83 alapszakasz-meccse van.
+- **Dobás ↔ FGA tűrés:** csapatonként legfeljebb 3 eltérés `ℹ` (a play-by-play és a box score eltérése az ESPN-adat sajátja), nagyobb `⚠`. A kísérletszám mindig a box score-ból jön; a close/mid a play-by-play-ből, ezért kb. 0,3% játékossornál `close + mid ≠ FGA − 3PA`.
 - **Kilépési kód (T6):** 0 = rendben, 1 = legalább egy meccs elbukott, 2 = figyelmeztetés volt. A futás végén összesítő listázza a hibákat és figyelmeztetéseket; a `ℹ` tájékoztatás nem ront a kódon.
 - **Minden import szkriptnek van `--dry-run` módja**, ami DB nélkül validál és kiír.
 - **A nyers JSON gzip-elve az `espn_game_raw.payload_gz`-be kerül** (`lib/espn/raw-payload.ts`). Formátumváltáskor innen parse-olunk újra, nem töltünk le.

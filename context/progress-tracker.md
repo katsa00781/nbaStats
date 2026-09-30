@@ -33,7 +33,7 @@
 - Ellenőrzés: a migráció PGlite-on (Postgres 17.5), Supabase-szerű szerepkörökkel és ütköző `public.games` táblával kétszer lefutott; a `public` érintetlen, az `authenticated` olvas, de nem ír, az `anon` nem olvas, a `service_role` ír (identity táblákba is). `tsc`, `eslint`, `build` hibátlan.
 - Első éles import (2026-03-01): idempotens, a projekt 130 MB.
 - Heave és ESPN ID nélküli játékos kezelve (2026-09-30): a kihagyott heave nem kerül a dobások közé, az ID és statisztika nélküli sor `ℹ` tájékoztatással kimarad. A 2026-03-01-i nap 11/11 meccse figyelmeztetés nélkül bent van.
-- **2025/26-os szezon betöltve (2026-09-30):** 1326 meccs, 235e dobás, az `nba` séma 130 MB (projekt: 259 / 500 MB). 72 figyelmeztetés, az okok feltárva, döntésre várnak (`BACKLOG.md`).
+- **2025/26-os szezon betöltve és javítva (2026-09-30):** 1322 meccs (alapszakasz 1231 a Cup-döntővel, rájátszás 85, play-in 6), 30 csapat, 234 884 dobás; az `nba` séma kb. 130 MB (projekt: 259 / 500 MB). Az All-Star meccsek törölve, a hosszú dobások javítva, a ±3-ig terjedő dobás/FGA eltérés `ℹ`. Maradék `⚠`: Olbrich hibás ESPN-rekordja (12 CHI-meccs).
 - Szezon-kapu, dedup és exit kód kész (T4, T5, T6, 2026-09-30): az import nem hoz létre szezont, a szezonon kívüli meccset írás előtt elutasítja, az előszezont kihagyja; exit 0 / 1 / 2 összesítővel.
 
 ## Kézi teendők (felhasználó)

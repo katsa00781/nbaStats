@@ -20,7 +20,13 @@ Szerkezet:
 - [x] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
 - [x] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
 - [x] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
-- [ ] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25–30 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja. Scope: 2026 (2025/26); `season_type` 2, 3, 5 (előszezon nélkül)
+- [x] `ingest-games.ts --season <év>` visszatöltés (throttle 1 mp, kb. 25–30 perc/szezon), folytatható módon: a már `final` + nyers JSON-nal rendelkező meccset kihagyja. Scope: 2026 (2025/26); `season_type` 2, 3, 5 (előszezon nélkül)
+- [ ] **A visszatöltés utáni adatminőségi döntések** (2026-09-30, részletek a történetben):
+  - All-Star meccsek (4) és álcsapatok (3) az alapszakaszban (ESPN `season.type = 2`);
+  - NBA Cup döntő (`401809839`, NY–SA) a hivatalos alapszakasz-statisztikán kívül esik;
+  - hosszú (> 60 láb) dobások a pályán-kívüli koordináta-szűrő miatt kiesnek (5 eset) – hiba;
+  - Olbrich (CHI) ESPN-rekordja ID és statisztika nélküli, de 13 meccsen játszott (csapatösszeg-eltérés);
+  - play-by-play ↔ box score ±1–3 dobás/FGA eltérés kb. 50 csapat-meccsen (kb. 2%), nem duplikáció, nem shooting foul
 - [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal
 - [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
 - [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
@@ -65,6 +71,16 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – 2025/26-os szezon visszatöltése ✓ (figyelmeztetésekkel)
+
+- **Kód (`c62af9e`):** `ingest-games.ts --season <év> [--from] [--to]`; a napok a `nba.seasons` határai között (legfeljebb a mai napig); a már mentett meccs (van nyers JSON) kimarad; a scoreboard `season.type`-ja alapján az előszezonra summary sem megy; egy nap scoreboard-hibája nem állítja le a futást; egysoros kiírás.
+- **Futás:** `--season 2026`, kb. 25 perc: 1311 új meccs (+ 15 korábban), 71 szezontípus miatt kihagyva, 0 hiba, 72 figyelmeztetés, exit 2.
+- **DB:** 1326 meccs (alapszakasz 1235, rájátszás 85, play-in 6), 33 csapat, 591 játékos, 34 850 játékos-sor, 235 131 dobás; minden meccshez van nyers JSON. Az `nba` séma 130 MB, a projekt 259 MB / 500 MB.
+- **Vizsgálat (nyers JSON-ból, letöltés nélkül):**
+  - 1235 alapszakasz = 1230 + NBA Cup döntő (NY–SA 2025-12-16) + 4 All-Star meccs (2026-02-15, Team Stars / Team Stripes / World);
+  - 12 játékos-FGA- és 7 pontösszeg-eltérés, mind Chicago: az ID nélküli Olbrich-sor csupa nullát mutat, de a csapatösszegből hiányzik (pl. 82 vs 91 pont) → az ESPN-rekord hibás, a játékos valójában játszott. A csapatsor helyes, a játékossora hiányzik;
+  - dobás/FGA: 5 × > 60 láb távoli dobás (köztük 2 bedobott hármas) a `isCourtCoordinate` y ≤ 60 feltétele miatt kiesett (**hiba**); 1 dobó nélküli „No Shot (Default Shot)”; a többi ±1–3 a play-by-play és a box score eltérése (62 játékos-többlet, ebből 1 azonos szövegű ismétlés; shooting foul-lal egy sem magyarázható).
 
 ### 2026-09-30 – Szezon-kapu, dedup, exit kód (T4, T5, T6) ✓
 

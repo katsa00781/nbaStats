@@ -382,8 +382,10 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - **Import-író változás csak push után hat** az ütemezett GitHub Actions futásra. A push is része a lezárásnak (T7).
 
 ```bash
-npm run ingest:games -- --date 2025-03-01 --dry-run   # validálás DB nélkül
-npm run ingest:games -- --date 2025-03-01             # írás Supabase-be
+npm run ingest:games -- --date 2026-03-01 --dry-run   # validálás DB nélkül
+npm run ingest:games -- --date 2026-03-01             # egy nap írása Supabase-be (mindig újraírja)
+npm run ingest:games -- --season 2026                 # szezon-visszatöltés; a már mentett meccseket kihagyja
+npm run ingest:games -- --season 2026 --from 2026-03-01 --to 2026-03-31   # részintervallum
 ```
 
 ---

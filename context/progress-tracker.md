@@ -33,6 +33,7 @@
 - Ellenőrzés: a migráció PGlite-on (Postgres 17.5), Supabase-szerű szerepkörökkel és ütköző `public.games` táblával kétszer lefutott; a `public` érintetlen, az `authenticated` olvas, de nem ír, az `anon` nem olvas, a `service_role` ír (identity táblákba is). `tsc`, `eslint`, `build` hibátlan.
 - Első éles import (2026-03-01): idempotens, a projekt 130 MB.
 - Heave és ESPN ID nélküli játékos kezelve (2026-09-30): a kihagyott heave nem kerül a dobások közé, az ID és statisztika nélküli sor `ℹ` tájékoztatással kimarad. A 2026-03-01-i nap 11/11 meccse figyelmeztetés nélkül bent van.
+- **2025/26-os szezon betöltve (2026-09-30):** 1326 meccs, 235e dobás, az `nba` séma 130 MB (projekt: 259 / 500 MB). 72 figyelmeztetés, az okok feltárva, döntésre várnak (`BACKLOG.md`).
 - Szezon-kapu, dedup és exit kód kész (T4, T5, T6, 2026-09-30): az import nem hoz létre szezont, a szezonon kívüli meccset írás előtt elutasítja, az előszezont kihagyja; exit 0 / 1 / 2 összesítővel.
 
 ## Kézi teendők (felhasználó)
@@ -46,7 +47,7 @@
 
 1. **Ingest teljesítése:**
    - ~~előbb a T4/T5/T6 teendők~~: kész (2026-09-30);
-   - `ingest-games.ts --season` visszatöltés;
+   - ~~`ingest-games.ts --season` visszatöltés~~: kész, 2025/26 betöltve;
    - `ingest-schedule.ts` a jövőbeli meccsekhez;
    - `ingest-standings.ts` a konferencia- és divízióadatokkal;
    - GitHub Actions cron naponta 10:00 CET-kor.

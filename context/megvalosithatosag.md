@@ -51,7 +51,7 @@ Az ESPN `summary` végpont tartalma:
 3. **Adatmennyiség.**
    - Egy szezon kb. 1320 meccs, ebből kb. 34e játékos-sor és 225e dobás, összesen kb. 50–60 MB.
    - Mérés (2026-09-30): egy summary gzip-elve kb. 38 KB, 150–180 mezőnydobással. Egy szezon a nyers JSON-nal együtt kb. 130–170 MB.
-   - A free tier 500 MB-ja közös az ASEStatsszel (az ASEStats 129 MB), ezért egyszerre egy szezont tárolunk. Teljes play-by-play-jel már fizetős tier kellene.
+   - A free tier 500 MB-ja közös az ASEStatsszel (az ASEStats 129 MB). Mérés a betöltés után: egy szezon kb. 130 MB, így két szezon fér el (2026-09-30). Teljes play-by-play-jel már fizetős tier kellene.
 4. **Visszatöltés.** Szezononként kb. 1320 hívás; 1 kérés/mp tempóval kb. 25 perc.
 
 ## Újrahasznosítási térkép (ASEStats → NBAStats)

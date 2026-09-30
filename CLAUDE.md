@@ -139,11 +139,11 @@ nbastats/
 
 ## Adatbázis táblák (Supabase PostgreSQL)
 
-A séma a `migrations/001-initial-schema.sql`-ben van, **minden tábla az `nba` Postgres sémában**. A TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben), **minden tábla az `nba` Postgres sémában**. A TS-tükre a `lib/supabase.ts` `Database` típusa.
 
 | Tábla | Tartalom | Dedup kulcs |
 |-------|---------|-------------|
-| `seasons` | Szezonok; az `espn_year` a záró év (2026 = 2025/2026, ez az egyetlen betöltött szezon) | `espn_year` |
+| `seasons` | Szezonok; az `espn_year` a záró év (2026 = 2025/2026 betöltve, 2027 = 2026/2027 folyamatban) | `espn_year` |
 | `teams` | Csapatok (név, rövidítés, konferencia, divízió, logó) | `espn_team_id` |
 | `players` | Játékos-törzsadat (név, pozíció, mez, headshot). A csapattagság NEM itt van | `espn_athlete_id` |
 | `games` | Meccsek: `home_team_id`, `away_team_id`, `home_score`, `away_score`, `status`, `season_type`, `game_date` (US Eastern) | `espn_event_id` |
@@ -157,7 +157,7 @@ A séma a `migrations/001-initial-schema.sql`-ben van, **minden tábla az `nba` 
   - Minden NBAStats SQL `nba.`-minősített; migráció a `public` sémához nem nyúlhat.
   - Minden Supabase kliens a `createNbaClient()`-tel jön létre (`lib/db-schema.ts`, `db: { schema: 'nba' }`); közvetlen `createClient()` nem lehet. A kliens típusa `NbaClient`.
   - Az `nba` séma a Supabase Dashboardon ki van téve az API-ra (Settings → API → Exposed schemas).
-- **Tárhelykeret:** a free tier 500 MB-ja közös az ASEStatsszel (2026-09-30: ASEStats 129 MB; egy NBA szezon becslése kb. 130–170 MB). Egyszerre egy NBA szezont tárolunk; a következő szezon előtt tárhely-döntés kell.
+- **Tárhelykeret:** a free tier 500 MB-ja közös az ASEStatsszel (2026-09-30: ASEStats 129 MB; egy NBA szezon mérten kb. 130 MB, ebből a nyers JSON kb. 50 MB). két NBA szezon marad (2025/26 + 2026/27, döntés: 2026-09-30), kb. 390 / 500 MB a szezon végére. **Ha a projekt átlépi a 450 MB-ot, a legrégebbi szezon nyers JSON-ját (`espn_game_raw`, kb. 50 MB) töröljük.**
 - **Hazai/vendég modell, nincs `our_team_id`.** Egy csapat meccsei: `.or(`home_team_id.eq.${id},away_team_id.eq.${id}`)`.
 - **Név alapján soha nem párosítunk entitást.** Minden író ESPN-azonosítóra épülő kulcsra upsertel.
 - **Szezonon belüli csere:** a játékos csapata a `player_game_stats.team_id`-ből jön, nem a `players` táblából.

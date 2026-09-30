@@ -34,7 +34,7 @@ Szerkezet:
 
 ### Adatréteg és alapnézetek (roadmap 2.)
 
-- [ ] Migráció 002: `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9)
+- [ ] Migráció 003: `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9)
 - [ ] Közös törzsadat-hookok: `useSeasons()`, `useTeams()`, `useFollowedTeam()` (T21)
 - [ ] `useGameData` / `usePlayerData` semleges hazai/vendég sémára, `fetchAllRows`-szal (T1, T20)
 - [ ] Alapnézetek: Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella (DataTable / StatCard)
@@ -44,22 +44,25 @@ Szerkezet:
 
 - [ ] Elemző motorok portolása (B-lista, `context/megvalosithatosag.md`), az ASEStats H10/H12 döntéseivel együtt (T14–T18)
 - [ ] `player-postgame`: 48 perces percküszöbök konstansba kiemelve; `situational-analysis`: hosszabbítás-bucket
-- [ ] Migráció 003: AI riport táblák és RLS; a `generate-*` route-ok a követett csapatra paraméterezve, `requireAdmin()`-nal (T26)
+- [ ] Migráció 004: AI riport táblák és RLS; a `generate-*` route-ok a követett csapatra paraméterezve, `requireAdmin()`-nal (T26)
 - [ ] Dobástérkép NBA-geometriával (clamp, nem eldobás – T11), zóna heatmap
 - [ ] Vercel deploy: `vercel.json` az ASEStats mintájára (T27)
 
 ### Később / ötletek
 
 - [ ] Play-by-play tárolás: win probability, run-ok, clutch. Supabase tier-döntés kell hozzá.
-- [ ] **Tárhely-döntés a 2026/27-es szezon előtt** (október vége): a közös 500 MB-ba két NBA szezon nem fér. Opciók: régi szezon törlése / nyers JSON kiköltöztetése / saját szerver (pl. otthoni NAS Dockerrel, önhosztolt Postgres vagy Supabase).
+- [x] **Tárhely-döntés a 2026/27-es szezon előtt.** Mérés: egy szezon kb. 130 MB, két szezon kb. 390 / 500 MB → **mindkét szezon marad**; 450 MB fölött a legrégebbi szezon nyers JSON-ja törlődik (döntés: 2026-09-30). A 2027/28-as szezon előtt újra dönteni kell (pl. saját szerver).
+- [ ] Tárhely-figyelés: a napi futás írja ki a projekt méretét, és 450 MB fölött figyelmeztessen (a GitHub Actions cronnal együtt)
 - [ ] GameScore / PIE a FIBA valuation mellé
 - [ ] Élő meccsállapot (scoreboard polling)
 - [ ] Tartalék adatforrás-adapter (balldontlie), ha az ESPN formátuma eltörik
 
 ### Eldöntött kérdések (2026-09-29, módosítva 2026-09-30)
 
+- Tárhely (2026-09-30): a 2025/26 és a 2026/27 szezon is marad (kb. 390 / 500 MB); 450 MB fölött a legrégebbi szezon nyers JSON-ja törlődik.
+
 - Adatbázis (2026-09-30): saját `nba` séma az ASEStats `ugkettlebell` Supabase projektjében. A harmadik projekt fizetős lenne; a közös `public` sémában 6 táblanév ütközik.
-- Visszatöltés (2026-09-30): csak a 2025/26-os szezon, alapszakasz + play-in + rájátszás, előszezon nélkül. A közös 500 MB-ba több nem fér.
+- Visszatöltés (2026-09-30): a 2025/26-os szezon, alapszakasz + play-in + rájátszás, előszezon nélkül. Régebbi szezon nem kerül be; a 2026/27 napi importtal épül.
 - Követett csapat: Los Angeles Lakers (ESPN `13`).
 - Nyers JSON: gzip `bytea`, hogy 3 szezon beleférjen a free tierbe.
 

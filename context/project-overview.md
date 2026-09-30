@@ -4,7 +4,7 @@
 
 Az NBAStats egy belső NBA statisztikai és elemzési platform, az ASEStats (magyar NB I, ASE) testvérprojektje.
 - **Adatforrás:** az ESPN nyilvános JSON API-ja. Az adatok automatikusan jönnek: menetrend, box score, dobás-események.
-- **Tárolás:** Supabase (PostgreSQL), saját `nba` sémában az ASEStatsszel közös projektben. Egyszerre egy szezon (2025/2026).
+- **Tárolás:** Supabase (PostgreSQL), saját `nba` sémában az ASEStatsszel közös projektben. Két szezon: 2025/2026 (betöltve) és 2026/2027 (folyamatban).
 - **Megjelenítés:** Next.js dashboard az ASEStats „Dark Command Center” designjával.
 - **Nézőpont:** a teljes ligát tároljuk, de egy **követett csapat** nézőpontjából készülnek a pregame scouting és postgame riportok. A többi 29 csapat a benchmarkokat adja.
 

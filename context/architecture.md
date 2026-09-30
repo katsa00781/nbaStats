@@ -33,7 +33,7 @@ A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/s
 - A free tier 2 projektes korlátja miatt nincs önálló projekt. Az NBAStats az ASEStats `ugkettlebell` projektjében él, **saját `nba` Postgres sémában**.
 - A `public` sémában az ASEStats táblái vannak, 6 azonos névvel (`seasons`, `teams`, `players`, `games`, `player_game_stats`, `team_game_stats`). Ezért minden SQL `nba.`-minősített, és minden kliens `db: { schema: 'nba' }` beállítással jön létre.
 - Az Auth (`auth.users`) közös: ugyanazok a felhasználók és ugyanaz az admin szerepkör.
-- Tárhely: a 500 MB közös (ASEStats 129 MB, 2026-09-30). Egy NBA szezon kb. 130–170 MB, ezért egyszerre egy szezont tárolunk (2025/2026).
+- Tárhely: a 500 MB közös (ASEStats 129 MB, 2026-09-30). Egy NBA szezon mérten kb. 130 MB; két NBA szezon marad (2025/26 + 2026/27, döntés: 2026-09-30), kb. 390 / 500 MB a szezon végére. **Ha a projekt átlépi a 450 MB-ot, a legrégebbi szezon nyers JSON-ját (`espn_game_raw`, kb. 50 MB) töröljük.**
 
 - `seasons`: `espn_year` UNIQUE, a szezon záró éve (2025 = 2024/2025).
 - `teams`: `espn_team_id` UNIQUE. `players`: `espn_athlete_id` UNIQUE. A csapattagság meccsenként a `player_game_stats.team_id`-ben él, így a cserék is követhetők.
@@ -52,7 +52,7 @@ A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/s
   - Büntető és kihagyott heave-dobás nem kerül ide (egyik sem FGA).
 - `espn_game_raw`: a nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, kb. 38 KB/meccs), újra-parse-oláshoz. Kódolás/dekódolás: `lib/espn/raw-payload.ts`.
 - `app_settings`: egysoros tábla, `followed_team_id` = követett csapat: **Los Angeles Lakers** (ESPN `13`).
-- `seasons` start/end: a migráció tölti ki az ESPN szezonablakából (csak 2026 = 2025/2026); ehhez veti a szezon-kapu a `game_date`-et.
+- `seasons` start/end: a migráció tölti ki az ESPN szezonablakából (001: 2026, 002: 2027); ehhez veti a szezon-kapu a `game_date`-et. Az import szezont nem hoz létre.
 - **RLS:** minden táblán SELECT a bejelentkezett felhasználóknak. Írni csak a service role tud.
 
 ## Data Flow

@@ -51,19 +51,19 @@
    - `ingest-schedule.ts` a jövőbeli meccsekhez;
    - `ingest-standings.ts` a konferencia- és divízióadatokkal;
    - GitHub Actions cron naponta 10:00 CET-kor.
-2. **Adat-hookok és alapnézetek:** Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella. Ide tartozik a `player_season_stats_by_season` view is (migráció 002).
+2. **Adat-hookok és alapnézetek:** Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella. Ide tartozik a `player_season_stats_by_season` view is (migráció 003).
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
-4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (003) és a követett csapatra paraméterezett promptok.
+4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
 6. **Opcionális:** play-by-play (win probability, run-ok, clutch). Ehhez Supabase tier-döntés kell.
 
 ## Eldöntött kérdések (2026-09-29)
 
-- Visszatöltés: ~~az utolsó 3 szezon~~ → **csak a 2025/26-os szezon** (2026-09-30), alapszakasz + play-in + rájátszás, előszezon nélkül.
+- Visszatöltés: ~~az utolsó 3 szezon~~ → **a 2025/26-os szezon** (2026-09-30); a 2026/27 napi importtal épül, mindkettő marad, alapszakasz + play-in + rájátszás, előszezon nélkül.
 - Követett csapat: Los Angeles Lakers.
 - Nyers JSON: gzip `bytea` (free tier marad).
 - Adatbázis: ~~önálló Supabase projekt~~ → **`nba` séma az ASEStats `ugkettlebell` projektjében** (2026-09-30). A migrációkat a felhasználó futtatja.
 
 ## Nyitott kérdések
 
-- A 2026/27-es NBA-szezon (október vége) előtt tárhely-döntés kell: a régi szezon törlése, vagy költözés (pl. saját szerver, lásd `BACKLOG.md`).
+- Nincs. (A tárhely-döntés 2026-09-30-án megszületett: két szezon marad, 450 MB fölött a legrégebbi nyers JSON törlődik.)

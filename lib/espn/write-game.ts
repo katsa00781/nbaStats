@@ -16,23 +16,28 @@ function assertOk(error: { message: string } | null, step: string): void {
   if (error) throw new Error(`${step}: ${error.message}`);
 }
 
+export type SeasonRow = IdRow & SeasonWindow;
+
 /**
- * Szezon-kapu (T4) írás előtt: a szezonnak már léteznie kell (a migráció veszi
- * fel – a közös tárhelykeretbe egyszerre egy szezon fér, ezért az import nem hoz
- * létre újat), és a meccs napja a szezon határai közé esik.
+ * A szezonsor a `nba.seasons`-ből. Az import nem hoz létre szezont: a migráció
+ * veszi fel (a közös tárhelykeret miatt tudatos döntés, melyik szezon kerül be).
  */
-async function resolveSeason(db: NbaClient, staged: StagedGame): Promise<string> {
+export async function requireSeason(db: NbaClient, espnYear: number): Promise<SeasonRow> {
   const { data, error } = await db
     .from('seasons')
     .select('id, espn_year, start_date, end_date')
-    .eq('espn_year', staged.season.espn_year)
-    .maybeSingle<IdRow & SeasonWindow>();
+    .eq('espn_year', espnYear)
+    .maybeSingle<SeasonRow>();
   assertOk(error, 'seasons select');
-  if (!data) {
-    throw new SeasonGateError(`a ${staged.season.espn_year}-es szezon (${staged.season.name}) nincs felvéve az nba.seasons-ben`);
-  }
-  assertInSeasonWindow(staged.game.game_date, data);
-  return data.id;
+  if (!data) throw new SeasonGateError(`a ${espnYear}-es szezon nincs felvéve az nba.seasons-ben`);
+  return data;
+}
+
+/** Szezon-kapu (T4) írás előtt: létező szezon, és a meccs napja a határai közé esik. */
+async function resolveSeason(db: NbaClient, staged: StagedGame): Promise<string> {
+  const season = await requireSeason(db, staged.season.espn_year);
+  assertInSeasonWindow(staged.game.game_date, season);
+  return season.id;
 }
 
 async function upsertIdMap(

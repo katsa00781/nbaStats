@@ -325,3 +325,66 @@ export function parseSummary(json: unknown): EspnGameSummary {
     skippedShots: skipped,
   };
 }
+
+// ── Csapat-menetrend (teams/{id}/schedule) ─────────────────────────────────
+
+export interface EspnScheduleEvent {
+  id: string;
+  name: string;
+  seasonYear: number;
+  seasonType: number;
+  /** ISO UTC időpont; ha `timeValid` hamis, csak a nap ismert (TBD kezdés). */
+  startTime: string;
+  timeValid: boolean;
+  state: 'pre' | 'in' | 'post';
+  completed: boolean;
+  /** ESPN státusznév, pl. STATUS_SCHEDULED, STATUS_POSTPONED, STATUS_CANCELED. */
+  statusName: string;
+  homeEspnTeamId: string;
+  awayEspnTeamId: string;
+  venue: string | null;
+}
+
+export function parseTeamSchedule(json: unknown): EspnScheduleEvent[] {
+  const root = obj(json, 'schedule');
+  // Üres szezontípusnál (pl. még nem ismert rájátszás) az `events` hiányozhat.
+  const events = root.events === undefined ? [] : arr(root.events, 'schedule.events');
+  return events.map((raw, i) => {
+    const path = `schedule.events[${i}]`;
+    const event = obj(raw, path);
+    const competition = obj(arr(event.competitions, `${path}.competitions`)[0], `${path}.competitions[0]`);
+    const statusType = obj(obj(competition.status, `${path}.competitions[0].status`).type, `${path}.competitions[0].status.type`);
+    const state = str(statusType.state, `${path}.competitions[0].status.type.state`);
+    if (state !== 'pre' && state !== 'in' && state !== 'post') {
+      throw new EspnSchemaError(`${path}.competitions[0].status.type.state`, 'pre | in | post');
+    }
+    const sides = arr(competition.competitors, `${path}.competitions[0].competitors`).map((c, j) => {
+      const cPath = `${path}.competitions[0].competitors[${j}]`;
+      const competitor = obj(c, cPath);
+      return {
+        homeAway: parseHomeAway(competitor.homeAway, `${cPath}.homeAway`),
+        espnTeamId: str(obj(competitor.team, `${cPath}.team`).id, `${cPath}.team.id`),
+      };
+    });
+    const home = sides.find(s => s.homeAway === 'home');
+    const away = sides.find(s => s.homeAway === 'away');
+    if (sides.length !== 2 || !home || !away) {
+      throw new EspnSchemaError(`${path}.competitions[0].competitors`, 'pontosan egy hazai és egy vendég');
+    }
+    const seasonType = obj(event.seasonType, `${path}.seasonType`);
+    return {
+      id: str(event.id, `${path}.id`),
+      name: str(event.name, `${path}.name`),
+      seasonYear: num(obj(event.season, `${path}.season`).year, `${path}.season.year`),
+      seasonType: num(seasonType.type, `${path}.seasonType.type`),
+      startTime: str(event.date, `${path}.date`),
+      timeValid: optBool(event.timeValid),
+      state,
+      completed: optBool(statusType.completed),
+      statusName: str(statusType.name, `${path}.competitions[0].status.type.name`),
+      homeEspnTeamId: home.espnTeamId,
+      awayEspnTeamId: away.espnTeamId,
+      venue: isObj(competition.venue) ? optStr(competition.venue.fullName) : null,
+    };
+  });
+}

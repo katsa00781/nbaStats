@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "ingest:games": "tsx ingest-games.ts"
+    "ingest:games": "tsx ingest-games.ts",
+    "ingest:schedule": "tsx ingest-schedule.ts"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",

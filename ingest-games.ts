@@ -24,7 +24,7 @@ import {
   isIngestedSeasonType,
   type SeasonWindow,
 } from '@/lib/espn/season-gate';
-import { writeGame } from '@/lib/espn/write-game';
+import { requireSeason, writeGame } from '@/lib/espn/write-game';
 import { fetchAllRows } from '@/lib/fetch-all-rows';
 
 type Mode =
@@ -192,13 +192,7 @@ const nextDay = (date: string): string => {
 /** A szezon határai: élesben a nba.seasons sora (kötelező), dry-runban a tág ablak. */
 async function loadSeason(db: NbaClient | null, year: number): Promise<{ id: string | null; window: SeasonWindow }> {
   if (!db) return { id: null, window: defaultSeasonWindow(year) };
-  const { data, error } = await db
-    .from('seasons')
-    .select('id, espn_year, start_date, end_date')
-    .eq('espn_year', year)
-    .maybeSingle<SeasonWindow & { id: string }>();
-  if (error) throw new Error(`seasons select: ${error.message}`);
-  if (!data) fail(`A ${year}-es szezon nincs felvéve az nba.seasons-ben.`);
+  const data = await requireSeason(db, year);
   const fallback = defaultSeasonWindow(year);
   return {
     id: data.id,

@@ -43,3 +43,10 @@ export const fetchScoreboard = (date: string) => espnGet('scoreboard', { dates: 
 
 /** Egy meccs teljes összefoglalója: box score, play-by-play, dobások. */
 export const fetchSummary = (eventId: string) => espnGet('summary', { event: eventId });
+
+/**
+ * Egy csapat menetrendje egy szezonban és szezontípusban (ESPN szezonév = záró év).
+ * A `seasontype` nélkül az ESPN csak az aktuális típust (pl. előszezon) adja.
+ */
+export const fetchTeamSchedule = (espnTeamId: string, seasonYear: number, seasonType: number) =>
+  espnGet(`teams/${espnTeamId}/schedule`, { season: String(seasonYear), seasontype: String(seasonType) });

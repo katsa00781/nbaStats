@@ -28,7 +28,7 @@ Szerkezet:
   - Olbrich (CHI) ESPN-rekordja ID és statisztika nélküli, de 13 meccsen játszott (csapatösszeg-eltérés);
   - play-by-play ↔ box score ±1–3 dobás/FGA eltérés kb. 50 csapat-meccsen (kb. 2%), nem duplikáció, nem shooting foul
   - **Döntés (felhasználó):** All-Star kihagyás + törlés; a Cup-döntő marad; ±3-ig `ℹ`, fölötte `⚠`. A > 60 láb hibát javítottam; Olbrich marad `⚠` (a forrás hibás)
-- [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal
+- [ ] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal. **Kód kész; élesítés a migráció 002 kézi futtatása után.**
 - [ ] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben
 - [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
 
@@ -60,7 +60,6 @@ Szerkezet:
 ### Eldöntött kérdések (2026-09-29, módosítva 2026-09-30)
 
 - Tárhely (2026-09-30): a 2025/26 és a 2026/27 szezon is marad (kb. 390 / 500 MB); 450 MB fölött a legrégebbi szezon nyers JSON-ja törlődik.
-
 - Adatbázis (2026-09-30): saját `nba` séma az ASEStats `ugkettlebell` Supabase projektjében. A harmadik projekt fizetős lenne; a közös `public` sémában 6 táblanév ütközik.
 - Visszatöltés (2026-09-30): a 2025/26-os szezon, alapszakasz + play-in + rájátszás, előszezon nélkül. Régebbi szezon nem kerül be; a 2026/27 napi importtal épül.
 - Követett csapat: Los Angeles Lakers (ESPN `13`).
@@ -78,6 +77,12 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Menetrend-import (`ingest-schedule.ts`)
+
+- **Tárhely-döntés (felhasználó):** két szezon marad; `migrations/002-season-2027.sql` felveszi a 2026/27-es szezonsort (ESPN ablak: 2026-09-30 – 2027-06-25). Commit `8b4124e`.
+- **Kód:** `fetchTeamSchedule()` (`client.ts`, `seasontype` paraméterrel – nélküle az ESPN csak az előszezont adja); `parseTeamSchedule()` (`schemas.ts`); `lib/espn/write-schedule.ts`: `stageSchedule()` (dedup az event ID-re, mert minden meccs két csapat menetrendjében szerepel; státusz; szezon-kapu) és `writeSchedule()` (500-as batch upsert; a `final` / `in_progress` sorokhoz nem nyúl); `requireSeason()` közös a `write-game.ts`-ben; `ingest-schedule.ts` + `npm run ingest:schedule`.
+- **Ellenőrzés:** dry-run `--season 2027`: 1200 alapszakasz-meccs (2026-10-20 → 2027-04-11) = 30 × 80 / 2 – a csapatonkénti 2 NBA Cup-függő meccset az ESPN később teszi közzé; exit 0. `tsc`, `eslint` hibátlan.
 
 ### 2026-09-30 – Adatminőségi javítások a visszatöltés után ✓ (commit `ce438a3`)
 

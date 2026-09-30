@@ -115,7 +115,8 @@ nbastats/
 │   │   ├── map-boxscore.ts     # summary → staged sorok ESPN ID-kkel + konzisztencia-figyelmeztetések
 │   │   ├── raw-payload.ts      # nyers summary ↔ gzip bytea hex literál (espn_game_raw.payload_gz)
 │   │   ├── season-gate.ts      # szezon-kapu (T4): szezontípus-szűrés + dátumablak
-│   │   └── write-game.ts       # upsert service role klienssel, ESPN ID → UUID feloldás
+│   │   ├── write-game.ts       # upsert service role klienssel, ESPN ID → UUID feloldás, requireSeason()
+│   │   └── write-schedule.ts   # menetrend (scheduled/postponed/canceled) – lezárt meccshez nem nyúl
 │   ├── db-schema.ts            # DB_SCHEMA = 'nba', createNbaClient() + NbaClient – MINDEN Supabase kliens ezen át
 │   ├── supabase.ts             # böngészős kliens (globalThis singleton) + Database típus
 │   ├── supabase-admin.ts       # getSupabaseAdmin() – service role, csak szerver
@@ -130,7 +131,8 @@ nbastats/
 ├── hooks/                      # adatlekérési hookok (még üres – T20/T21)
 ├── migrations/                 # SQL – csak Supabase SQL Editorban
 ├── context/                    # projekt spec és kontextus fájlok
-├── ingest-games.ts             # CLI: npm run ingest:games -- --date YYYY-MM-DD [--dry-run]
+├── ingest-games.ts             # CLI: npm run ingest:games -- --date YYYY-MM-DD | --season YYYY [--dry-run]
+├── ingest-schedule.ts          # CLI: npm run ingest:schedule -- --season YYYY [--dry-run]
 ├── BACKLOG.md
 └── .env.local                  # titkos változók – soha nem kerül git-be
 ```
@@ -388,6 +390,8 @@ npm run ingest:games -- --date 2026-03-01 --dry-run   # validálás DB nélkül
 npm run ingest:games -- --date 2026-03-01             # egy nap írása Supabase-be (mindig újraírja)
 npm run ingest:games -- --season 2026                 # szezon-visszatöltés; a már mentett meccseket kihagyja
 npm run ingest:games -- --season 2026 --from 2026-03-01 --to 2026-03-31   # részintervallum
+npm run ingest:schedule -- --season 2027 --dry-run    # menetrend validálása (30 csapat × 3 szezontípus)
+npm run ingest:schedule -- --season 2027              # jövőbeli meccsek írása; lezárt meccshez nem nyúl
 ```
 
 ---

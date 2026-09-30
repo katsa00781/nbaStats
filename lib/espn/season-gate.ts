@@ -3,16 +3,18 @@
 // szezonátlagok két szezont kevertek. Tiszta függvények, DB nélkül.
 
 /** A tárolt szezontípusok: 2 = alapszakasz, 3 = rájátszás, 5 = play-in (előszezon nélkül). */
-const INGESTED_SEASON_TYPES: ReadonlySet<number> = new Set([2, 3, 5]);
+export const INGESTED_SEASON_TYPES: readonly number[] = [2, 3, 5];
 
-export const isIngestedSeasonType = (seasonType: number): boolean => INGESTED_SEASON_TYPES.has(seasonType);
+export const isIngestedSeasonType = (seasonType: number): boolean => INGESTED_SEASON_TYPES.includes(seasonType);
 
 /**
  * A 30 NBA-csapat ESPN-azonosítója 1–30 (ellenőrizve: 2025/26). Az All-Star
  * meccseket az ESPN alapszakaszként (`season.type = 2`) jelöli, de álcsapatokkal
  * (pl. Team Stars 132374, World 111386) – ezeket e szerint szűrjük ki (döntés: 2026-09-30).
  */
-export const isFranchiseTeam = (espnTeamId: string): boolean => /^([1-9]|[12][0-9]|30)$/.test(espnTeamId);
+export const FRANCHISE_TEAM_IDS: readonly string[] = Array.from({ length: 30 }, (_, i) => String(i + 1));
+
+export const isFranchiseTeam = (espnTeamId: string): boolean => FRANCHISE_TEAM_IDS.includes(espnTeamId);
 
 export interface SeasonWindow {
   espn_year: number;

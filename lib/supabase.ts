@@ -1,16 +1,14 @@
-import { createClient } from '@supabase/supabase-js'
+import { createNbaClient } from '@/lib/db-schema'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 function createSupabaseClient() {
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      // Csak email/jelszó flow van, nincs magic link / OAuth callback
-      detectSessionInUrl: false,
-    },
+  return createNbaClient(supabaseUrl, supabaseAnonKey, {
+    persistSession: true,
+    autoRefreshToken: true,
+    // Csak email/jelszó flow van, nincs magic link / OAuth callback
+    detectSessionInUrl: false,
   })
 }
 
@@ -37,9 +35,9 @@ export type Json =
 
 type Timestamps = { created_at: string }
 
-// Típusok a Supabase táblákhoz – a migrations/001–002 tükre.
+// Típusok a Supabase táblákhoz – a migrations/001 tükre (`nba` séma).
 export type Database = {
-  public: {
+  nba: {
     Tables: {
       seasons: {
         Row: Timestamps & {
@@ -49,8 +47,8 @@ export type Database = {
           start_date: string | null
           end_date: string | null
         }
-        Insert: Omit<Database['public']['Tables']['seasons']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['seasons']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['seasons']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['nba']['Tables']['seasons']['Insert']>
       }
       teams: {
         Row: Timestamps & {
@@ -64,8 +62,8 @@ export type Database = {
           logo_url: string | null
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['teams']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['teams']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['teams']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['nba']['Tables']['teams']['Insert']>
       }
       players: {
         Row: Timestamps & {
@@ -78,8 +76,8 @@ export type Database = {
           headshot_url: string | null
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['players']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['players']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['players']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['nba']['Tables']['players']['Insert']>
       }
       games: {
         Row: Timestamps & {
@@ -98,8 +96,8 @@ export type Database = {
           venue: string | null
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['games']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['games']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['games']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['nba']['Tables']['games']['Insert']>
       }
       player_game_stats: {
         Row: Timestamps & {
@@ -133,8 +131,8 @@ export type Database = {
           pf: number
           plus_minus: number | null
         }
-        Insert: Omit<Database['public']['Tables']['player_game_stats']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['player_game_stats']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['player_game_stats']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['nba']['Tables']['player_game_stats']['Insert']>
       }
       team_game_stats: {
         Row: Timestamps & {
@@ -164,8 +162,8 @@ export type Database = {
           points_off_turnovers: number | null
           largest_lead: number | null
         }
-        Insert: Omit<Database['public']['Tables']['team_game_stats']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['team_game_stats']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['team_game_stats']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['nba']['Tables']['team_game_stats']['Insert']>
       }
       shot_events: {
         Row: Timestamps & {
@@ -185,8 +183,8 @@ export type Database = {
           made: boolean
           shot_type: string | null
         }
-        Insert: Omit<Database['public']['Tables']['shot_events']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['shot_events']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['shot_events']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['nba']['Tables']['shot_events']['Insert']>
       }
       espn_game_raw: {
         Row: {
@@ -196,8 +194,8 @@ export type Database = {
           payload_gz: string
           fetched_at: string
         }
-        Insert: Omit<Database['public']['Tables']['espn_game_raw']['Row'], 'fetched_at'> & { fetched_at?: string }
-        Update: Partial<Database['public']['Tables']['espn_game_raw']['Insert']>
+        Insert: Omit<Database['nba']['Tables']['espn_game_raw']['Row'], 'fetched_at'> & { fetched_at?: string }
+        Update: Partial<Database['nba']['Tables']['espn_game_raw']['Insert']>
       }
       app_settings: {
         Row: {
@@ -205,8 +203,8 @@ export type Database = {
           followed_team_id: string | null
           updated_at: string
         }
-        Insert: Partial<Database['public']['Tables']['app_settings']['Row']>
-        Update: Partial<Database['public']['Tables']['app_settings']['Row']>
+        Insert: Partial<Database['nba']['Tables']['app_settings']['Row']>
+        Update: Partial<Database['nba']['Tables']['app_settings']['Row']>
       }
     }
   }
@@ -215,5 +213,5 @@ export type Database = {
 export type GameStatus = 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'canceled'
 export type ShotZone = 'rim' | 'paint' | 'mid' | 'corner3' | 'above_break3'
 
-export type TableInsert<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert']
+export type TableInsert<T extends keyof Database['nba']['Tables']> =
+  Database['nba']['Tables'][T]['Insert']

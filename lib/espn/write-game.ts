@@ -3,7 +3,7 @@
 // így az ismételt futtatás nem duplikál. A lépések nem közös tranzakció:
 // DB-hiba után a meccs újrafuttatása rendbe teszi az állapotot.
 
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { NbaClient } from '@/lib/db-schema';
 import type { StagedGame } from '@/lib/espn/map-boxscore';
 import { encodeRawPayload } from '@/lib/espn/raw-payload';
 
@@ -15,7 +15,7 @@ function assertOk(error: { message: string } | null, step: string): void {
   if (error) throw new Error(`${step}: ${error.message}`);
 }
 
-async function ensureSeason(db: SupabaseClient, staged: StagedGame): Promise<string> {
+async function ensureSeason(db: NbaClient, staged: StagedGame): Promise<string> {
   const { data: existing, error: selectError } = await db
     .from('seasons')
     .select('id')
@@ -36,7 +36,7 @@ async function ensureSeason(db: SupabaseClient, staged: StagedGame): Promise<str
 }
 
 async function upsertIdMap(
-  db: SupabaseClient,
+  db: NbaClient,
   table: 'teams' | 'players',
   keyColumn: 'espn_team_id' | 'espn_athlete_id',
   rows: Record<string, unknown>[],
@@ -65,7 +65,7 @@ export interface WriteResult {
   shots: number;
 }
 
-export async function writeGame(db: SupabaseClient, staged: StagedGame, rawPayload: unknown): Promise<WriteResult> {
+export async function writeGame(db: NbaClient, staged: StagedGame, rawPayload: unknown): Promise<WriteResult> {
   const seasonId = await ensureSeason(db, staged);
   const teamIds = await upsertIdMap(db, 'teams', 'espn_team_id', staged.teams);
   const playerIds = staged.players.length > 0

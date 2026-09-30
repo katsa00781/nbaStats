@@ -14,7 +14,9 @@ Szerkezet:
 ### Következő – Ingest teljesítése (roadmap 1.)
 
 - [x] **Adatbázis-előkészítés (migráció 002):** gzip-elt nyers JSON, a 3 szezon határai, Lakers követett csapat.
-- [ ] **Áthelyezés az `nba` sémába** a közös `ugkettlebell` projektben: a 001 + 002 összevonása egy `nba.`-minősített migrációba (csak a 2026-os szezon), jogosultságok, a kliensek `db.schema` beállítása, `Database` típus. **Kézi futtatás + Exposed schemas beállítás.**
+- [x] **Áthelyezés az `nba` sémába** a közös `ugkettlebell` projektben: a 001 + 002 összevonása egy `nba.`-minősített migrációba (csak a 2026-os szezon), jogosultságok, `createNbaClient()`, `Database` típus. **Kézi futtatás + Exposed schemas beállítás hátravan.**
+- [ ] **ESPN ID nélküli játékos a box score-ban** (2026-03-01, MIL–CHI, ESPN `401810725`: `athletes[10]` „Olbrich”, `athlete` csak `shortName`-mel, COACH'S DECISION). Most a teljes meccs elbukik `EspnSchemaError`-ral. Döntés kell (névpárosítás tilos, T2): a sor kihagyása figyelmeztetéssel és a csapat-összeg ellenőrzése, vagy a meccs elutasítása
+- [ ] **Dobásszám ≠ FGA** (2026-03-01, CLE–BKN, ESPN `401810724`: 76 dobás-esemény ≠ 75 FGA). Ki kell vizsgálni, nem elnémítani (T6, T19); valószínűleg ide kapcsolódik a T5 dobás-dedup
 - [ ] **Dobás-deduplikálás a batch upsert előtt** a `(game_id, espn_play_id)` kulcsra, és ugyanígy a játékos-sorokra (T5)
 - [ ] **Konzisztencia-figyelmeztetésnél nem-nulla exit kód**, futás végi összesítővel, hogy az ütemezett futás ne legyen „zöld” adathiány mellett (T6)
 - [ ] **Szezon-kapu:** a `game_date` a `seasons.start_date`/`end_date` közé essen, ha be vannak állítva. Az ESPN `season.year` és a dátum összevetése (T4)
@@ -63,6 +65,15 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-09-30 – Áthelyezés az `nba` sémába ✓
+
+- **`migrations/001-initial-schema.sql`:** a korábbi 001 + 002 összevonva, minden objektum `nba.`-minősítve; csak a 2026-os szezon; Lakers követett csapat; jogosultságok (`authenticated`: SELECT, `service_role`: minden + szekvenciák, default privileges); RLS. A `002-raw-gzip-seasons-followed-team.sql` törölve (soha nem futott le sikeresen).
+- **`lib/db-schema.ts`:** `DB_SCHEMA`, `createNbaClient()`, `NbaClient`. A `lib/supabase.ts`, a `lib/supabase-admin.ts` és az `ingest-games.ts` ezen át hoz létre klienst; a `write-game.ts` `NbaClient`-et kap. A `Database` típus kulcsa `public` → `nba`.
+- **Ellenőrzés:**
+  - PGlite (Postgres 17.5, csak a scratchpadben, a projektbe nem került): Supabase-szerű szerepkörök és ütköző `public.games` / `public.seasons` mellett a migráció kétszer lefutott; a `public` táblák érintetlenek; `authenticated` olvas, INSERT-je elutasítva; `anon` SELECT elutasítva; `service_role` ír, identity táblákba is;
+  - `tsc`, `eslint`, `npm run build` hibátlan;
+  - dry-run 2026-03-01: 10/11 meccs; a hibás egy meccs és egy dobás/FGA figyelmeztetés új nyitott feladat (a változtatástól független, a 2025/26-os adat hozta elő).
 
 ### 2026-09-30 – Döntés: `nba` séma a közös projektben, egy szezon
 

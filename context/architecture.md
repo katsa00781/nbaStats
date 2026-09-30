@@ -81,5 +81,5 @@ Supabase (games, player_game_stats, team_game_stats, shot_events, espn_game_raw)
 6. Az ESPN-választ csak a `lib/espn/schemas.ts` validálása után használjuk.
 7. A kanonikus stat-formulák a `lib/stat-formulas.ts`-ben vannak. A százalékok összegzett dobásokból számolódnak.
 8. TypeScript strict, `any` tilos.
-9. Egyetlen böngészős Supabase kliens van (`lib/supabase.ts`). Szerveren a `getSupabaseAdmin()`, CLI-ben a szkript saját service role kliense fut.
+9. Egyetlen böngészős Supabase kliens van (`lib/supabase.ts`). Szerveren a `getSupabaseAdmin()`, CLI-ben a szkript saját service role kliense fut. Mindegyik a `createNbaClient()`-tel készül (`lib/db-schema.ts`).
 10. Az NBAStats csak az `nba` sémát írja és olvassa; a közös projekt `public` sémájához (ASEStats) nem nyúl.

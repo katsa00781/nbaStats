@@ -7,7 +7,7 @@
 // Csak a lezárt (final) meccseket dolgozza fel. A dátum amerikai keleti parti nap.
 
 import * as dotenv from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
+import { createNbaClient } from '@/lib/db-schema';
 import { fetchScoreboard, fetchSummary } from '@/lib/espn/client';
 import { parseScoreboard, parseSummary } from '@/lib/espn/schemas';
 import { mapSummary, type StagedGame } from '@/lib/espn/map-boxscore';
@@ -36,7 +36,7 @@ function createScriptClient() {
     console.error('Hiányzó env (.env.local): NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.');
     process.exit(1);
   }
-  return createClient(url, key, { auth: { persistSession: false } });
+  return createNbaClient(url, key, { persistSession: false });
 }
 
 function printSummary(staged: StagedGame): void {

@@ -115,6 +115,7 @@ nbastats/
 │   │   ├── map-boxscore.ts     # summary → staged sorok ESPN ID-kkel + konzisztencia-figyelmeztetések
 │   │   ├── raw-payload.ts      # nyers summary ↔ gzip bytea hex literál (espn_game_raw.payload_gz)
 │   │   └── write-game.ts       # upsert service role klienssel, ESPN ID → UUID feloldás
+│   ├── db-schema.ts            # DB_SCHEMA = 'nba', createNbaClient() + NbaClient – MINDEN Supabase kliens ezen át
 │   ├── supabase.ts             # böngészős kliens (globalThis singleton) + Database típus
 │   ├── supabase-admin.ts       # getSupabaseAdmin() – service role, csak szerver
 │   ├── api-auth.ts             # requireAdmin() / requireAuth() guard
@@ -153,7 +154,7 @@ A séma a `migrations/001-initial-schema.sql`-ben van, **minden tábla az `nba` 
 
 - **Séma-izoláció (közös projekt):** a `public` sémában az ASEStats táblái élnek, köztük 6 azonos nevű (`seasons`, `teams`, `players`, `games`, `player_game_stats`, `team_game_stats`).
   - Minden NBAStats SQL `nba.`-minősített; migráció a `public` sémához nem nyúlhat.
-  - Minden Supabase kliens az `nba` sémára állítva jön létre (`db: { schema: DB_SCHEMA }`).
+  - Minden Supabase kliens a `createNbaClient()`-tel jön létre (`lib/db-schema.ts`, `db: { schema: 'nba' }`); közvetlen `createClient()` nem lehet. A kliens típusa `NbaClient`.
   - Az `nba` séma a Supabase Dashboardon ki van téve az API-ra (Settings → API → Exposed schemas).
 - **Tárhelykeret:** a free tier 500 MB-ja közös az ASEStatsszel (2026-09-30: ASEStats 129 MB; egy NBA szezon becslése kb. 130–170 MB). Egyszerre egy NBA szezont tárolunk; a következő szezon előtt tárhely-döntés kell.
 - **Hazai/vendég modell, nincs `our_team_id`.** Egy csapat meccsei: `.or(`home_team_id.eq.${id},away_team_id.eq.${id}`)`.
@@ -336,7 +337,7 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 ## API és adatbázis szabályok
 
 - **Böngészős Supabase kliens:** egyetlen példány, `lib/supabase.ts` (globalThis singleton, T25). Ne hozz létre másikat.
-- **Szerveroldali admin kliens:** `getSupabaseAdmin()` (`lib/supabase-admin.ts`). CLI szkriptben a szkript saját service role kliense (dotenv `.env.local`).
+- **Szerveroldali admin kliens:** `getSupabaseAdmin()` (`lib/supabase-admin.ts`). CLI szkriptben a szkript saját service role kliense (dotenv `.env.local`). Mindhárom a `createNbaClient()`-tel készül.
 - **Minden lekérdezés szűrt**, `season_id` és ahol értelmes, csapat szerint. Szűretlen full-table scan tilos.
 - **1000 sor fölött kötelező a `fetchAllRows()`** (`lib/fetch-all-rows.ts`). A PostgREST némán csonkol (T1). NBA-méretben egy szezon kb. 34e játékos-sor és 225e dobás.
 - **Százalékot összegzett dobásokból számolunk**, nem meccsenkénti százalékok átlagából. A formulák csak a `lib/stat-formulas.ts`-ből jöhetnek.

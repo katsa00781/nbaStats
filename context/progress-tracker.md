@@ -28,14 +28,19 @@
 - Harmadik Supabase projekt fizetős lenne (kb. 20 USD/hó), ezt a felhasználó nem vállalja; a Synology DS218play adatbázisnak alkalmatlan.
 - Döntés (felhasználó): saját `nba` séma az `ugkettlebell` projektben, és csak a 2025/2026-os szezon.
 - Mérés: egy summary gzip-elve kb. 38 KB, 150–180 mezőnydobás. Egy szezon kb. 130–170 MB, az ASEStats 129 MB mellett kb. 260–300 MB lesz az 500-ból.
-- **Folyamatban:** a migráció átírása az `nba` sémára, a kliensek sémabeállítása.
+- **Kész:** a 001 + 002 összevonva egy `nba.`-minősített `migrations/001-initial-schema.sql`-be (csak a 2026-os szezon, jogosultságok az `nba` sémára); a 002 törölve.
+- **Kész:** `lib/db-schema.ts` (`createNbaClient()`, `NbaClient`); a böngészős, az admin és a CLI kliens ezen át az `nba` sémát használja. A `Database` típus kulcsa `nba`.
+- Ellenőrzés: a migráció PGlite-on (Postgres 17.5), Supabase-szerű szerepkörökkel és ütköző `public.games` táblával kétszer lefutott; a `public` érintetlen, az `authenticated` olvas, de nem ír, az `anon` nem olvas, a `service_role` ír (identity táblákba is). `tsc`, `eslint`, `build` hibátlan.
+- A 2026-03-01-i dry-run (11 meccs) két ingest-problémát hozott elő (lásd `BACKLOG.md`): ESPN ID nélküli játékos (MIL–CHI), és egy dobásszám ≠ FGA figyelmeztetés (CLE–BKN).
 
 ## Kézi teendők (felhasználó)
 
-1. **A jelenlegi migrációkat NE futtasd** az `ugkettlebell` projektben, amíg az `nba` sémás változat el nem készül.
-2. A `.env.local` 8. sorának javítása: az `ANTHROPIC_API_KEY` értéke után hiányzik a sortörés, a végére ragadt `NEXT_PUBLIC_SUPABASE_URL=` maradékot törölni kell. A Supabase-változók maradhatnak (`ugkettlebell`).
-3. Első éles import: `npm run ingest:games -- --date 2025-03-01`. Ezt egy második futtatással érdemes megismételni; a sorszám nem nőhet.
-4. Admin felhasználó: a Supabase Auth-ban `user_metadata.role = "admin"`.
+1. Az `ugkettlebell` projekt SQL Editorában: `migrations/001-initial-schema.sql` (csak ez az egy fájl).
+   - Ellenőrzés: `select espn_year, start_date, end_date from nba.seasons;` → 1 sor (2026); `select t.abbreviation from nba.app_settings s join nba.teams t on t.id = s.followed_team_id;` → `LAL`.
+2. Dashboard → Settings → API (Data API) → **Exposed schemas**: az `nba` hozzáadása. Enélkül a kliens `PGRST106` / „schema must be one of” hibát kap.
+3. A `.env.local` 8. sorának javítása: az `ANTHROPIC_API_KEY` értéke után hiányzik a sortörés, a végére ragadt `NEXT_PUBLIC_SUPABASE_URL=` maradékot törölni kell. A Supabase-változók maradhatnak (`ugkettlebell`).
+4. Első éles import: `npm run ingest:games -- --date 2026-03-01` (a 2026-os szezon-sor miatt). Az ESPN ID nélküli játékos miatt 1 meccs jelenleg elbukik, lásd `BACKLOG.md`. Ezt egy második futtatással érdemes megismételni; a sorszám nem nőhet.
+5. Admin felhasználó: az Auth közös az ASEStatsszel, így a meglévő ASEStats admin (`user_metadata.role = "admin"`) itt is admin.
 
 ## Következő lépések (roadmap)
 

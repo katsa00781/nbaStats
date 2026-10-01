@@ -25,6 +25,7 @@ Azonos az ASEStatsszel, **Playwright nélkül**:
   - `write-teams.ts`: konferencia/divízió az ESPN tabellájából (`standings?level=3`, `apis/v2` útvonal), írás előtt 2 × 3 × 5 szerkezeti ellenőrzéssel;
   - `write-schedule.ts`: menetrend-írás (`scheduled` / `postponed` / `canceled`); a lezárt és folyamatban lévő meccs az `ingest-games` hatásköre, ahhoz nem nyúl.
 - Gyökér `ingest-*.ts`: CLI import szkriptek (dotenv `.env.local`), mindegyik `--dry-run` móddal.
+- `.github/workflows/ingest.yml`: ütemezett napi futás (09:00 UTC) és kézi indítás. A CLI szkripteket hívja (`ingest:games --season`, majd `ingest:schedule`), saját import-logikája nincs. A Supabase-értékek repo secretből, a szezonév az `NBA_SEASON_YEAR` repo variable-ből jön. Leírás: `HOWTO-auto-import.md`.
 - `migrations/`: SQL, **csak kézzel** futtatva a Supabase SQL Editorban.
 
 ## Storage Model

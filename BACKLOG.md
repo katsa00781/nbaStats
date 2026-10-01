@@ -1,6 +1,6 @@
 # Backlog
 
-Utolsó frissítés: 2026-09-30
+Utolsó frissítés: 2026-10-01
 
 Szerkezet:
 1. Nyitott feladatok
@@ -29,10 +29,11 @@ Szerkezet:
   - play-by-play ↔ box score ±1–3 dobás/FGA eltérés kb. 50 csapat-meccsen (kb. 2%), nem duplikáció, nem shooting foul
   - **Döntés (felhasználó):** All-Star kihagyás + törlés; a Cup-döntő marad; ±3-ig `ℹ`, fölötte `⚠`. A > 60 láb hibát javítottam; Olbrich marad `⚠` (a forrás hibás)
 - [x] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal (élesítve 2026-09-30: 1200 meccs a 2026/27-re)
-- [ ] A csapatonkénti 2 NBA Cup-függő alapszakasz-meccs (30 meccs) felvétele, amikor az ESPN közzéteszi – a napi `ingest-schedule` futás ezt magától elvégzi (a cronba be kell tenni)
+- [ ] A csapatonkénti 2 NBA Cup-függő alapszakasz-meccs (30 meccs) felvétele, amikor az ESPN közzéteszi – a napi `ingest-schedule` futás ezt magától elvégzi (a cronban benne van, 2026-10-01); ellenőrizni kell, hogy a szezon végére csapatonként 82 meccs lett
 - [x] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben (2026-09-30)
 - [ ] Döntés a Tabella nézet előtt: a győzelem–vereség a `games`-ből számolható, de a hivatalos kiemelés (seed), GB, sorozat és clinch jelzés csak az ESPN tabellában van → ezekhez új tábla kellene (séma-változtatás, rákérdezni)
-- [ ] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7)
+- [x] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7) – megírva 2026-10-01
+- [ ] **Az ütemezett import élesítése (felhasználó):** két repo secret (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), push, első kézi futás `dry_run`-nal. Az első GitHub-futás igazolja, hogy az ESPN a runner IP-címéről is elérhető (helyből nem ellenőrizhető)
 
 ### Adatréteg és alapnézetek (roadmap 2.)
 
@@ -54,7 +55,7 @@ Szerkezet:
 
 - [ ] Play-by-play tárolás: win probability, run-ok, clutch. Supabase tier-döntés kell hozzá.
 - [x] **Tárhely-döntés a 2026/27-es szezon előtt.** Mérés: egy szezon kb. 130 MB, két szezon kb. 390 / 500 MB → **mindkét szezon marad**; 450 MB fölött a legrégebbi szezon nyers JSON-ja törlődik (döntés: 2026-09-30). A 2027/28-as szezon előtt újra dönteni kell (pl. saját szerver).
-- [ ] Tárhely-figyelés: a napi futás írja ki a projekt méretét, és 450 MB fölött figyelmeztessen (a GitHub Actions cronnal együtt)
+- [ ] Tárhely-figyelés: a napi futás írja ki a projekt méretét, és 450 MB fölött figyelmeztessen. A cron kész, de a méret lekérdezéséhez SQL-függvény kell (`pg_database_size` PostgREST RPC-n át) → migráció, **döntés kell** (2026-10-01)
 - [ ] GameScore / PIE a FIBA valuation mellé
 - [ ] Élő meccsállapot (scoreboard polling)
 - [ ] Tartalék adatforrás-adapter (balldontlie), ha az ESPN formátuma eltörik
@@ -79,6 +80,23 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-01 – Ütemezett napi import (GitHub Actions) – megírva, élesítés hátravan
+
+- **`.github/workflows/ingest.yml` (új):** napi cron 09:00 UTC-kor (10:00 CET) + kézi indítás (`season`, `from`, `to`, `dry_run`).
+  - Lépések: env-ellenőrzés (secretek megléte, érték kiírása nélkül) → `npm ci` → `ingest:games --season` → `ingest:schedule`.
+  - A meccs-import szezon módban fut (a szezon elejétől a mai napig, a mentett meccset kihagyja), így a kimaradt nap magától pótlódik; a szezon végén kb. 270 scoreboard-kérés, kb. 4,5 perc.
+  - A kilépési kódot a workflow nem nyeli el: 1 és 2 is piros futás (T6), a run oldalán `::error` / `::warning` annotációval. A menetrend-lépés a meccs-import hibája után is lefut, hiányzó secret után nem.
+  - Szezonév: `NBA_SEASON_YEAR` repo variable, default `2027`. `concurrency` csoport, hogy a kézi és az ütemezett futás ne írjon egyszerre. Node 22, `actions/checkout@v5`, `actions/setup-node@v5`.
+  - Az `ingest:standings` kimaradt a napi futásból (a besorolás szezon közben nem változik).
+- **`HOWTO-auto-import.md` (új):** beállítás, kézi futtatás, kilépési kódok, gyakori hibaokok, szezonváltás.
+- **Ellenőrzés (helyben):**
+  - a YAML parse-olható (js-yaml); a lépések szkriptjei a fájlból kiemelve futtatva: hiányzó secret → `::error` + exit 1; stub importtal a 0 / 1 / 2 kód változatlanul továbbmegy, a 2 `::warning`-ot kap;
+  - tiszta checkout (`git archive`, `.env.local` nélkül), a két érték csak környezeti változóként: `ingest:games --season 2027` → `2026-09-30 → 2026-10-01`, 0 meccs, exit 0 (előszezon); secret nélkül exit 1;
+  - `ingest:schedule --season 2027` élesben: 1200 meccs, exit 0 (idempotens, harmadik futás);
+  - az `npm run` a 2-es kódot változatlanul adja tovább.
+- **Nem ellenőrzött:** GitHubon a workflow még nem futott (a `gh` nincs bejelentkezve, a secretek nincsenek beállítva, push nem történt). Az első futás dönti el, hogy az ESPN a runner IP-címéről is válaszol.
+- **Kimaradt, döntés kell:** tárhely-figyelés (SQL-függvény kellene a projektmérethez → migráció).
 
 ### 2026-09-30 – Konferencia és divízió (`ingest-standings.ts`) ✓
 

@@ -36,6 +36,8 @@
 - **2025/26-os szezon betöltve és javítva (2026-09-30):** 1322 meccs (alapszakasz 1231 a Cup-döntővel, rájátszás 85, play-in 6), 30 csapat, 234 884 dobás; az `nba` séma kb. 130 MB (projekt: 259 / 500 MB). Az All-Star meccsek törölve, a hosszú dobások javítva, a ±3-ig terjedő dobás/FGA eltérés `ℹ`. Maradék `⚠`: Olbrich hibás ESPN-rekordja (12 CHI-meccs).
 - Szezon-kapu, dedup és exit kód kész (T4, T5, T6, 2026-09-30): az import nem hoz létre szezont, a szezonon kívüli meccset írás előtt elutasítja, az előszezont kihagyja; exit 0 / 1 / 2 összesítővel.
 
+- **Ütemezett napi import megírva (2026-10-01):** `.github/workflows/ingest.yml` (09:00 UTC = 10:00 CET) + `HOWTO-auto-import.md`. Lépések: `ingest:games --season` (a szezon elejétől a mai napig, a mentett meccset kihagyja), majd `ingest:schedule`. A 2-es kilépési kód is piros futás. Helyben ellenőrizve (tiszta checkout, `.env.local` nélkül); **GitHubon még nem futott**: ehhez secretek és push kell (lásd Kézi teendők 6.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -43,6 +45,10 @@
 3. A `.env.local` 8. sorának javítása: az `ANTHROPIC_API_KEY` értéke után hiányzik a sortörés, a végére ragadt `NEXT_PUBLIC_SUPABASE_URL=` maradékot törölni kell. A Supabase-változók maradhatnak (`ugkettlebell`).
 4. ~~Migráció 002 + menetrend-import~~: kész (2026-09-30).
 5. Admin felhasználó: az Auth közös az ASEStatsszel, így a meglévő ASEStats admin (`user_metadata.role = "admin"`) itt is admin.
+6. **Ütemezett import élesítése** (`HOWTO-auto-import.md`, 1. pont):
+   - két repo secret a GitHubon: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`;
+   - push a `master` ágra (a workflow csak az `origin`-on él, T7);
+   - első próba kézzel, `dry_run` bepipálva (Actions → *Adatimport (ESPN)* → Run workflow).
 
 ## Következő lépések (roadmap)
 
@@ -51,7 +57,7 @@
    - ~~`ingest-games.ts --season` visszatöltés~~: kész, 2025/26 betöltve;
    - ~~`ingest-schedule.ts` a jövőbeli meccsekhez~~: kész, a 2026/27 menetrendje (1200 meccs) bent van;
    - ~~`ingest-standings.ts` a konferencia- és divízióadatokkal~~: kész (2026-09-30);
-   - GitHub Actions cron naponta 10:00 CET-kor.
+   - ~~GitHub Actions cron naponta 10:00 CET-kor~~: megírva (2026-10-01), élesítés a felhasználónál (secretek + push).
 2. **Adat-hookok és alapnézetek:** Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella. Ide tartozik a `player_season_stats_by_season` view is (migráció 003).
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
@@ -67,4 +73,5 @@
 
 ## Nyitott kérdések
 
-- Nincs. (A tárhely-döntés 2026-09-30-án megszületett: két szezon marad, 450 MB fölött a legrégebbi nyers JSON törlődik.)
+- **Tárhely-figyelés a napi futásban:** a projektméretet (`pg_database_size`) a service role csak SQL-függvényen át tudja lekérdezni (PostgREST RPC). Ehhez új migráció kell (pl. `nba.project_size_bytes()`), ami séma-változtatás → döntés kell. Alternatíva: marad a kézi ellenőrzés a Supabase dashboardon.
+- **Tabella nézet előtt:** kell-e külön tábla a hivatalos kiemeléshez (seed), GB-hez, sorozathoz és clinch jelzéshez, vagy elég a `games`-ből számolt győzelem–vereség (lásd `BACKLOG.md`).

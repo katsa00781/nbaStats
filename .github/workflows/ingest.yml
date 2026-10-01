@@ -1,0 +1,132 @@
+# Ütemezett napi ESPN adatimport: lezárt meccsek + menetrend.
+#
+# A CLI import szkripteket futtatja (nem API route-ot, T29), Playwright nélkül.
+# Mindkét import idempotens (upsert ESPN ID-re), így az ismételt futás nem
+# duplikál. A meccs-import szezon módban fut: a szezon elejétől a mai napig
+# minden napot megnéz, a már mentett meccset kihagyja, így egy kimaradt nap
+# vagy egy elhalasztott meccs a következő futáskor magától pótlódik.
+#
+# Kilépési kód (T6): 0 = rendben, 1 = hiba, 2 = konzisztencia-figyelmeztetés.
+# A 2 is pirosra állítja a futást: az adatot ellenőrizni kell, nem elnémítani.
+#
+# Szükséges repo secretek (Settings → Secrets and variables → Actions → Secrets):
+#   - NEXT_PUBLIC_SUPABASE_URL
+#   - SUPABASE_SERVICE_ROLE_KEY
+#
+# Opcionális repo variable (… → Actions → Variables):
+#   - NBA_SEASON_YEAR  (ESPN szezonév = záró év; default: 2027 = 2026/2027)
+#
+# Szezonváltáskor előbb a szezonsort felvevő migrációt kell lefuttatni a
+# Supabase SQL Editorban (az import nem hoz létre szezont, T4), utána átírni az
+# NBA_SEASON_YEAR-t. Részletek: HOWTO-auto-import.md
+
+name: Adatimport (ESPN)
+
+on:
+  schedule:
+    # 09:00 UTC = 10:00 CET (nyári időszámításkor 11:00 CEST). Ekkorra az előző
+    # amerikai keleti parti nap minden meccse lezárult.
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'ESPN szezonév (záró év, pl. 2027) – üresen az NBA_SEASON_YEAR / 2027'
+        required: false
+        default: ''
+      from:
+        description: 'Meccs-import kezdőnapja (YYYY-MM-DD) – üresen a szezon eleje'
+        required: false
+        default: ''
+      to:
+        description: 'Meccs-import zárónapja (YYYY-MM-DD) – üresen a mai nap'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry-run: csak validál és kiír, nincs DB írás'
+        type: boolean
+        required: false
+        default: false
+
+# Az ütemezett és a kézi futás ne írjon egyszerre.
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SEASON_YEAR: ${{ inputs.season || vars.NBA_SEASON_YEAR || '2027' }}
+      FROM_DATE: ${{ inputs.from }}
+      TO_DATE: ${{ inputs.to }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Env ellenőrzés (secretek megléte)
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "::error::A 'NEXT_PUBLIC_SUPABASE_URL' repo secret hiányzik vagy üres."
+            missing=1
+          fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::A 'SUPABASE_SERVICE_ROLE_KEY' repo secret hiányzik vagy üres."
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "Beállítás: Settings -> Secrets and variables -> Actions -> Secrets. Részletek: HOWTO-auto-import.md"
+            exit 1
+          fi
+          echo "Supabase secretek rendben (URL hossz: ${#NEXT_PUBLIC_SUPABASE_URL}, kulcs hossz: ${#SUPABASE_SERVICE_ROLE_KEY})."
+          echo "Szezon: $SEASON_YEAR, dry-run: ${DRY_RUN:-false}"
+
+      - name: Függőségek telepítése
+        run: npm ci
+
+      - name: Meccs-import (box score + dobások)
+        id: games
+        run: |
+          args=(--season "$SEASON_YEAR")
+          if [ -n "$FROM_DATE" ]; then args+=(--from "$FROM_DATE"); fi
+          if [ -n "$TO_DATE" ]; then args+=(--to "$TO_DATE"); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          set +e
+          npm run ingest:games -- "${args[@]}"
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            2) echo "::warning title=Meccs-import::Konzisztencia-figyelmeztetés volt (exit 2). Az adatot ellenőrizni kell – lásd a lépés logjának összesítőjét." ;;
+            *) echo "::error title=Meccs-import::Legalább egy meccs vagy nap elbukott (exit $code). Lásd a lépés logjának összesítőjét." ;;
+          esac
+          exit "$code"
+
+      # A meccs-import hibája vagy figyelmeztetése után is lefut (a menetrend
+      # független tőle), de a hiányzó secret / sikertelen telepítés után nem.
+      - name: Menetrend-import (jövőbeli meccsek)
+        if: ${{ !cancelled() && steps.games.conclusion != 'skipped' }}
+        run: |
+          args=(--season "$SEASON_YEAR")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          set +e
+          npm run ingest:schedule -- "${args[@]}"
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            2) echo "::warning title=Menetrend-import::Figyelmeztetés volt (exit 2). Lásd a lépés logját." ;;
+            *) echo "::error title=Menetrend-import::A menetrend-import elbukott (exit $code). Lásd a lépés logját." ;;
+          esac
+          exit "$code"

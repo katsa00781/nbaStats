@@ -132,9 +132,11 @@ nbastats/
 ├── hooks/                      # adatlekérési hookok (még üres – T20/T21)
 ├── migrations/                 # SQL – csak Supabase SQL Editorban
 ├── context/                    # projekt spec és kontextus fájlok
+├── .github/workflows/ingest.yml  # napi cron (09:00 UTC): ingest:games --season + ingest:schedule
 ├── ingest-games.ts             # CLI: npm run ingest:games -- --date YYYY-MM-DD | --season YYYY [--dry-run]
 ├── ingest-schedule.ts          # CLI: npm run ingest:schedule -- --season YYYY [--dry-run]
 ├── ingest-standings.ts         # CLI: npm run ingest:standings -- --season YYYY [--dry-run]
+├── HOWTO-auto-import.md        # az ütemezett import beállítása, hibakeresése, szezonváltás
 ├── BACKLOG.md
 └── .env.local                  # titkos változók – soha nem kerül git-be
 ```
@@ -386,6 +388,10 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - **Minden import szkriptnek van `--dry-run` módja**, ami DB nélkül validál és kiír.
 - **A nyers JSON gzip-elve az `espn_game_raw.payload_gz`-be kerül** (`lib/espn/raw-payload.ts`). Formátumváltáskor innen parse-olunk újra, nem töltünk le.
 - **Import-író változás csak push után hat** az ütemezett GitHub Actions futásra. A push is része a lezárásnak (T7).
+- **Ütemezett futás (`.github/workflows/ingest.yml`, `HOWTO-auto-import.md`):** naponta 09:00 UTC-kor `ingest:games --season` (a szezon elejétől a mai napig, a mentett meccset kihagyja), majd `ingest:schedule`.
+  - A szezonév az `NBA_SEASON_YEAR` repo variable (default `2027`); a két Supabase-érték repo secret.
+  - A 2-es kilépési kód is pirosra állítja a futást. A workflow-ban a kódot nem nyeljük el (`continue-on-error` nincs).
+  - Az `ingest:standings` nincs a napi futásban (szezononként egyszer, kézzel).
 
 ```bash
 npm run ingest:games -- --date 2026-03-01 --dry-run   # validálás DB nélkül

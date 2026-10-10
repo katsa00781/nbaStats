@@ -320,6 +320,17 @@ A `SeasonTeamSelector` (NBAStats, 2026-10-10) minden tabon látszik: két shadcn
 
 Új token, új animáció és új alapkomponens nincs.
 
+**Játékosok nézet** (`PlayersView`, NBAStats, 2026-10-10) – a `players` tab tartalma, a kiválasztott csapat játékosai:
+- szakasz-fülek (shadcn `Tabs`), csak ha a csapatnak több szakaszban van sora; az átlagok szakaszonként külön számolódnak;
+- címsor a játékosok számával és egy magyarázó sor (meccsenkénti átlagok, csak az adott csapat színeiben; M / K feloldása);
+- egy `DataTable`, 19 oszlop: `#` (mez, `.dt-num--muted`), Játékos, Poz., M, K, MIN, PTS, REB, AST, STL, BLK, TOV, FG%, 3P%, FT%, TS%, eFG%, VAL, +/-. Alaprendezés: PTS csökkenő. A tábla kb. 1380 px széles: keskenyebb ablakban a saját konténerében (`.dt-scroll`) görög vízszintesen;
+- játékos-cella: `.dt-player` + 30 px-es kör alakú ESPN-headshot (`next/image`, `rounded-full object-cover object-top`), kép híján `.dt-player-avatar` a monogrammal. A név nem kattintható (a játékos-részletek külön egység);
+- poszt: `.dt-badge--pg` / `--sg` / `--sf` / `--pf` / `--c` az első illeszkedő poszt szerint (`lib/positions.ts`; az ESPN többnyire G / F / C-t ad);
+- kísérlet nélküli százalék: „–”; a `+/-` előjeles, `.dt-num--pos` / `.dt-num--neg` színnel;
+- betöltéskor `.skeleton-shimmer`, hibánál `DataLoadError`, lejátszott meccs nélkül magyarázó üres állapot (`Card` + `UserX`).
+
+Új token, új animáció és új alapkomponens itt sincs.
+
 Layout-konstansok (nem design tokenek, komponens-lokális méretek):
 `--sb-w-expanded: 240px` · `--sb-w-collapsed: 64px` · `--sb-transition: 220ms cubic-bezier(.4,0,.2,1)`
 

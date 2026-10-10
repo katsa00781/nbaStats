@@ -39,15 +39,19 @@ Szerkezet:
 ### Adatréteg és alapnézetek (roadmap 2.)
 
 - [x] Migráció 003: `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9) – megírva 2026-10-10
-- [ ] **A 003 futtatása (felhasználó):** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`)
+- [x] **A 003 futtatása (felhasználó):** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`) – kész, ellenőrizve 2026-10-10
 - [x] Közös törzsadat-hookok: `useSeasons()`, `useTeams()`, `useFollowedTeam()` (T21) – `hooks/useMasterData.ts` (2026-10-10)
 - [x] Szezon- és csapatválasztó az AppShellben (a törzsadat-hookok első fogyasztója). Alapértelmezés: a 2025/26-os szezon (döntés: 2026-10-10, a tesztelés idejére) és a követett csapat – `SeasonTeamSelector` + `useSeasonTeamSelection()` (2026-10-10)
 - [ ] **A választó ellenőrzése böngészőben, bejelentkezve (felhasználó):** `npm run dev` → a topbar alatt 2025/2026 + Los Angeles Lakers (csillaggal), 30 csapat a listában, a konzol hibamentes
 - [x] `useGameData`: `useTeamGames(seasonId, teamId)` a semleges hazai/vendég sémára (T20) – `hooks/useGameData.ts` + `lib/game-data.ts` (2026-10-10)
 - [x] Alapnézet: **Mérkőzések** (`GamesView`, DataTable + StatCard) – 2026-10-10
 - [ ] **A Mérkőzések nézet ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Mérkőzések* → 2025/2026 + Lakers: 53–29, 82 sor logókkal; 2026/2027: 5 kiírt meccs + „Összes megjelenítése”
-- [ ] `usePlayerData` a `player_season_stats_by_season` view-ra, `fetchAllRows`-szal (T1, T20) – előfeltétel: a 003 futtatása
-- [ ] Alapnézetek: Játékosok, Játékos-részletek, Meccs-részletek (box score), Csapatstatisztika, Tabella (DataTable / StatCard)
+- [x] `usePlayerData`: `useTeamPlayerStats(seasonId, teamId)` a `player_season_stats_by_season` view-ra, `fetchAllRows`-szal (T1, T20) – `hooks/usePlayerData.ts` + `lib/player-data.ts` (2026-10-10)
+- [x] Alapnézet: **Játékosok** (`PlayersView`, DataTable) – a kiválasztott csapat játékosai szakaszonként (2026-10-10)
+- [ ] **A Játékosok nézet ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Játékosok* → 2025/2026 + Lakers: 20 játékos, legfelül Luka Doncic (33.5 PTS); Rájátszás: 14 játékos; 2026/2027: üres állapot
+- [ ] Alapnézetek: Játékos-részletek, Meccs-részletek (box score), Csapatstatisztika, Tabella (DataTable / StatCard)
+- [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
+- [ ] Refaktor (külön lépés): a `useTeamGames` a közös `useSeasonTeamResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre (most két azonos logikájú megvalósítás van)
 - [ ] A `SeasonTeamSelector` hibapanelje a közös `DataLoadError` komponensre cserélhető (most két azonos kinézetű megvalósítás van; külön, tisztán refaktor lépés)
 - [ ] Követett csapat választó (admin, `app_settings.followed_team_id`)
 
@@ -90,6 +94,23 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-10 – `useTeamPlayerStats` + Játékosok nézet ✓ (éles böngészős próba hátravan)
+
+- **Előfeltétel:** a 003-as migrációt a felhasználó lefuttatta. A Supabase-ben csak olvasva ellenőrizve: a view létezik, `security_invoker = true`, 661 / 240 / 92 sor, 284 604 alapszakasz-pont (egyezik a megírás előtti méréssel), olvasási jog az `authenticated` és a `service_role` szerepnek.
+- **`lib/player-data.ts` (új):** az ASEStats `player-stat-mapping` NBA-megfelelője. `fetchTeamPlayerStats(db, seasonId, teamId)` – a view sorai `season_id`-ra, `team_id`-ra és a tárolt szakaszokra szűrve, `fetchAllRows`-szal (T1). `toPlayerSeasonStats()`: összegek → meccsenkénti átlag; FG% / 3P% / FT% / TS% / eFG% az összesített dobásokból (T12), kísérlet nélkül `null`; a kísérletszám a box score-ból jön (`total_fgm` / `total_fga`), nem a close + mid + three összegéből, mint az ASEStatsben; valuation a `simpleValuation()`-ből.
+- **`lib/stat-formulas.ts`:** új `shootingPct()` (a dobószázalék is egy helyen él, T22). **`lib/season-types.ts`:** új `orderSeasonTypes()` és `resolveSeasonType()`.
+- **`hooks/useSeasonTeamResource.ts` (új):** a szezonra + csapatra szűrt adat közös betöltője – a `useTeamGames` logikája általánosítva (kulcsból származtatott állapot, eldobott régi válasz, `reload()`). **`hooks/usePlayerData.ts` (új):** `useTeamPlayerStats(seasonId, teamId)` erre építve.
+- **`components/PlayersView.tsx` + `PlayersTable.tsx` (új):** szakasz-fülek (csak ha több szakasz van), címsor a játékosok számával, magyarázó sor, egy `DataTable` 19 oszloppal. Játékos-cella ESPN-headshottal (`next/image`), kép híján monogram; poszt-jelvény; előjeles, színezett +/-. Skeleton, hibapanel, üres állapot. Supabase-hívás a komponensekben nincs (T20).
+- **`app/page.tsx`:** a `players` tabon a `PlayersView`.
+- **Megvalósítási döntések (jelezve a felhasználónak, részletek a progress-trackerben):** csapatra szűrt nézet, nem ligás ranglista; minden érték meccsenkénti átlag; alaprendezés PTS csökkenő; nincs percküszöb; az ASEStats saját „Pont hat.” / „Véd. idx” mutatói (T13), a „Forma” sparkline és a névkereső nem került át; a név nem kattintható. Új token, új csomag, séma-változás nincs.
+- **Ellenőrzés:**
+  - valós DB (service role, csak olvasás), a tényleges `fetchTeamPlayerStats`: Lakers 2025/26 alapszakasz 20 játékos (Dončić: 64 meccs, 35.8 perc, 33.5 pont, FG 47.6%, 3P 36.6%, FT 78.0%, TS 61.6%, eFG 56.3%, VAL 33.5 – kézzel utánaszámolva az összegekből), rájátszás 14; Knicks 20 + 18; Bulls 28; a 30 csapat sorainak összege 993 = a view teljes 2025/26-os tartalma; 2026/27: 0 sor. A PostgREST a `numeric` percösszeget számként adja;
+  - **headless Chrome** (csak a scratchpadben; a valódi hook + nézet + a build CSS-e, kicsonkolt Supabase-klienssel, a valós adatbázisból mentett 993 view-sorral), 54 állítás: skeleton → adat; a lekérdezés szűrői (`season_id`, `team_id`, `season_type in (2,5,3)`, `range 0–999`); a teljes Dončić-sor; rendezés (szám, előjeles +/-, név, kísérlet nélküli százalék a végén); fülváltás lekérdezés nélkül, a rájátszás nem keveredik az alapszakasszal; csapatváltáskor a régi sorok eltűnnek, a választott szakasz megmarad, ha van (Knicks), különben alapszakasz, fülek nélkül (Bulls); három szakasz sorrendje (76ers); headshot nélküli játékos → monogram (Grizzlies); 2026/27 → üres állapot; hiba → panel → újrapróbálás; verseny (lassú régi válasz eldobva); törzsadat-betöltés és -hiba alatt nincs lekérdezés; a konzolban csak a szándékos hiba. Képernyőkép 1440 px-en és valódi 390 px-es viewportban (iframe): az oldal nem csordul túl, a tábla a saját konténerében görög (T23);
+  - `next start`: a `/_next/image` az `a.espncdn.com` headshotot kiszolgálja (200), más hostot elutasít (400);
+  - `tsc`, `eslint`, `npm run build` hibátlan.
+- **Nem ellenőrzött:** az éles alkalmazásban, bejelentkezve nem futott (nincs teszt-bejelentkezésem). A böngészős tesztben a `next/image` helyén sima `<img>` állt. `total_plus_minus = NULL` és poszt nélküli játékos a valós adatban nincs, ezek megjelenítése (gondolatjel) csak kódból ismert.
+- **Megfigyelés:** a headless Chrome ablaka nem megy 500 px alá – a 390 px-es képhez iframe kell, különben a képernyőkép egy szélesebb elrendezést vág le. A 19 oszlopos tábla kb. 1380 px: 1440 px-es ablakban (240 px-es sidebar mellett) négy oszlop görgetéssel érhető el.
 
 ### 2026-10-10 – `useTeamGames` + Mérkőzések nézet ✓ (éles böngészős próba hátravan)
 

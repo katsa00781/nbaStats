@@ -4,6 +4,11 @@
 // Minden százalék 0–100 skálán tér vissza, kerekítés nélkül – a megjelenítési
 // kerekítés a hívó dolga (vagy a formatPercent helperé).
 
+/** Dobószázalék (FG%, 3P%, FT%): bedobott / kísérlet × 100 */
+export const shootingPct = (made: number, attempted: number): number => {
+  return attempted > 0 ? (made / attempted) * 100 : 0;
+};
+
 /** True Shooting %: pontok / (2 × (FGA + 0.44 × FTA)) × 100 */
 export const trueShootingPct = (points: number, fga: number, fta: number): number => {
   const denom = 2 * (fga + 0.44 * fta);

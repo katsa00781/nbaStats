@@ -40,11 +40,13 @@
 
 - **Közös törzsadat-hookok kész (2026-10-10):** `useSeasons()`, `useTeams()`, `useFollowedTeam()` (`hooks/useMasterData.ts`), modul-szintű közös tárolóval (`lib/shared-resource.ts`) és a lekérdezésekkel (`lib/master-data.ts`). Akárhány komponens hívja, egy lekérdezés fut (T21). Ellenőrizve: tároló-teszt, valós DB-olvasás (2 szezon, 30 csapat, Lakers), `tsc`, `eslint`, `build`. **Böngészőben még nem futott:** nincs nézet, ami használná.
 
-- **Migráció 003 megírva (2026-10-10):** `nba.player_season_stats_by_season` view (játékos × szezon × szezontípus × csapat, DNP nélkül, csak lezárt meccsekből, `security_invoker`), a `Database` típusban `Views` + `ViewRow`. A lekérdezés a valós adatokon csak olvasva ellenőrizve (661 / 240 / 92 sor, a pontösszeg a nyers sorokkal egyezik), a DDL és a jogosultságok PGlite-on. **A Supabase-ben még nem futott** (lásd Kézi teendők 7.).
+- **Migráció 003 kész (2026-10-10):** `nba.player_season_stats_by_season` view (játékos × szezon × szezontípus × csapat, DNP nélkül, csak lezárt meccsekből, `security_invoker`), a `Database` típusban `Views` + `ViewRow`. A felhasználó lefuttatta; a Supabase-ben ellenőrizve (csak olvasva): a view létezik, `security_invoker = true`, 661 / 240 / 92 sor, olvasási jog az `authenticated` és a `service_role` szerepnek.
 
 - **Szezon- és csapatválasztó kész (2026-10-10):** `SeasonTeamSelector` a topbar alatt, minden tabon; állapota a `useSeasonTeamSelection()` hookban (`lib/selection.ts`: alapértelmezés 2025/26 + követett csapat). A választás az oldal szintjén él, frissítés után az alapértelmezés jön vissza. A `page.tsx`-ben a `Home` csak auth guard, a váz (`AppShell`) külön komponens. Ellenőrizve: logika, valós DB-alapértelmezés (2025/2026 + Lakers), headless Chrome (23 állítás, kicsonkolt klienssel), `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 8.).
 
 - **Mérkőzések nézet kész (2026-10-10):** `useTeamGames()` (`hooks/useGameData.ts`, `lib/game-data.ts`) + `GamesView` a `games` tabon – a szezon- és csapatválasztó első fogyasztója. Szakaszonként (alapszakasz / play-in / rájátszás) külön mérleg-kártyák, a le nem zárt meccsek (első 5, kibontható) és a lejátszott meccsek táblája. Ellenőrizve: valós DB (Lakers 2025/26: 82 meccs, 53–29; rájátszás 4–6), headless Chrome valós adatokkal (37 állítás), képoptimalizáló az ESPN-logókra, `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 9.).
+
+- **Játékosok nézet kész (2026-10-10):** `useTeamPlayerStats()` (`hooks/usePlayerData.ts`, `lib/player-data.ts`) + `PlayersView` a `players` tabon – a szezon-összesítő view első fogyasztója. A kiválasztott csapat játékosai szakaszonként (alapszakasz / play-in / rájátszás) külön: meccsenkénti átlagok, dobószázalékok az összesített dobásokból, TS%, eFG%, valuation, +/-. Új közös betöltő a szezonra + csapatra szűrt adathoz: `useSeasonTeamResource()`. Ellenőrizve: valós DB (Lakers 2025/26: 20 + 14 játékos, Dončić 33.5 pont; a 30 csapatra 993 sor = a view teljes szezonja), headless Chrome valós adatokkal (54 állítás), képoptimalizáló az ESPN-headshotokra, `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 10.).
 
 ## Kézi teendők (felhasználó)
 
@@ -57,10 +59,12 @@
    - két repo secret a GitHubon: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`;
    - ~~push a `master` ágra (a workflow csak az `origin`-on él, T7)~~: kész (2026-10-10);
    - első próba kézzel, `dry_run` bepipálva (Actions → *Adatimport (ESPN)* → Run workflow).
-7. **Migráció 003 futtatása:** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`). Ellenőrzés utána: `select season_type, count(*) from nba.player_season_stats_by_season group by 1;` → 2: 661, 3: 240, 5: 92.
+7. ~~Migráció 003 futtatása~~: kész (2026-10-10; a view él, 2: 661, 3: 240, 5: 92).
 8. **A szezon- és csapatválasztó kipróbálása böngészőben:** `npm run dev`, bejelentkezés → a topbar alatt 2025/2026 és Los Angeles Lakers (csillaggal) az alapértelmezés, a csapatlistában 30 csapat, a konzol hibamentes.
 
 9. **A Mérkőzések nézet kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Mérkőzések*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül, mérleg 53–29 (hazai 28–13, idegenben 25–16), 82 sor csapatlogókkal; 2026/2027-re váltva 5 kiírt meccs és „Összes megjelenítése”; a konzol hibamentes.
+
+10. **A Játékosok nézet kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Játékosok*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül, 20 játékos headshottal, legfelül Luka Doncic (33.5 PTS); Rájátszás: 14 játékos, legfelül LeBron James (23.2 PTS); 2026/2027-re váltva üres állapot („még nincs lejátszott mérkőzése”); a konzol hibamentes.
 
 ## Következő lépések (roadmap)
 
@@ -75,7 +79,9 @@
    - ~~migráció 003 (`player_season_stats_by_season` view)~~: megírva (2026-10-10), futtatás a felhasználónál;
    - ~~szezon- és csapatválasztó az AppShellben (alapértelmezés: 2025/26 + követett csapat)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
    - ~~`useGameData` + Mérkőzések nézet (a választó első fogyasztója)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
-   - következő: `usePlayerData` + Játékosok nézet (a `player_season_stats_by_season` view első fogyasztója – előtte a 003-nak futnia kell a Supabase-ben);
+   - ~~`usePlayerData` + Játékosok nézet (a `player_season_stats_by_season` view első fogyasztója)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
+   - következő: Játékos-részletek vagy Meccs-részletek (box score) – a sorrendet a felhasználó dönti el (mindkettő új lekérdezést igényel a `player_game_stats`-ra);
+   - külön refaktor lépés: a `useTeamGames` és a `GamesView` szakaszválasztása a közös `useSeasonTeamResource()` / `orderSeasonTypes()` / `resolveSeasonType()` helperekre;
    - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
@@ -106,6 +112,15 @@
   - a kártyák: Mérleg, Hazai, Idegenbeli, Pontkülönbség / meccs (győzelmi arány nincs, az a Tabellára kerül);
   - a sorok nem kattinthatók: a meccs-részletek (box score) külön egység;
   - az NBA Cup döntője (semleges helyszín) az ESPN szerinti pályaválasztónál „Hazai” meccsként számít.
+- **Játékosok nézet – megvalósítási döntések, felülbírálhatók:**
+  - a nézet a kiválasztott csapat játékosait mutatja (nem ligás ranglista); a szezon közben igazolt játékosnál csak az adott csapatnál játszott meccsek számítanak. A ligaszintű játékoslista a fenti „ligaszintű nézetek” kérdés eldöntése után külön egység;
+  - 19 oszlop (M, K, MIN, PTS, REB, AST, STL, BLK, TOV, FG%, 3P%, FT%, TS%, eFG%, VAL, +/-), mind meccsenkénti átlag, a +/- is. A tábla kb. 1380 px széles: 1440 px-es ablakban az utolsó négy oszlop (TS%, eFG%, VAL, +/-) vízszintes görgetéssel érhető el;
+  - alaprendezés: PTS csökkenő (az ASEStatsben VAL; itt a VAL oszlop keskenyebb ablakban nem látszik görgetés nélkül);
+  - nincs percküszöb: a 2 meccset játszó játékos is szerepel, és a százalékoknál elöl is végezhet (kis minta, T15);
+  - az ASEStats „Pont hat.” / „Véd. idx” saját mutatói (T13) és a „Forma” sparkline nem került át; a névkereső sem (egy csapatnak 15–33 sora van);
+  - a név nem kattintható: a játékos-részletek külön egység;
+  - a poszt-jelvény színe az ESPN G / F / C rövidítésének első illeszkedő posztját követi (G → PG, F → SF színe);
+  - a mezszám, a poszt és a kép a játékos-törzsadat aktuális értéke, nem a csapatnál töltött időszaké.
 - **Meccs-lekérdezés gyorsítótára:** a `useTeamGames` nem tárol; csapat- vagy szezonváltáskor (és a tabra visszalépve) újra lekérdez (kb. 100 sor). Ha zavaró, kulcsolt közös tároló kell – az adatréteg-döntés.
 - **Tabella-tábla sémája:** a döntés megvan (kell külön tábla, 2026-10-10), de az oszlopokat (kiemelés, GB, sorozat, clinch, hazai/idegen mérleg, utolsó 10) a migráció megírása előtt egyeztetni kell.
 - **Alapértelmezett szezon hosszú távon:** most a 2025/26-os (tesztelés); a 2026/27 indulása (2026-10-20) után felül kell vizsgálni.

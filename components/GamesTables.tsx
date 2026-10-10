@@ -61,7 +61,8 @@ export function GameResultBadges({ game }: { game: TeamGame }) {
   );
 }
 
-function OpponentCell({ team }: { team: Team | undefined }) {
+/** Csapatlogó + név; a játékos meccsnaplója is ezt használja. */
+export function OpponentCell({ team }: { team: Team | undefined }) {
   if (!team) return <span className="text-muted">Ismeretlen csapat</span>;
   return (
     <span className="dt-team">

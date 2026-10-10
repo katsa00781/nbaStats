@@ -6,6 +6,7 @@ import type { Position } from '@/lib/positions';
 import { DataTable } from '@/components/ui/data-table';
 import { parsePositionBuckets } from '@/lib/positions';
 import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 import Image from 'next/image';
 
 const AVATAR_SIZE = 30;
@@ -31,14 +32,21 @@ function formatSigned(value: number): string {
   return `${value > 0 ? '+' : '−'}${Math.abs(value).toFixed(1)}`;
 }
 
-function initials(name: string): string {
+/** Monogram a kép nélküli játékoshoz. */
+export function playerInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 }
 
+interface PlayerCellProps {
+  player: Pick<PlayerSeasonStats, 'name' | 'headshotUrl'>;
+  /** Ha meg van adva, a név gomb: a játékos részleteit nyitja meg. */
+  onOpen?: () => void;
+}
+
 /** Headshot (kép híján monogram) + név; a box score táblája is ezt használja. */
-export function PlayerCell({ player }: { player: Pick<PlayerSeasonStats, 'name' | 'headshotUrl'> }) {
+export function PlayerCell({ player, onOpen }: PlayerCellProps) {
   return (
     <span className="dt-player">
       {player.headshotUrl ? (
@@ -50,9 +58,19 @@ export function PlayerCell({ player }: { player: Pick<PlayerSeasonStats, 'name' 
           className="h-7.5 w-7.5 shrink-0 rounded-full border border-border-active bg-surface-3 object-cover object-top"
         />
       ) : (
-        <span className="dt-player-avatar" aria-hidden="true">{initials(player.name)}</span>
+        <span className="dt-player-avatar" aria-hidden="true">{playerInitials(player.name)}</span>
       )}
-      <span className="font-semibold">{player.name}</span>
+      {onOpen ? (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="dt-player-name rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan"
+        >
+          {player.name}
+        </button>
+      ) : (
+        <span className="font-semibold">{player.name}</span>
+      )}
     </span>
   );
 }
@@ -86,7 +104,7 @@ function pctColumn(
   };
 }
 
-const COLUMNS: ColumnDef<PlayerSeasonStats>[] = [
+const buildColumns = (onOpenPlayer: (playerId: string) => void): ColumnDef<PlayerSeasonStats>[] => [
   {
     key: 'jersey',
     label: '#',
@@ -98,7 +116,7 @@ const COLUMNS: ColumnDef<PlayerSeasonStats>[] = [
     key: 'name',
     label: 'Játékos',
     sortAccessor: player => player.name,
-    render: player => <PlayerCell player={player} />,
+    render: player => <PlayerCell player={player} onOpen={() => onOpenPlayer(player.playerId)} />,
   },
   {
     key: 'position',
@@ -136,11 +154,20 @@ const COLUMNS: ColumnDef<PlayerSeasonStats>[] = [
   },
 ];
 
-/** Egy csapat játékosai egy szakaszban: meccsenkénti átlagok és dobószázalékok. */
-export function PlayersTable({ players }: { players: PlayerSeasonStats[] }) {
+interface PlayersTableProps {
+  players: PlayerSeasonStats[];
+  onOpenPlayer: (playerId: string) => void;
+}
+
+/**
+ * Egy csapat játékosai egy szakaszban: meccsenkénti átlagok és dobószázalékok.
+ * A játékos neve a részleteit (meccsenkénti napló) nyitja meg.
+ */
+export function PlayersTable({ players, onOpenPlayer }: PlayersTableProps) {
+  const columns = useMemo(() => buildColumns(onOpenPlayer), [onOpenPlayer]);
   return (
     <DataTable
-      columns={COLUMNS}
+      columns={columns}
       rows={players}
       getRowId={player => player.playerId}
       initialSort={{ key: 'points', dir: 'desc' }}

@@ -7,9 +7,10 @@ import type { NbaClient } from '@/lib/db-schema';
 import type { GameStatus, TableRow } from '@/lib/supabase';
 import { SEASON_TYPE_ORDER } from '@/lib/season-types';
 
-const GAME_COLUMNS =
+// A napló-lekérdezés (lib/player-game-log-data.ts) ugyanezeket az oszlopokat ágyazza be.
+export const GAME_COLUMNS =
   'id, season_type, game_date, start_time, home_team_id, away_team_id, home_score, away_score, status, periods, venue';
-type GameRow = Pick<
+export type GameRow = Pick<
   TableRow<'games'>,
   | 'id'
   | 'season_type'

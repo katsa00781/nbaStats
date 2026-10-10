@@ -41,7 +41,8 @@ Szerkezet:
 - [x] Migráció 003: `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9) – megírva 2026-10-10
 - [ ] **A 003 futtatása (felhasználó):** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`)
 - [x] Közös törzsadat-hookok: `useSeasons()`, `useTeams()`, `useFollowedTeam()` (T21) – `hooks/useMasterData.ts` (2026-10-10)
-- [ ] Szezon- és csapatválasztó az AppShellben (a törzsadat-hookok első fogyasztója). Alapértelmezés: a 2025/26-os szezon (döntés: 2026-10-10, a tesztelés idejére) és a követett csapat
+- [x] Szezon- és csapatválasztó az AppShellben (a törzsadat-hookok első fogyasztója). Alapértelmezés: a 2025/26-os szezon (döntés: 2026-10-10, a tesztelés idejére) és a követett csapat – `SeasonTeamSelector` + `useSeasonTeamSelection()` (2026-10-10)
+- [ ] **A választó ellenőrzése böngészőben, bejelentkezve (felhasználó):** `npm run dev` → a topbar alatt 2025/2026 + Los Angeles Lakers (csillaggal), 30 csapat a listában, a konzol hibamentes
 - [ ] `useGameData` / `usePlayerData` semleges hazai/vendég sémára, `fetchAllRows`-szal (T1, T20)
 - [ ] Alapnézetek: Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella (DataTable / StatCard)
 - [ ] Követett csapat választó (admin, `app_settings.followed_team_id`)
@@ -85,6 +86,22 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-10 – Szezon- és csapatválasztó az AppShellben ✓ (éles böngészős próba hátravan)
+
+- **`lib/selection.ts` (új):** `DEFAULT_SEASON_ESPN_YEAR = 2026` (a tesztelés idejére, döntés: 2026-10-10), `resolveSeason()` (választás → alapértelmezett szezon → legújabb), `resolveTeam()` (választás → követett csapat → első). Tiszta függvények.
+- **`hooks/useSeasonTeamSelection.ts` (új):** a törzsadat-hookokra épül; csak a felhasználó választását tárolja (`useState`), a tényleges szezon és csapat ebből és a törzsadatból **származtatott érték** – nincs effectből indított `setState` (az ASEStats `SeasonSelector`-a így állította be az alapértelmezést). Egy `{ seasons, teams, followedTeamId, season, team, selectSeason, selectTeam, loading, error, reload }` objektumot ad; a `reload()` csak a hibás erőforrást tölti újra.
+- **`components/SeasonTeamSelector.tsx` (új):** megjelenítő komponens, Supabase-hívás nélkül (T20). Két shadcn `Select` címkével; a követett csapat narancs csillagot kap (Lucide `Star`). Betöltéskor `.skeleton-shimmer` (T21), hibánál inline panel „Újrapróbálás” gombbal + `toast.error`, üres törzsadatnál magyarázó üres állapot. Új token, új csomag nincs.
+- **`app/page.tsx`:** a `Home` csak auth guard; a váz (`AppShell`) külön komponens ugyanabban a fájlban, mert a törzsadat-hookok bejelentkezés előtt nem iratkozhatnak fel (anon kulccsal `permission denied`, és a hibaállapot a `reload()`-ig megmaradna). A választó a topbar alatt van, minden tabon.
+- **Megvalósítási döntések (jelezve a felhasználónak):** az állapot az ASEStats mintájára az oldal szintjén él (nincs Context, nincs URL-paraméter, nincs localStorage – frissítés után az alapértelmezés jön vissza); a csapat mindig ki van választva (nincs „összes csapat” opció); a csapatok név szerint, logó nélkül.
+- **Ellenőrzés:**
+  - tiszta logika (11 állítás): 2026-os szezon az alapértelmezés akkor is, ha a 2027 a legújabb; ismeretlen ID → alapértelmezés; nincs követett csapat → az első;
+  - valós DB (service role, csak olvasás): 2 szezon (2026/2027, 2025/2026), 30 csapat → alapértelmezés 2025/2026 + Los Angeles Lakers (ESPN `13`);
+  - szerveroldali render: betöltés (2 skeleton), hiba (panel + gomb), üres állapot, címke ↔ trigger összekötés;
+  - **headless Chrome** (csak a scratchpadben; a valódi hook + komponens + a build CSS-e, kicsonkolt Supabase-klienssel), 23 állítás: elbukó szezon-lekérdezés → hibapanel → újrapróbálás csak a szezonokat kéri újra; két fogyasztó mellett törzsadatonként egy lekérdezés; alapértelmezés a triggerekben; szezon- és csapatváltás billentyűzetről, egymástól függetlenül; váltás nem indít lekérdezést; a konzolban csak a szándékos hiba. Képernyőképen a tokenek rendben (surface, mono trigger, narancs csillag);
+  - `tsc`, `eslint`, `npm run build` hibátlan.
+- **Nem ellenőrzött:** az éles alkalmazásban, bejelentkezve nem futott (nincs teszt-bejelentkezésem; a közös Auth-hoz nem nyúltam). A 30 csapatos lista görgetése és a mobil elrendezés képen nincs ellenőrizve.
+- **Megfigyelés:** a Radix `Select` a kiválasztott értéket szerveroldalon nem rendereli (kliensen, portálon át tölti ki), és a lista bezárása a kilépő animáció végére vár – teszteléskor valós idő kell, a headless Chrome virtuális ideje alatt a lista „nyitva marad”.
 
 ### 2026-10-10 – Migráció 003: játékos szezon-összesítő view – megírva, futtatás hátravan
 
@@ -293,7 +310,7 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | # | Mi történt az ASEStatsben | Szabály az NBAStatsben | Állapot |
 |---|---|---|---|
 | T20 | A `SeasonComparison.tsx` 18k sorra nőtt, 38 közvetlen DB-hívással; Babel 500KB warning, kockázatos minden módosítás. 16 komponens 125 közvetlen `supabase.from()` hívást tartalmazott | Komponensben nincs közvetlen Supabase-hívás, minden a `hooks/`-ban van. Nézetenként külön komponens, tabonként külön fájl | Az első hooktól kötelező |
-| T21 | A `seasons` / `teams` törzsadatot 7 komponens kérte le külön-külön | Közös `useSeasons()` / `useTeams()` hook, `{ data, loading, error }` hármassal, `.skeleton-shimmer` töltésjelzéssel | ✓ `hooks/useMasterData.ts`; a töltésjelzés a nézeteknél |
+| T21 | A `seasons` / `teams` törzsadatot 7 komponens kérte le külön-külön | Közös `useSeasons()` / `useTeams()` hook, `{ data, loading, error }` hármassal, `.skeleton-shimmer` töltésjelzéssel | ✓ `hooks/useMasterData.ts`; töltésjelzés a választóban, a nézeteknél kötelező |
 | T22 | A TS% / eFG% / valuation képlet 6 helyen volt másolva (javítási sprint, 3. fázis) | A formula csak a `lib/stat-formulas.ts`-ben lehet | ✓ átvéve |
 
 ### UI

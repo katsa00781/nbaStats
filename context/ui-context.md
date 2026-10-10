@@ -304,8 +304,11 @@ A korábbi `container mx-auto` + `bg-slate-900` header minta **megszűnt** (AppS
 ├── AppSidebar   (.sidebar – sticky, height 100vh, surface-1, z-40)
 └── main         (px-4 sm:px-8 lg:px-9 py-6 sm:py-7 pb-24 md:pb-7)
     ├── AppTopbar
+    ├── SeasonTeamSelector   (szezon + csapat; `flex flex-wrap gap-4`, mezőnként `w-full sm:w-64`)
     └── tartalom
 ```
+
+A `SeasonTeamSelector` (NBAStats, 2026-10-10) minden tabon látszik: két shadcn `Select` `.uppercase-label` címkével, a követett csapat mellett narancs Lucide `Star`. Betöltéskor mezőnként `.skeleton-shimmer h-9`, hibánál inline panel (`AlertCircle` + üzenet + ghost „Újrapróbálás” gomb) és `toast.error`. Új token nincs.
 
 Layout-konstansok (nem design tokenek, komponens-lokális méretek):
 `--sb-w-expanded: 240px` · `--sb-w-collapsed: 64px` · `--sb-transition: 220ms cubic-bezier(.4,0,.2,1)`

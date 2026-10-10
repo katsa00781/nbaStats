@@ -60,6 +60,7 @@ Az UI egységes, sportos, telemetria-érzetű sötét felület, változatlanul �
 **Navigáció:** AppShell.
 - `AppSidebar`: a `NAV_GROUPS` csoportok (Analitika / Liga / Admin), összecsukható, `Cmd/Ctrl+B`.
 - `AppTopbar`: breadcrumb, user-chip, kijelentkezés.
+- `SeasonTeamSelector`: globális szezon- és csapatszűrő a topbar alatt, minden tabon. Alapértelmezés: `DEFAULT_SEASON_ESPN_YEAR` (`lib/selection.ts`, most a 2025/26-os szezon) és a követett csapat.
 - Az `activeTab` tiszta `useState`, nincs URL routing. Új nézet = új `NAV_GROUPS` elem + tartalom-komponens.
 
 ---
@@ -99,13 +100,14 @@ nbastats/
 ├── app/
 │   ├── globals.css             # Design tokenek + @theme inline + shadcn override + animációk + AppShell
 │   ├── layout.tsx              # next/font: Barlow Condensed / DM Sans / JetBrains Mono · AuthProvider · Toaster
-│   └── page.tsx                # AppShell + auth guard + tab routing (a nézetek a roadmap 2. lépésében)
+│   └── page.tsx                # Home (auth guard) + AppShell (navigáció, szezon/csapat választó, tab routing)
 ├── components/
 │   ├── ui/                     # shadcn/ui – NE MÓDOSÍTSD kézzel (kivéve stat-card, data-table)
 │   │   ├── badge, button, card, input, label, select, tabs, textarea, tooltip
 │   │   ├── stat-card.tsx       # KPI / metrika kártya
 │   │   └── data-table.tsx      # generikus sortolható tábla (ColumnDef<T>)
 │   ├── AppSidebar.tsx, AppTopbar.tsx, LoginForm.tsx
+│   ├── SeasonTeamSelector.tsx  # globális szezon- és csapatszűrő a topbar alatt (megjelenítő komponens)
 │   └── StatInfoTooltip.tsx, TerminologyGlossary.tsx
 ├── lib/
 │   ├── espn/
@@ -129,10 +131,12 @@ nbastats/
 │   ├── fetch-all-rows.ts       # lapozó helper a PostgREST 1000 soros limit ellen
 │   ├── master-data.ts          # törzsadat-lekérdezések: fetchSeasons / fetchTeams / fetchAppSettings + Season, Team típus
 │   ├── shared-resource.ts      # createSharedResource(): modul-szintű, egyszer betöltött közös tároló (T21)
+│   ├── selection.ts            # DEFAULT_SEASON_ESPN_YEAR, resolveSeason() / resolveTeam() – a választó alapértelmezései
 │   ├── positions.ts, terminology.ts, style-vocabulary.ts, chart-theme.ts
 │   └── utils.ts                # cn()
 ├── hooks/                      # adatlekérési hookok (T20/T21)
-│   └── useMasterData.ts        # useSeasons() / useTeams() / useFollowedTeam() – közös törzsadat
+│   ├── useMasterData.ts        # useSeasons() / useTeams() / useFollowedTeam() – közös törzsadat
+│   └── useSeasonTeamSelection.ts  # a kiválasztott szezon + csapat (egyszer, az AppShellben hívjuk)
 ├── migrations/                 # SQL – csak Supabase SQL Editorban
 ├── context/                    # projekt spec és kontextus fájlok
 ├── .github/workflows/ingest.yml  # napi cron (09:00 UTC): ingest:games --season + ingest:schedule
@@ -335,6 +339,8 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - Globális auth állapot: `useAuth()` (`lib/auth-context.tsx`).
 - **Adatlekérés hookokban** (`hooks/`), `{ data, loading, error }` hármassal. A törzsadat (`useSeasons()`, `useTeams()`, `useFollowedTeam()`) a `hooks/useMasterData.ts`-ből jön, nem komponensenként (T20, T21): modul-szintű közös tároló (`lib/shared-resource.ts`), akárhány hívó mellett egy lekérdezés. Hiba után a `reload()` próbál újra.
 - Böngészős külső állapotot (localStorage) `useSyncExternalStore`-ral olvasunk (lásd `AppSidebar`), effectből indított szinkron `setState` nélkül.
+- **Kiválasztott szezon és csapat:** `useSeasonTeamSelection()` (`hooks/useSeasonTeamSelection.ts`), egyszer hívva az `app/page.tsx` `AppShell` komponensében; a nézetek propként kapják (`selection.season`, `selection.team`). Csak a felhasználó választása state, az alapértelmezés származtatott érték (effectből nem állítunk state-et). Nincs perzisztencia: frissítés után az alapértelmezés jön vissza.
+- A törzsadat- és a választó-hook csak az auth guard mögött hívható (RLS): ezért a `Home` csak guard, a hookok az `AppShell`-ben futnak.
 - Az `app/page.tsx` csak shell renderelést és tab routingot végez.
 
 ---

@@ -42,6 +42,8 @@
 
 - **Migráció 003 megírva (2026-10-10):** `nba.player_season_stats_by_season` view (játékos × szezon × szezontípus × csapat, DNP nélkül, csak lezárt meccsekből, `security_invoker`), a `Database` típusban `Views` + `ViewRow`. A lekérdezés a valós adatokon csak olvasva ellenőrizve (661 / 240 / 92 sor, a pontösszeg a nyers sorokkal egyezik), a DDL és a jogosultságok PGlite-on. **A Supabase-ben még nem futott** (lásd Kézi teendők 7.).
 
+- **Szezon- és csapatválasztó kész (2026-10-10):** `SeasonTeamSelector` a topbar alatt, minden tabon; állapota a `useSeasonTeamSelection()` hookban (`lib/selection.ts`: alapértelmezés 2025/26 + követett csapat). A választás az oldal szintjén él, frissítés után az alapértelmezés jön vissza. A `page.tsx`-ben a `Home` csak auth guard, a váz (`AppShell`) külön komponens. Ellenőrizve: logika, valós DB-alapértelmezés (2025/2026 + Lakers), headless Chrome (23 állítás, kicsonkolt klienssel), `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 8.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -54,6 +56,7 @@
    - ~~push a `master` ágra (a workflow csak az `origin`-on él, T7)~~: kész (2026-10-10);
    - első próba kézzel, `dry_run` bepipálva (Actions → *Adatimport (ESPN)* → Run workflow).
 7. **Migráció 003 futtatása:** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`). Ellenőrzés utána: `select season_type, count(*) from nba.player_season_stats_by_season group by 1;` → 2: 661, 3: 240, 5: 92.
+8. **A szezon- és csapatválasztó kipróbálása böngészőben:** `npm run dev`, bejelentkezés → a topbar alatt 2025/2026 és Los Angeles Lakers (csillaggal) az alapértelmezés, a csapatlistában 30 csapat, a konzol hibamentes.
 
 ## Következő lépések (roadmap)
 
@@ -66,7 +69,8 @@
 2. **Adat-hookok és alapnézetek:** Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella. Ide tartozik a `player_season_stats_by_season` view is (migráció 003).
    - ~~közös törzsadat-hookok (`useSeasons`, `useTeams`, `useFollowedTeam`)~~: kész (2026-10-10);
    - ~~migráció 003 (`player_season_stats_by_season` view)~~: megírva (2026-10-10), futtatás a felhasználónál;
-   - következő: szezon- és csapatválasztó az AppShellben (alapértelmezés: 2025/26 + követett csapat), majd `useGameData` + Mérkőzések nézet;
+   - ~~szezon- és csapatválasztó az AppShellben (alapértelmezés: 2025/26 + követett csapat)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
+   - következő: `useGameData` + Mérkőzések nézet (a választó első fogyasztója);
    - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
@@ -88,6 +92,8 @@
 
 ## Nyitott kérdések
 
+- **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
+- **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabella és a ligás Játékosok nézetnél el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.
 - **Tabella-tábla sémája:** a döntés megvan (kell külön tábla, 2026-10-10), de az oszlopokat (kiemelés, GB, sorozat, clinch, hazai/idegen mérleg, utolsó 10) a migráció megírása előtt egyeztetni kell.
 - **Alapértelmezett szezon hosszú távon:** most a 2025/26-os (tesztelés); a 2026/27 indulása (2026-10-20) után felül kell vizsgálni.
 - **Tárhely-figyelés a napi futásban:** a projektméretet (`pg_database_size`) a service role csak SQL-függvényen át tudja lekérdezni (PostgREST RPC). Ehhez új migráció kell (pl. `nba.project_size_bytes()`), ami séma-változtatás → döntés kell. Alternatíva: marad a kézi ellenőrzés a Supabase dashboardon.

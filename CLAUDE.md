@@ -62,6 +62,7 @@ Az UI egységes, sportos, telemetria-érzetű sötét felület, változatlanul �
 - `AppTopbar`: breadcrumb, user-chip, kijelentkezés.
 - `SeasonTeamSelector`: globális szezon- és csapatszűrő a topbar alatt, minden tabon. Alapértelmezés: `DEFAULT_SEASON_ESPN_YEAR` (`lib/selection.ts`, most a 2025/26-os szezon) és a követett csapat.
 - Az `activeTab` tiszta `useState`, nincs URL routing. Új nézet = új `NAV_GROUPS` elem + tartalom-komponens.
+- Kész nézet: **Mérkőzések** (`games` → `GamesView`). A többi tabon „épül” kártya áll.
 
 ---
 
@@ -108,6 +109,9 @@ nbastats/
 │   │   └── data-table.tsx      # generikus sortolható tábla (ColumnDef<T>)
 │   ├── AppSidebar.tsx, AppTopbar.tsx, LoginForm.tsx
 │   ├── SeasonTeamSelector.tsx  # globális szezon- és csapatszűrő a topbar alatt (megjelenítő komponens)
+│   ├── GamesView.tsx           # Mérkőzések nézet: szakasz-fülek, mérleg-kártyák, kiírt + lejátszott meccsek
+│   ├── GamesTables.tsx         # GameResultsTable / GameScheduleTable (DataTable-oszlopok, ellenfél-cella logóval)
+│   ├── DataLoadError.tsx       # nézet-szintű betöltési hiba: inline panel „Újrapróbálás” gombbal + toast
 │   └── StatInfoTooltip.tsx, TerminologyGlossary.tsx
 ├── lib/
 │   ├── espn/
@@ -132,10 +136,14 @@ nbastats/
 │   ├── master-data.ts          # törzsadat-lekérdezések: fetchSeasons / fetchTeams / fetchAppSettings + Season, Team típus
 │   ├── shared-resource.ts      # createSharedResource(): modul-szintű, egyszer betöltött közös tároló (T21)
 │   ├── selection.ts            # DEFAULT_SEASON_ESPN_YEAR, resolveSeason() / resolveTeam() – a választó alapértelmezései
+│   ├── game-data.ts            # fetchTeamGames() + TeamGame (a csapat nézőpontja a semleges sorból), summarizeRecord()
+│   ├── season-types.ts         # REGULAR_SEASON / PLAY_IN / PLAYOFFS, SEASON_TYPE_ORDER, seasonTypeLabel()
+│   ├── format-date.ts          # formatGameDate() (keleti parti nap, eltolás nélkül), formatLocalStart() (helyi idő)
 │   ├── positions.ts, terminology.ts, style-vocabulary.ts, chart-theme.ts
 │   └── utils.ts                # cn()
 ├── hooks/                      # adatlekérési hookok (T20/T21)
 │   ├── useMasterData.ts        # useSeasons() / useTeams() / useFollowedTeam() – közös törzsadat
+│   ├── useGameData.ts          # useTeamGames(seasonId, teamId) – a csapat meccsei a szezonban
 │   └── useSeasonTeamSelection.ts  # a kiválasztott szezon + csapat (egyszer, az AppShellben hívjuk)
 ├── migrations/                 # SQL – csak Supabase SQL Editorban
 ├── context/                    # projekt spec és kontextus fájlok
@@ -340,6 +348,8 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - **Adatlekérés hookokban** (`hooks/`), `{ data, loading, error }` hármassal. A törzsadat (`useSeasons()`, `useTeams()`, `useFollowedTeam()`) a `hooks/useMasterData.ts`-ből jön, nem komponensenként (T20, T21): modul-szintű közös tároló (`lib/shared-resource.ts`), akárhány hívó mellett egy lekérdezés. Hiba után a `reload()` próbál újra.
 - Böngészős külső állapotot (localStorage) `useSyncExternalStore`-ral olvasunk (lásd `AppSidebar`), effectből indított szinkron `setState` nélkül.
 - **Kiválasztott szezon és csapat:** `useSeasonTeamSelection()` (`hooks/useSeasonTeamSelection.ts`), egyszer hívva az `app/page.tsx` `AppShell` komponensében; a nézetek propként kapják (`selection.season`, `selection.team`). Csak a felhasználó választása state, az alapértelmezés származtatott érték (effectből nem állítunk state-et). Nincs perzisztencia: frissítés után az alapértelmezés jön vissza.
+- **Szezonra és csapatra szűrt adat** (pl. `useTeamGames(seasonId, teamId)`, `hooks/useGameData.ts`): a hook a nézetben fut, a lekérdezés a `lib/`-ben él (`lib/game-data.ts`). A betöltés állapota a kérés kulcsából származtatott érték: váltáskor a régi adat nem látszik tovább, a későn érkező régi válasz eldobódik. `null` szezonnal vagy csapattal nem indul lekérdezés.
+- **Szakaszok nem keverednek:** a nézet egyszerre egy szezontípust mutat (`lib/season-types.ts`: alapszakasz / play-in / rájátszás); a mérleg és az átlagok szakaszonként számolódnak.
 - A törzsadat- és a választó-hook csak az auth guard mögött hívható (RLS): ezért a `Home` csak guard, a hookok az `AppShell`-ben futnak.
 - Az `app/page.tsx` csak shell renderelést és tab routingot végez.
 

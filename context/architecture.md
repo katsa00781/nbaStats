@@ -17,6 +17,8 @@ Azonos az ASEStatsszel, **Playwright nélkül**:
 - `hooks/`: adatlekérési hookok, `{ data, loading, error }` alakban. A komponens nem kérdez közvetlenül Supabase-t.
   - `useMasterData.ts`: `useSeasons()`, `useTeams()`, `useFollowedTeam()`. A törzsadat modul-szintű közös tárolóban él (`lib/shared-resource.ts`, `useSyncExternalStore`), így akárhány komponens hívja, egyszer töltődik be; a lekérdezések a `lib/master-data.ts`-ben vannak.
   - `useSeasonTeamSelection.ts`: a globálisan kiválasztott szezon és csapat. Csak a felhasználó választását tárolja, az alapértelmezés (`lib/selection.ts`: 2025/26-os szezon + követett csapat) származtatott érték. Egyszer, az `app/page.tsx` `AppShell` komponensében hívjuk; a nézetek propként kapják. Nincs perzisztencia és nincs URL-paraméter.
+  - `useGameData.ts`: `useTeamGames(seasonId, teamId)`, a kiválasztott csapat meccsei a szezonban (`{ data, loading, error, reload }`). A lekérdezés és a nézőpont-leképezés a `lib/game-data.ts`-ben van (`fetchTeamGames()`, `toTeamGame()`: a semleges hazai/vendég sorból `isHome`, `opponentTeamId`, `teamScore`, `result`). Nem közös tároló: a nézet hívja, szezon- vagy csapatváltáskor újra lekérdez; a betöltés állapota a kérés kulcsából származik, a későn érkező régi válasz eldobódik.
+- `components/GamesView.tsx` (+ `GamesTables.tsx`): a Mérkőzések nézet. Szakaszonként (`lib/season-types.ts`) külön mutatja a mérleget és a meccseket; Supabase-t nem hív.
 - `app/page.tsx`: `Home` (auth guard) + `AppShell` (váz). A törzsadat-hookok csak az `AppShell`-ben és alatta futhatnak, mert az RLS bejelentkezés nélkül nem enged olvasni.
 - `lib/`: megosztott logika és típusok, valamint elemző motorok (később, az ASEStatsből portolva).
 - `lib/espn/`: ESPN adapter. Next.js-független, tiszta modulok:

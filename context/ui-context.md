@@ -310,6 +310,16 @@ A korábbi `container mx-auto` + `bg-slate-900` header minta **megszűnt** (AppS
 
 A `SeasonTeamSelector` (NBAStats, 2026-10-10) minden tabon látszik: két shadcn `Select` `.uppercase-label` címkével, a követett csapat mellett narancs Lucide `Star`. Betöltéskor mezőnként `.skeleton-shimmer h-9`, hibánál inline panel (`AlertCircle` + üzenet + ghost „Újrapróbálás” gomb) és `toast.error`. Új token nincs.
 
+**Mérkőzések nézet** (`GamesView`, NBAStats, 2026-10-10) – a `games` tab tartalma, a kiválasztott csapat nézőpontjából:
+- szakasz-fülek (shadcn `Tabs`: Alapszakasz / Play-in / Rájátszás), csak ha a csapatnak több szakaszban van meccse;
+- négy `StatCard` (`grid-cols-1 sm:grid-cols-2 xl:grid-cols-4`): Mérleg (narancs accent), Hazai mérleg, Idegenbeli mérleg, Pontkülönbség / meccs (trend-nyíllal). Csak lejátszott meccs mellett látszanak;
+- „Következő mérkőzések”: `DataTable` az első 5 le nem zárt meccsel, a láblécben (`.dt-foot` + `.dt-foot-btn`) „Összes megjelenítése” kapcsolóval. A dátum a keleti parti nap, a kezdés a böngésző helyi ideje. Státusz: shadcn `Badge` + `badge-neutral` / `badge-cyan` / `badge-warning` / `badge-negative`;
+- „Lejátszott mérkőzések”: `DataTable`, a legfrissebb elöl. Kimenetel: `.dt-badge--win` (GY) / `.dt-badge--loss` (V), hosszabbításnál `.dt-badge--neutral` „HU” / „2HU”; a különbség `.dt-num--pos` / `.dt-num--neg`;
+- ellenfél-cella: `.dt-team` + 26 px-es ESPN-logó (`next/image`), logó híján `.dt-team-logo` a rövidítéssel;
+- betöltéskor `.skeleton-shimmer` (4 kártya + tábla), hibánál `DataLoadError` (inline panel + `toast.error`), meccs nélkül magyarázó üres állapot (`Card` + `CalendarX`).
+
+Új token, új animáció és új alapkomponens nincs.
+
 Layout-konstansok (nem design tokenek, komponens-lokális méretek):
 `--sb-w-expanded: 240px` · `--sb-w-collapsed: 64px` · `--sb-transition: 220ms cubic-bezier(.4,0,.2,1)`
 

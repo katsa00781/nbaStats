@@ -44,6 +44,8 @@
 
 - **Szezon- és csapatválasztó kész (2026-10-10):** `SeasonTeamSelector` a topbar alatt, minden tabon; állapota a `useSeasonTeamSelection()` hookban (`lib/selection.ts`: alapértelmezés 2025/26 + követett csapat). A választás az oldal szintjén él, frissítés után az alapértelmezés jön vissza. A `page.tsx`-ben a `Home` csak auth guard, a váz (`AppShell`) külön komponens. Ellenőrizve: logika, valós DB-alapértelmezés (2025/2026 + Lakers), headless Chrome (23 állítás, kicsonkolt klienssel), `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 8.).
 
+- **Mérkőzések nézet kész (2026-10-10):** `useTeamGames()` (`hooks/useGameData.ts`, `lib/game-data.ts`) + `GamesView` a `games` tabon – a szezon- és csapatválasztó első fogyasztója. Szakaszonként (alapszakasz / play-in / rájátszás) külön mérleg-kártyák, a le nem zárt meccsek (első 5, kibontható) és a lejátszott meccsek táblája. Ellenőrizve: valós DB (Lakers 2025/26: 82 meccs, 53–29; rájátszás 4–6), headless Chrome valós adatokkal (37 állítás), képoptimalizáló az ESPN-logókra, `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 9.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -58,6 +60,8 @@
 7. **Migráció 003 futtatása:** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`). Ellenőrzés utána: `select season_type, count(*) from nba.player_season_stats_by_season group by 1;` → 2: 661, 3: 240, 5: 92.
 8. **A szezon- és csapatválasztó kipróbálása böngészőben:** `npm run dev`, bejelentkezés → a topbar alatt 2025/2026 és Los Angeles Lakers (csillaggal) az alapértelmezés, a csapatlistában 30 csapat, a konzol hibamentes.
 
+9. **A Mérkőzések nézet kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Mérkőzések*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül, mérleg 53–29 (hazai 28–13, idegenben 25–16), 82 sor csapatlogókkal; 2026/2027-re váltva 5 kiírt meccs és „Összes megjelenítése”; a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -70,7 +74,8 @@
    - ~~közös törzsadat-hookok (`useSeasons`, `useTeams`, `useFollowedTeam`)~~: kész (2026-10-10);
    - ~~migráció 003 (`player_season_stats_by_season` view)~~: megírva (2026-10-10), futtatás a felhasználónál;
    - ~~szezon- és csapatválasztó az AppShellben (alapértelmezés: 2025/26 + követett csapat)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
-   - következő: `useGameData` + Mérkőzések nézet (a választó első fogyasztója);
+   - ~~`useGameData` + Mérkőzések nézet (a választó első fogyasztója)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
+   - következő: `usePlayerData` + Játékosok nézet (a `player_season_stats_by_season` view első fogyasztója – előtte a 003-nak futnia kell a Supabase-ben);
    - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
@@ -94,6 +99,14 @@
 
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
 - **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabella és a ligás Játékosok nézetnél el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.
+- **Mérkőzések nézet – megvalósítási döntések, felülbírálhatók:**
+  - a „Következő mérkőzések” alapból az első 5 meccset mutatja; az elhalasztott és a törölt meccs is itt szerepel (státusz-jelvénnyel), nem tűnik el;
+  - a kezdés a böngésző helyi idejében látszik, a dátum az amerikai keleti parti nap (`game_date`);
+  - a hosszabbítás jele „HU” / „2HU” (hosszabbítás után);
+  - a kártyák: Mérleg, Hazai, Idegenbeli, Pontkülönbség / meccs (győzelmi arány nincs, az a Tabellára kerül);
+  - a sorok nem kattinthatók: a meccs-részletek (box score) külön egység;
+  - az NBA Cup döntője (semleges helyszín) az ESPN szerinti pályaválasztónál „Hazai” meccsként számít.
+- **Meccs-lekérdezés gyorsítótára:** a `useTeamGames` nem tárol; csapat- vagy szezonváltáskor (és a tabra visszalépve) újra lekérdez (kb. 100 sor). Ha zavaró, kulcsolt közös tároló kell – az adatréteg-döntés.
 - **Tabella-tábla sémája:** a döntés megvan (kell külön tábla, 2026-10-10), de az oszlopokat (kiemelés, GB, sorozat, clinch, hazai/idegen mérleg, utolsó 10) a migráció megírása előtt egyeztetni kell.
 - **Alapértelmezett szezon hosszú távon:** most a 2025/26-os (tesztelés); a 2026/27 indulása (2026-10-20) után felül kell vizsgálni.
 - **Tárhely-figyelés a napi futásban:** a projektméretet (`pg_database_size`) a service role csak SQL-függvényen át tudja lekérdezni (PostgREST RPC). Ehhez új migráció kell (pl. `nba.project_size_bytes()`), ami séma-változtatás → döntés kell. Alternatíva: marad a kézi ellenőrzés a Supabase dashboardon.

@@ -43,8 +43,12 @@ Szerkezet:
 - [x] Közös törzsadat-hookok: `useSeasons()`, `useTeams()`, `useFollowedTeam()` (T21) – `hooks/useMasterData.ts` (2026-10-10)
 - [x] Szezon- és csapatválasztó az AppShellben (a törzsadat-hookok első fogyasztója). Alapértelmezés: a 2025/26-os szezon (döntés: 2026-10-10, a tesztelés idejére) és a követett csapat – `SeasonTeamSelector` + `useSeasonTeamSelection()` (2026-10-10)
 - [ ] **A választó ellenőrzése böngészőben, bejelentkezve (felhasználó):** `npm run dev` → a topbar alatt 2025/2026 + Los Angeles Lakers (csillaggal), 30 csapat a listában, a konzol hibamentes
-- [ ] `useGameData` / `usePlayerData` semleges hazai/vendég sémára, `fetchAllRows`-szal (T1, T20)
-- [ ] Alapnézetek: Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella (DataTable / StatCard)
+- [x] `useGameData`: `useTeamGames(seasonId, teamId)` a semleges hazai/vendég sémára (T20) – `hooks/useGameData.ts` + `lib/game-data.ts` (2026-10-10)
+- [x] Alapnézet: **Mérkőzések** (`GamesView`, DataTable + StatCard) – 2026-10-10
+- [ ] **A Mérkőzések nézet ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Mérkőzések* → 2025/2026 + Lakers: 53–29, 82 sor logókkal; 2026/2027: 5 kiírt meccs + „Összes megjelenítése”
+- [ ] `usePlayerData` a `player_season_stats_by_season` view-ra, `fetchAllRows`-szal (T1, T20) – előfeltétel: a 003 futtatása
+- [ ] Alapnézetek: Játékosok, Játékos-részletek, Meccs-részletek (box score), Csapatstatisztika, Tabella (DataTable / StatCard)
+- [ ] A `SeasonTeamSelector` hibapanelje a közös `DataLoadError` komponensre cserélhető (most két azonos kinézetű megvalósítás van; külön, tisztán refaktor lépés)
 - [ ] Követett csapat választó (admin, `app_settings.followed_team_id`)
 
 ### Elemzés és AI (roadmap 3–5.)
@@ -86,6 +90,21 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-10 – `useTeamGames` + Mérkőzések nézet ✓ (éles böngészős próba hátravan)
+
+- **`lib/game-data.ts` (új):** `fetchTeamGames(db, seasonId, teamId)` – a csapat összes meccse a szezonban, `season_id`-ra és a csapatra szűrve (`.or(home…, away…)`), időrendben. Egy csapatnak szezononként legfeljebb kb. 110 sora van, ezért nincs lapozás (T1). `toTeamGame()`: a semleges hazai/vendég sorból a csapat nézőpontja (`isHome`, `opponentTeamId`, `teamScore`, `opponentScore`, `result`, `overtimes`). `summarizeRecord()`: mérleg és pontösszeg csak lezárt meccsekből; `seasonTypesOf()`.
+- **`lib/season-types.ts` (új):** szezontípus-konstansok, megjelenítési sorrend (alapszakasz → play-in → rájátszás), magyar címkék. **`lib/format-date.ts` (új):** `formatGameDate()` (a keleti parti nap, időzóna-eltolás nélkül), `formatLocalStart()` (kezdés a böngésző helyi idejében).
+- **`hooks/useGameData.ts` (új):** `useTeamGames(seasonId, teamId)` → `{ data, loading, error, reload }`. A betöltés állapota a kérés kulcsából (szezon + csapat + próbálkozás) származtatott érték, nincs effectből indított szinkron `setState`; váltáskor a régi adat nem látszik tovább, a későn érkező régi válasz eldobódik. `null` szezonnal vagy csapattal nem kérdez.
+- **`components/GamesView.tsx` + `GamesTables.tsx` (új):** szakasz-fülek (csak ha több szakasz van), négy `StatCard` (Mérleg, Hazai, Idegenbeli, Pontkülönbség / meccs), „Következő mérkőzések” (első 5, a láblécben kibontható) és „Lejátszott mérkőzések” `DataTable`. Ellenfél-cella ESPN-logóval (`next/image`). Skeleton, hibapanel, üres állapot. Supabase-hívás a komponensekben nincs (T20). **`components/DataLoadError.tsx` (új):** nézet-szintű hibapanel + toast.
+- **`app/page.tsx`:** a `games` tabon a `GamesView`, a többin továbbra is az „épül” kártya.
+- **Megvalósítási döntések (jelezve a felhasználónak):** a szakaszok nem keverednek (fülek); a le nem zárt meccsek közül alapból 5 látszik, az elhalasztott / törölt is itt van; a kezdés helyi időben; „HU” a hosszabbítás jele; a sorok nem kattinthatók (a meccs-részletek külön egység); a hook nem gyorsítótáraz. Új token, új csomag, séma-változás nincs.
+- **Ellenőrzés:**
+  - valós DB (service role, csak olvasás), a tényleges `fetchTeamGames` + `summarizeRecord`: Lakers 2025/26 – 92 meccs, alapszakasz 82 (53–29, hazai 28–13, idegenben 25–16, 9540:9396), rájátszás 10 (4–6); Knicks 83 + 19 (54–29, 16–3, a Cup-döntővel); Bulls 82 (31–51); 2026/27: csapatonként 80 kiírt meccs. Mindenhol időrendben, kezdési idővel és csarnokkal;
+  - **headless Chrome** (csak a scratchpadben; a valódi hook + nézet + a build CSS-e, kicsonkolt Supabase-klienssel, a valós adatbázisból mentett 2522 meccs-sorral), 37 állítás: skeleton → adat; kártyaértékek; fülek és fülváltás lekérdezés nélkül; rendezés; hosszabbítás-jelvény; csapatváltáskor a választott szakasz megmarad, ha van (Knicks), különben alapszakasz, fülek nélkül (Bulls); 2026/27: nincs kártya, 5 / 80 sor, kibontás; meccs nélküli csapat → üres állapot; hiba → panel → újrapróbálás; verseny (lassú régi válasz eldobva); a konzolban csak a szándékos hiba. Képernyőképek 1440 és 390 px-en, vízszintes túlcsordulás nélkül (T23);
+  - `next start`: a `/_next/image` az `a.espncdn.com` logót kiszolgálja (200), más hostot elutasít (400);
+  - `tsc`, `eslint`, `npm run build` hibátlan.
+- **Nem ellenőrzött:** az éles alkalmazásban, bejelentkezve nem futott (nincs teszt-bejelentkezésem). A böngészős tesztben a `next/image` helyén sima `<img>` állt; folyamatban lévő, elhalasztott és törölt meccs a valós adatban nincs, ezek jelvénye csak kódból ismert.
 
 ### 2026-10-10 – Szezon- és csapatválasztó az AppShellben ✓ (éles böngészős próba hátravan)
 

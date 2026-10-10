@@ -37,7 +37,8 @@ function initials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-function PlayerCell({ player }: { player: PlayerSeasonStats }) {
+/** Headshot (kép híján monogram) + név; a box score táblája is ezt használja. */
+export function PlayerCell({ player }: { player: Pick<PlayerSeasonStats, 'name' | 'headshotUrl'> }) {
   return (
     <span className="dt-player">
       {player.headshotUrl ? (
@@ -56,7 +57,7 @@ function PlayerCell({ player }: { player: PlayerSeasonStats }) {
   );
 }
 
-function PositionBadge({ position }: { position: string | null }) {
+export function PositionBadge({ position }: { position: string | null }) {
   if (!position) return <span className="text-muted">{EMPTY}</span>;
   // Az ESPN többnyire csak G / F / C rövidítést ad: a szín az első illeszkedő poszté.
   const primary = parsePositionBuckets(position)[0];

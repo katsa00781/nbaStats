@@ -48,6 +48,8 @@
 
 - **Játékosok nézet kész (2026-10-10):** `useTeamPlayerStats()` (`hooks/usePlayerData.ts`, `lib/player-data.ts`) + `PlayersView` a `players` tabon – a szezon-összesítő view első fogyasztója. A kiválasztott csapat játékosai szakaszonként (alapszakasz / play-in / rájátszás) külön: meccsenkénti átlagok, dobószázalékok az összesített dobásokból, TS%, eFG%, valuation, +/-. Új közös betöltő a szezonra + csapatra szűrt adathoz: `useSeasonTeamResource()`. Ellenőrizve: valós DB (Lakers 2025/26: 20 + 14 játékos, Dončić 33.5 pont; a 30 csapatra 993 sor = a view teljes szezonja), headless Chrome valós adatokkal (54 állítás), képoptimalizáló az ESPN-headshotokra, `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 10.).
 
+- **Meccs-részletek kész (2026-10-10):** `useGameBoxScore()` (`hooks/useBoxScoreData.ts`, `lib/box-score-data.ts`) + `GameDetailsView` a Mérkőzések nézeten belül – az első lekérdezés a `player_game_stats` és a `team_game_stats` táblára. A „Lejátszott mérkőzések” sor végi „Box score” gombja a lista helyén nyitja meg: eredmény-fejléc, csapatstatisztika (a csapatsorból), a két csapat box score-ja (kezdők elöl), DNP-sor, hiányos forrásnál figyelmeztetés. Döntések (felhasználó): Meccs-részletek a Játékos-részletek előtt; a részletnézet a nézet saját állapota (nincs URL). Ellenőrizve: valós DB (Lakers 92, Bulls 82, Knicks 102 meccs: mindenhol 2 csapat, 5–5 kezdő, csapatsor = végeredmény; ligaszinten 2644 csapatsorból 17-nél tér el a játékosok összege, mind Bulls), headless Chrome valós adatokkal (67 állítás), `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 11.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -66,6 +68,8 @@
 
 10. **A Játékosok nézet kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Játékosok*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül, 20 játékos headshottal, legfelül Luka Doncic (33.5 PTS); Rájátszás: 14 játékos, legfelül LeBron James (23.2 PTS); 2026/2027-re váltva üres állapot („még nincs lejátszott mérkőzése”); a konzol hibamentes.
 
+11. **A Meccs-részletek kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Mérkőzések* → Rájátszás fül → a 2026. 05. 11-i sor végén „Box score”. Várt: fejléc Lakers 110–115 Thunder (V), csapatstatisztika (LAL mezőny 38/75, 50.7%), a Lakers táblájában 10 játékos, legfelül Austin Reaves (43 perc, 27 pont, „K” jelvény), alatta 4 név a „Nem lépett pályára” sorban; „Vissza a mérkőzésekhez” → a Rájátszás fül marad; csapatot váltva a lista jön vissza; a konzol hibamentes. Chicago Bulls → 2026. 02. 01.: sárga figyelmeztetés a tábla fölött (PTS 82/91).
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -80,8 +84,9 @@
    - ~~szezon- és csapatválasztó az AppShellben (alapértelmezés: 2025/26 + követett csapat)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
    - ~~`useGameData` + Mérkőzések nézet (a választó első fogyasztója)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
    - ~~`usePlayerData` + Játékosok nézet (a `player_season_stats_by_season` view első fogyasztója)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
-   - következő: Játékos-részletek vagy Meccs-részletek (box score) – a sorrendet a felhasználó dönti el (mindkettő új lekérdezést igényel a `player_game_stats`-ra);
-   - külön refaktor lépés: a `useTeamGames` és a `GamesView` szakaszválasztása a közös `useSeasonTeamResource()` / `orderSeasonTypes()` / `resolveSeasonType()` helperekre;
+   - ~~Meccs-részletek (box score) a Mérkőzések nézetben~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
+   - következő: Játékos-részletek (meccsenkénti napló a `player_game_stats`-ból; a Játékosok tábla nevéből nyílik, a Meccs-részletek mintájára a nézet saját állapotával);
+   - külön refaktor lépés: a `useTeamGames` és a `GamesView` szakaszválasztása a közös `useSeasonTeamResource()` / `orderSeasonTypes()` / `resolveSeasonType()` helperekre; a közös betöltő semleges átnevezése (már meccsre is használjuk); a `PlayerCell` / `PositionBadge` saját fájlba;
    - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
@@ -100,6 +105,9 @@
 - Alapértelmezett szezon a választóban: **2025/26**, a tesztelés idejére (a 2026/27-nek 2026-10-20-ig nincs lejátszott meccse). Az alapértelmezett csapat a követett csapat.
 - Migráció 003 megírható; a felhasználó futtatja.
 - Tabella: **kell külön tabella-tábla** (kiemelés, GB, sorozat, clinch).
+
+- Sorrend: **Meccs-részletek** a Játékos-részletek előtt.
+- Részletnézet megnyitása: **a nézet saját állapota** (ASEStats-minta) – a lista helyén, „Vissza” gombbal; nincs URL routing és nincs AppShell-szintű állapot.
 
 ## Nyitott kérdések
 
@@ -121,6 +129,17 @@
   - a név nem kattintható: a játékos-részletek külön egység;
   - a poszt-jelvény színe az ESPN G / F / C rövidítésének első illeszkedő posztját követi (G → PG, F → SF színe);
   - a mezszám, a poszt és a kép a játékos-törzsadat aktuális értéke, nem a csapatnál töltött időszaké.
+- **Meccs-részletek – megvalósítási döntések, felülbírálhatók:**
+  - a nézet a kiválasztott csapat nézőpontjából mutat mindent (a csapat áll elöl a fejlécben, a csapatstatisztikában és a box score-ok sorrendjében), nem a hagyományos vendég–hazai sorrendben;
+  - csak lejátszott meccs nyitható meg; a megnyitó a sor végi „Box score” gomb, nem a teljes sor;
+  - a csapatösszeg a csapatsorból jön (külön „Csapatstatisztika” tábla), a box score táblának nincs összesítő sora;
+  - a box score 17 oszlopa: MIN, PTS, FG, 3P, FT (bedobott/kísérlet), OREB, REB, AST, STL, BLK, TOV, PF, +/-, VAL; DREB, százalék és TS% / eFG% nincs benne;
+  - a nulla perces, de pályára lépett játékos (szezononként kb. 130 sor) a táblában marad, a DNP külön sorban áll a tábla alatt;
+  - a DNP indoka az ESPN angol szabad szövege kisbetűvel (228-féle); csak a „COACH'S DECISION” van lefordítva („edzői döntés”);
+  - negyedenkénti eredmény nincs: a `games` táblában nincs linescore (séma-bővítés + import-változtatás kellene – külön döntés);
+  - dobástérkép nincs a nézetben (roadmap 5.);
+  - a játékosnév nem kattintható (a játékos-részletek külön egység);
+  - a box score nem gyorsítótárazott: minden megnyitás 2 lekérdezés (kb. 30 sor).
 - **Meccs-lekérdezés gyorsítótára:** a `useTeamGames` nem tárol; csapat- vagy szezonváltáskor (és a tabra visszalépve) újra lekérdez (kb. 100 sor). Ha zavaró, kulcsolt közös tároló kell – az adatréteg-döntés.
 - **Tabella-tábla sémája:** a döntés megvan (kell külön tábla, 2026-10-10), de az oszlopokat (kiemelés, GB, sorozat, clinch, hazai/idegen mérleg, utolsó 10) a migráció megírása előtt egyeztetni kell.
 - **Alapértelmezett szezon hosszú távon:** most a 2025/26-os (tesztelés); a 2026/27 indulása (2026-10-20) után felül kell vizsgálni.

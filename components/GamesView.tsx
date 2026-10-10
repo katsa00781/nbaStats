@@ -5,6 +5,7 @@ import type { TeamGame } from '@/lib/game-data';
 import type { Team } from '@/lib/master-data';
 import type { ReactNode } from 'react';
 import { DataLoadError } from '@/components/DataLoadError';
+import { GameDetailsView } from '@/components/GameDetailsView';
 import { GameResultsTable, GameScheduleTable } from '@/components/GamesTables';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -24,10 +25,20 @@ interface GamesViewProps {
 
 // Mérkőzések nézet: a kiválasztott csapat meccsei a kiválasztott szezonban,
 // szakaszonként (alapszakasz / play-in / rájátszás) külön – a mérleg nem keveri őket.
+// Egy lejátszott meccs részletei (box score) a lista helyén nyílnak meg.
 export function GamesView({ selection }: GamesViewProps) {
   const { season, team, teams } = selection;
   const games = useTeamGames(season?.id ?? null, team?.id ?? null);
   const [chosenStage, setChosenStage] = useState<number | null>(null);
+  const [openedGameId, setOpenedGameId] = useState<string | null>(null);
+  // Szezon- vagy csapatváltáskor a lista jön vissza: a megnyitott meccset a
+  // választás változásakor renderelés közben ejtjük el (nem effectből).
+  const scope = season && team ? `${season.id}|${team.id}` : null;
+  const [openedScope, setOpenedScope] = useState(scope);
+  if (openedScope !== scope) {
+    setOpenedScope(scope);
+    setOpenedGameId(null);
+  }
   const teamsById = useMemo(() => new Map(teams.map(t => [t.id, t])), [teams]);
   const stages = useMemo(() => seasonTypesOf(games.data ?? []), [games.data]);
 
@@ -44,6 +55,28 @@ export function GamesView({ selection }: GamesViewProps) {
       </EmptyState>
     );
   }
+
+  const openedGame = openedGameId
+    ? games.data.find(game => game.id === openedGameId && game.status === 'final')
+    : undefined;
+  if (openedGame) {
+    return (
+      <GameDetailsView
+        key={openedGame.id}
+        seasonId={season.id}
+        game={openedGame}
+        team={team}
+        opponent={teamsById.get(openedGame.opponentTeamId)}
+        onBack={() => setOpenedGameId(null)}
+      />
+    );
+  }
+
+  // A részletnézet a lap tetején kezdődik, akármelyik sorból nyílt.
+  const openGame = (gameId: string) => {
+    setOpenedGameId(gameId);
+    window.scrollTo({ top: 0 });
+  };
 
   // A választott szakasz csak akkor érvényes, ha a csapatnak van benne meccse;
   // különben az alapszakasz (annak híján az első szakasz) látszik.
@@ -69,6 +102,7 @@ export function GamesView({ selection }: GamesViewProps) {
             key={`${season.id}|${team.id}|${type}`}
             games={games.data?.filter(game => game.seasonType === type) ?? []}
             teamsById={teamsById}
+            onOpenGame={openGame}
           />
         </TabsContent>
       ))}
@@ -79,9 +113,10 @@ export function GamesView({ selection }: GamesViewProps) {
 interface GamesStageProps {
   games: TeamGame[];
   teamsById: ReadonlyMap<string, Team>;
+  onOpenGame: (gameId: string) => void;
 }
 
-function GamesStage({ games, teamsById }: GamesStageProps) {
+function GamesStage({ games, teamsById, onOpenGame }: GamesStageProps) {
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const played = useMemo(() => games.filter(game => game.status === 'final'), [games]);
   const upcoming = useMemo(() => games.filter(game => game.status !== 'final'), [games]);
@@ -148,7 +183,7 @@ function GamesStage({ games, teamsById }: GamesStageProps) {
       <section className="animate-fade-slide-up">
         <SectionHeading title="Lejátszott mérkőzések" count={played.length} />
         {played.length > 0 ? (
-          <GameResultsTable games={played} teamsById={teamsById} />
+          <GameResultsTable games={played} teamsById={teamsById} onOpenGame={onOpenGame} />
         ) : (
           <EmptyState>Ebben a szakaszban még nincs lejátszott mérkőzés.</EmptyState>
         )}

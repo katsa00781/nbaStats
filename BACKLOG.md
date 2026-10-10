@@ -49,9 +49,13 @@ Szerkezet:
 - [x] `usePlayerData`: `useTeamPlayerStats(seasonId, teamId)` a `player_season_stats_by_season` view-ra, `fetchAllRows`-szal (T1, T20) – `hooks/usePlayerData.ts` + `lib/player-data.ts` (2026-10-10)
 - [x] Alapnézet: **Játékosok** (`PlayersView`, DataTable) – a kiválasztott csapat játékosai szakaszonként (2026-10-10)
 - [ ] **A Játékosok nézet ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Játékosok* → 2025/2026 + Lakers: 20 játékos, legfelül Luka Doncic (33.5 PTS); Rájátszás: 14 játékos; 2026/2027: üres állapot
-- [ ] Alapnézetek: Játékos-részletek, Meccs-részletek (box score), Csapatstatisztika, Tabella (DataTable / StatCard)
+- [x] `useGameBoxScore(seasonId, gameId)` a `player_game_stats` + `team_game_stats` táblára (T8, T19, T20) – `hooks/useBoxScoreData.ts` + `lib/box-score-data.ts` (2026-10-10)
+- [x] Alapnézet: **Meccs-részletek** (`GameDetailsView`, box score) – a Mérkőzések listából nyílik, a nézet saját állapotával (döntés: 2026-10-10)
+- [ ] **A Meccs-részletek ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Mérkőzések* → Rájátszás → 2026. 05. 11. „Box score”: Lakers 110–115 Thunder, 10 Lakers-játékos, legfelül Austin Reaves; Bulls 2026. 02. 01.: figyelmeztetés (PTS 82/91)
+- [ ] Alapnézetek: Játékos-részletek (következő), Csapatstatisztika, Tabella (DataTable / StatCard)
+- [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
-- [ ] Refaktor (külön lépés): a `useTeamGames` a közös `useSeasonTeamResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre (most két azonos logikájú megvalósítás van)
+- [ ] Refaktor (külön lépés): a `useTeamGames` a közös `useSeasonTeamResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre (most két azonos logikájú megvalósítás van). Ugyanitt: a `useSeasonTeamResource()` semleges neve (a box score már szezon + meccs kulccsal használja), és a `PlayerCell` / `PositionBadge` saját fájlba (most a `PlayersTable.tsx` exportálja, a box score is innen veszi)
 - [ ] A `SeasonTeamSelector` hibapanelje a közös `DataLoadError` komponensre cserélhető (most két azonos kinézetű megvalósítás van; külön, tisztán refaktor lépés)
 - [ ] Követett csapat választó (admin, `app_settings.followed_team_id`)
 
@@ -88,12 +92,29 @@ Szerkezet:
 - A dobáskoordináta 1 láb felbontású.
 - Ha az ESPN utólag töröl egy dobás-eseményt, az a `shot_events`-ben megmarad (upsert, törlés nincs).
 - A play-by-play és a box score az ESPN-adatban kb. 2% csapat-meccsen ±1–3 dobással eltér; ezért kb. 0,3% játékossornál `close + mid ≠ FGA − 3PA`. Kísérletszámhoz a box score, zónaarányhoz a dobás-események a forrás.
-- Olbrich (CHI) ESPN-rekordja ID és statisztika nélküli, de 12 meccsen játszott: ezeken a CHI játékossorainak összege kisebb a csapatsornál (a csapatsor helyes). Az ESPN javításáig ez `⚠`.
+- Olbrich (CHI) ESPN-rekordja ID és statisztika nélküli, de 12 meccsen játszott: ezeken a CHI játékossorainak összege kisebb a csapatsornál (a csapatsor helyes). Az ESPN javításáig ez `⚠`. A Meccs-részletek minden összegezhető mutatót egyeztet (nem csak a pontot és az FGA-t), így 17 Bulls-meccsen figyelmeztet (2026-10-10-i mérés: ligaszinten csak ezeken tér el a játékosok összege a csapatsortól).
 - Az NBA Cup döntője alapszakasz-meccsként bent van (NY, SA: 83 meccs).
 
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-10 – `useGameBoxScore` + Meccs-részletek (box score) ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** a Meccs-részletek készül el a Játékos-részletek előtt; a részletnézet a nézet saját állapotában él (ASEStats-minta: a lista helyén, „Vissza” gombbal), nincs URL routing és nincs AppShell-szintű állapot.
+- **`lib/box-score-data.ts` (új):** `fetchGameBoxScore(db, seasonId, gameId)` – a `player_game_stats` (beágyazott `players` törzsadattal) és a `team_game_stats` sorai, mindkettő `season_id` + `game_id` szűréssel, párhuzamosan; egy meccs kb. 30 sor, lapozás nem kell (T1). `toBoxScoreTeams()`: csapatonként a pályára lépett játékosok (kezdők elöl, majd perc szerint), külön DNP-lista (T8), a csapatsor mint hiteles összeg, és `sumMismatches`: ahol a játékossorok összege eltér a csapatsortól (T19). Valuation a `simpleValuation()`-ből (T22).
+- **`hooks/useBoxScoreData.ts` (új):** `useGameBoxScore(seasonId, gameId)` a közös `useSeasonTeamResource()`-ra építve (a második kulcs itt a meccs).
+- **`components/GameDetailsView.tsx` + `BoxScoreTables.tsx` (új):** eredmény-fejléc (a `TeamGame`-ből, lekérdezés nélkül azonnal látszik), „Csapatstatisztika” (a két csapatsor mutatónként), csapatonként box score tábla 17 oszloppal, alatta a „Nem lépett pályára” sor, hiányos forrásnál figyelmeztetés. Skeleton, hibapanel újrapróbálással, üres állapot. Supabase-hívás a komponensekben nincs (T20).
+- **`components/GamesView.tsx`:** `openedGameId` állapot; a megnyitott meccset szezon- vagy csapatváltáskor renderelés közben ejti el (nem effectből). **`components/GamesTables.tsx`:** sor végi „Box score” gomb a lejátszott meccseknél; a kimenetel-jelvény kiemelve (`GameResultBadges`), a fejléc is ezt használja. **`components/PlayersTable.tsx`:** a `PlayerCell` és a `PositionBadge` exportálva (viselkedés nem változott).
+- **Megvalósítási döntések (jelezve a felhasználónak, részletek a progress-trackerben):** minden a kiválasztott csapat nézőpontjából (a csapat áll elöl); csak lejátszott meccs nyitható; a csapatösszeg külön táblában, a csapatsorból; nincs negyedenkénti eredmény (nincs linescore a sémában) és nincs dobástérkép; a DNP indoka az ESPN angol szövege. Új token, új csomag, séma-változás nincs.
+- **Ellenőrzés:**
+  - valós DB (service role, csak olvasás), a tényleges `fetchTeamGames` + `fetchGameBoxScore`: Lakers 92, Bulls 82, Knicks 102 lezárt meccs – mindenhol 2 csapat, csapatonként 5 kezdő, a kezdők elöl, a csapatsor pontszáma = a meccs végeredménye. A 2026-05-11-i LAL–OKC (110–115) sorai kézzel egyeztetve (Reaves 43 perc, 27 pont, 8/16, 3/7, 8/9; csapat: 38/75, 10/28, 24/27, 37 lepattanó, 19 eladott labda);
+  - ligaszintű mérés (34 777 játékossor, 2644 csapatsor): az eladott labdán kívül (1387 eltérés – csapatszintű eladott labdák) a játékossorok összege minden mutatón egyezik a csapatsorral, kivéve 17 csapat-meccset, mind Bulls → a figyelmeztetés nem ad hamis riasztást;
+  - **headless Chrome** (csak a scratchpadben; a valódi hook + nézet + a build CSS-e, kicsonkolt Supabase-klienssel, a valós adatbázisból mentett 2522 meccs-, 4432 játékos- és 344 csapatsorral), 67 állítás: a listán 82 „Box score” gomb, lekérdezés nélkül; megnyitás → a fejléc azonnal, skeleton → adat; 1–1 lekérdezés a két táblára `season_id` + `game_id` szűréssel; a fejléc, a csapatstatisztika (a Thunder-oszlop a nyers csapatsorból újraszámolva) és a teljes Reaves-sor; sorrend, kezdő-jelvények, nulla perces játékos, DNP-sor; a PTS oszlop összege = csapatpont; rendezés (szám, bedobott dobás, előjeles +/-, harmadik kattintásra az alapsorrend); vissza → a szakasz megmarad, nincs új lekérdezés; csapatváltáskor a lista jön vissza, és visszaváltva sem nyílik meg újra a meccs; hosszabbításos és idegenbeli meccs; Bulls: figyelmeztetés pont- és csak-gólpassz-eltérésnél is; hiba → panel → újrapróbálás; verseny (lassú régi válasz eldobva); fókusz a vissza gombon, a lap a tetejére ugrik; a konzolban csak a szándékos hiba. Képernyőkép 1440 és 390 px-en: az oldal nem csordul túl, a táblák a saját konténerükben görögnek (T23);
+  - `tsc`, `eslint`, `npm run build` hibátlan.
+- **A képernyőkép fogta meg:** 390 px-en a fejléc eredménye rálógott a csapatnevekre (javítva: `sm` alatt logó + rövidítés egymás alatt, kisebb eredmény), és a rövidítés „láthatatlan” volt, mert a `text-base` itt szín (új tanulság: T32).
+- **Nem ellenőrzött:** az éles alkalmazásban, bejelentkezve nem futott (nincs teszt-bejelentkezésem). A böngészős tesztben a `next/image` helyén sima `<img>` állt. Csapatsor nélküli meccs, logó nélküli csapat és `plus_minus = NULL` pályára lépett játékos a valós adatban nincs, ezek megjelenítése csak kódból ismert.
+- **Megfigyelés:** a box score tábla kb. 1250–1330 px széles: 1440 px-es ablakban az utolsó egy-két oszlop (+/-, VAL) görgetéssel érhető el. Az import figyelmeztetése (pontösszeg, FGA-összeg) a 17 hiányos Bulls-meccsből 12-t jelez; a maradék 5-ön a pont és az FGA egyezik, más mutató tér el (a megnézett négy meccsen gólpassz, egyszer személyi hiba is).
 
 ### 2026-10-10 – `useTeamPlayerStats` + Játékosok nézet ✓ (éles böngészős próba hátravan)
 
@@ -359,6 +380,7 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 |---|---|---|---|
 | T23 | A sidebar bevezetése után a széles táblák vízszintesen túlcsordultak, mert a grid-cella min-content szélességű (elemzések reszponzivitás) | A `.app-shell > main` és a `.grid > *` `min-width: 0` szabályát nem szabad kivenni | ✓ `globals.css` |
 | T24 | Redesign után maradtak `slate-*` / `sky-*` / `violet-*` osztályok. 10 helyen hiányzott a szóköz két class között (`border-border-subtlebg-…`), így egyik sem hatott (token audit) | Csak tokenek; minden class-lista `cn()`-en át, szóközzel | Szabály |
+| T32 | *(NBAStats, 2026-10-10)* A `text-base` osztály betűméret helyett a szöveg színét állította a háttérszínre: a `@theme inline` `--color-base` tokenje miatt itt ez szín-utility. A felirat „eltűnt”, a `tsc`, az `eslint` és a DOM-alapú teszt nem jelezte, csak a képernyőkép | A `text-base` kizárólag színként használható (pl. sötét szöveg narancs gombon). Új nézetnél a képernyőképet is át kell nézni, nem elég a DOM-állítás | ✓ szabály a CLAUDE.md-ben |
 
 ### Auth és infrastruktúra
 

@@ -331,6 +331,17 @@ A `SeasonTeamSelector` (NBAStats, 2026-10-10) minden tabon látszik: két shadcn
 
 Új token, új animáció és új alapkomponens itt sincs.
 
+**Meccs-részletek** (`GameDetailsView`, NBAStats, 2026-10-10) – a Mérkőzések nézeten belül, a lista helyén; a „Lejátszott mérkőzések” tábla sor végi ghost gombja („Box score” + `ChevronRight`) nyitja:
+- ghost „Vissza a mérkőzésekhez” gomb (`ArrowLeft`), megnyitáskor erre kerül a fókusz, és a lap a tetejére ugrik;
+- eredmény-fejléc (`Card`): dátum · szakasz · Hazai / Idegenben · csarnok; alatta `grid-cols-[1fr_auto_1fr]`: a kiválasztott csapat (48 px-es logó + név) – eredmény (`data-stat`, `text-3xl sm:text-5xl`, a vesztes pontszáma `text-secondary`) – ellenfél; az eredmény alatt a GY / V és a „HU” jelvény. `sm` alatt a logó (36 px) alatt a rövidítés áll;
+- „Csapatstatisztika”: három oszlopos, nem rendezhető `DataTable` (`max-w-3xl`): Mutató | saját rövidítés | ellenfél rövidítése; 15 sor a csapatsorból, a dobások `38/75 (50.7%)` alakban;
+- csapatonként egy box score `DataTable` (a kiválasztott csapat elöl), 17 oszlop: `#`, Játékos, Poz., MIN, PTS, FG, 3P, FT, OREB, REB, AST, STL, BLK, TOV, PF, +/-, VAL. A dobás bedobott/kísérlet (`8/16`), a rendezés a bedobott szerint. Alapsorrend: kezdők (`.dt-badge--neutral` „K”), majd a cserék perc szerint; a harmadik fejléc-kattintás ide tér vissza. A tábla kb. 1250–1330 px: a saját konténerében görög;
+- a tábla alatt „Nem lépett pályára” sor (`.uppercase-label` + nevek, zárójelben az ESPN indoka; a „COACH'S DECISION” → „edzői döntés”);
+- hiányos forrásnál a tábla fölött `text-warning` sor (`AlertTriangle`, `role="note"`) a játékosok / csapat eltérő összegeivel;
+- betöltéskor a fejléc azonnal látszik, alatta `.skeleton-shimmer`; hibánál `DataLoadError`; játékossor nélkül üres állapot (`Card` + `ClipboardX`).
+
+Új token, új animáció és új alapkomponens itt sincs. **Figyelem:** a `text-base` ebben a projektben szín (`--color-base`), nem betűméret.
+
 Layout-konstansok (nem design tokenek, komponens-lokális méretek):
 `--sb-w-expanded: 240px` · `--sb-w-collapsed: 64px` · `--sb-transition: 220ms cubic-bezier(.4,0,.2,1)`
 

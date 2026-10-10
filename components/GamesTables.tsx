@@ -6,10 +6,12 @@ import type { Team } from '@/lib/master-data';
 import type { GameStatus } from '@/lib/supabase';
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { formatGameDate, formatLocalStart } from '@/lib/format-date';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { ChevronRight } from 'lucide-react';
 
 const LOGO_SIZE = 26;
 
@@ -43,6 +45,21 @@ const formatDiff = (diff: number): string => (diff > 0 ? `+${diff}` : diff < 0 ?
 const overtimeLabel = (overtimes: number): string => (overtimes > 1 ? `${overtimes}HU` : 'HU');
 const overtimeTitle = (overtimes: number): string =>
   overtimes > 1 ? `${overtimes} hosszabbítás után` : 'Hosszabbítás után';
+
+/** Kimenetel-jelvény (GY / V), hosszabbításnál a „HU” jelzéssel. */
+export function GameResultBadges({ game }: { game: TeamGame }) {
+  const result = RESULT_BADGES[game.result ?? 'none'];
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={cn('dt-badge', result.className)}>{result.label}</span>
+      {game.overtimes > 0 && (
+        <span className="dt-badge dt-badge--neutral" title={overtimeTitle(game.overtimes)}>
+          {overtimeLabel(game.overtimes)}
+        </span>
+      )}
+    </span>
+  );
+}
 
 function OpponentCell({ team }: { team: Team | undefined }) {
   if (!team) return <span className="text-muted">Ismeretlen csapat</span>;
@@ -87,8 +104,15 @@ function sharedColumns(teamsById: TeamsById): Record<'date' | 'venue' | 'opponen
   };
 }
 
-/** Lejátszott meccsek a kiválasztott csapat nézőpontjából; a legfrissebb elöl. */
-export function GameResultsTable({ games, teamsById }: GamesTableProps) {
+/**
+ * Lejátszott meccsek a kiválasztott csapat nézőpontjából; a legfrissebb elöl.
+ * A sor végi gomb a meccs részleteit (box score) nyitja meg.
+ */
+export function GameResultsTable({
+  games,
+  teamsById,
+  onOpenGame,
+}: GamesTableProps & { onOpenGame: (gameId: string) => void }) {
   const shared = sharedColumns(teamsById);
   const columns: ColumnDef<TeamGame>[] = [
     shared.date,
@@ -99,18 +123,7 @@ export function GameResultsTable({ games, teamsById }: GamesTableProps) {
       label: 'Kimenetel',
       center: true,
       sortAccessor: game => RESULT_BADGES[game.result ?? 'none'].label,
-      render: game => (
-        <span className="inline-flex items-center gap-1.5">
-          <span className={cn('dt-badge', RESULT_BADGES[game.result ?? 'none'].className)}>
-            {RESULT_BADGES[game.result ?? 'none'].label}
-          </span>
-          {game.overtimes > 0 && (
-            <span className="dt-badge dt-badge--neutral" title={overtimeTitle(game.overtimes)}>
-              {overtimeLabel(game.overtimes)}
-            </span>
-          )}
-        </span>
-      ),
+      render: game => <GameResultBadges game={game} />,
     },
     {
       key: 'score',
@@ -128,6 +141,22 @@ export function GameResultsTable({ games, teamsById }: GamesTableProps) {
         const diff = scoreDiff(game);
         return <span className={cn(diff > 0 && 'dt-num--pos', diff < 0 && 'dt-num--neg')}>{formatDiff(diff)}</span>;
       },
+    },
+    {
+      key: 'details',
+      label: 'Részletek',
+      sortable: false,
+      render: game => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onOpenGame(game.id)}
+          aria-label={`Box score: ${opponentName(game, teamsById)}, ${formatGameDate(game.gameDate)}`}
+        >
+          Box score
+          <ChevronRight className="h-4 w-4" strokeWidth={1.8} />
+        </Button>
+      ),
     },
   ];
 

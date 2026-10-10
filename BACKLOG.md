@@ -1,6 +1,6 @@
 # Backlog
 
-Utolsó frissítés: 2026-10-01
+Utolsó frissítés: 2026-10-10
 
 Szerkezet:
 1. Nyitott feladatok
@@ -37,8 +37,9 @@ Szerkezet:
 
 ### Adatréteg és alapnézetek (roadmap 2.)
 
-- [ ] Migráció 003: `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9)
-- [ ] Közös törzsadat-hookok: `useSeasons()`, `useTeams()`, `useFollowedTeam()` (T21)
+- [ ] Migráció 003 (**séma-változtatás, rákérdezni**): `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9)
+- [x] Közös törzsadat-hookok: `useSeasons()`, `useTeams()`, `useFollowedTeam()` (T21) – `hooks/useMasterData.ts` (2026-10-10)
+- [ ] Szezon- és csapatválasztó az AppShellben (a törzsadat-hookok első fogyasztója). **Döntés kell:** az alapértelmezett szezon (lásd `context/progress-tracker.md`, Nyitott kérdések)
 - [ ] `useGameData` / `usePlayerData` semleges hazai/vendég sémára, `fetchAllRows`-szal (T1, T20)
 - [ ] Alapnézetek: Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella (DataTable / StatCard)
 - [ ] Követett csapat választó (admin, `app_settings.followed_team_id`)
@@ -80,6 +81,19 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-10 – Közös törzsadat-hookok (T21) ✓
+
+- **`lib/shared-resource.ts` (új):** `createSharedResource()` – React-független, modul-szintű tároló `{ data, loading, error }` állapottal. Az első feliratkozó indítja a betöltést, a többi ugyanazt az állapotot kapja; `reload()` újratölt, a későn érkező régi válasz eldobódik. Hiba után nincs automatikus újrapróbálás (a hibaállapot a `reload()`-ig marad).
+- **`lib/master-data.ts` (új):** `fetchSeasons()` (legújabb elöl), `fetchTeams()` (név szerint), `fetchAppSettings()`; a kliens paraméter. Típusok: `Season`, `Team`, `AppSettings` a `Database` típusból (`TableRow<'…'>`, új helper a `lib/supabase.ts`-ben).
+- **`hooks/useMasterData.ts` (új):** `useSeasons()`, `useTeams()`, `useFollowedTeam()` – `useSyncExternalStore`-ral olvassák a közös tárolót, `{ data, loading, error, reload }` alakban. A követett csapat a csapat-törzsadatból oldódik fel (`data: null`, ha nincs beállítva).
+- **Megvalósítási döntés (jelezve a felhasználónak):** a megosztás modul-szintű tárolóval történik, nem Context providerrel – így nem kell az `app/layout.tsx`-hez nyúlni, és nincs prop-láncolás.
+- **Ellenőrzés:**
+  - célzott teszt a tárolóra (17 állítás): 3 feliratkozás → 1 betöltés; stabil snapshot-referencia; hiba → magyar hibaüzenet, új feliratkozó nem indít kérést; `reload()` javít; verseny (lassú régi válasz eldobva); újratöltés alatt a régi adat megmarad;
+  - valós DB (service role): 2 szezon (2027, 2026), 30 csapat 6 × 5 felosztásban, mindnek van logója, követett csapat: Los Angeles Lakers (ESPN `13`); anon kulccsal mindhárom lekérdezés `permission denied` → hibaág;
+  - szerveroldali render: mindhárom hook `loading` állapotot ad, hálózati kérés nélkül;
+  - `tsc`, `eslint`, `npm run build` hibátlan.
+- **Nem ellenőrzött:** böngészőben, bejelentkezve a hookok még nem futottak – nincs nézet, ami használná őket (a következő egység, a szezon- és csapatválasztó lesz az első).
 
 ### 2026-10-01 – Ütemezett napi import (GitHub Actions) – megírva, élesítés hátravan
 
@@ -259,7 +273,7 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | # | Mi történt az ASEStatsben | Szabály az NBAStatsben | Állapot |
 |---|---|---|---|
 | T20 | A `SeasonComparison.tsx` 18k sorra nőtt, 38 közvetlen DB-hívással; Babel 500KB warning, kockázatos minden módosítás. 16 komponens 125 közvetlen `supabase.from()` hívást tartalmazott | Komponensben nincs közvetlen Supabase-hívás, minden a `hooks/`-ban van. Nézetenként külön komponens, tabonként külön fájl | Az első hooktól kötelező |
-| T21 | A `seasons` / `teams` törzsadatot 7 komponens kérte le külön-külön | Közös `useSeasons()` / `useTeams()` hook, `{ data, loading, error }` hármassal, `.skeleton-shimmer` töltésjelzéssel | Roadmap 2. |
+| T21 | A `seasons` / `teams` törzsadatot 7 komponens kérte le külön-külön | Közös `useSeasons()` / `useTeams()` hook, `{ data, loading, error }` hármassal, `.skeleton-shimmer` töltésjelzéssel | ✓ `hooks/useMasterData.ts`; a töltésjelzés a nézeteknél |
 | T22 | A TS% / eFG% / valuation képlet 6 helyen volt másolva (javítási sprint, 3. fázis) | A formula csak a `lib/stat-formulas.ts`-ben lehet | ✓ átvéve |
 
 ### UI

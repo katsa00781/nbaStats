@@ -127,9 +127,12 @@ nbastats/
 │   ├── ai-client.ts            # callAi(), AI_GENERATED_BY
 │   ├── stat-formulas.ts        # kanonikus TS% / eFG% / valuation + formatPercent
 │   ├── fetch-all-rows.ts       # lapozó helper a PostgREST 1000 soros limit ellen
+│   ├── master-data.ts          # törzsadat-lekérdezések: fetchSeasons / fetchTeams / fetchAppSettings + Season, Team típus
+│   ├── shared-resource.ts      # createSharedResource(): modul-szintű, egyszer betöltött közös tároló (T21)
 │   ├── positions.ts, terminology.ts, style-vocabulary.ts, chart-theme.ts
 │   └── utils.ts                # cn()
-├── hooks/                      # adatlekérési hookok (még üres – T20/T21)
+├── hooks/                      # adatlekérési hookok (T20/T21)
+│   └── useMasterData.ts        # useSeasons() / useTeams() / useFollowedTeam() – közös törzsadat
 ├── migrations/                 # SQL – csak Supabase SQL Editorban
 ├── context/                    # projekt spec és kontextus fájlok
 ├── .github/workflows/ingest.yml  # napi cron (09:00 UTC): ingest:games --season + ingest:schedule
@@ -323,7 +326,7 @@ A 3 fontot az `app/layout.tsx` tölti be `next/font/google`-on keresztül, és C
 Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - `useState`, `useCallback`, `useEffect`, `useMemo`: lokális és oldal-szintű state.
 - Globális auth állapot: `useAuth()` (`lib/auth-context.tsx`).
-- **Adatlekérés hookokban** (`hooks/`), `{ data, loading, error }` hármassal. A törzsadat (`useSeasons()`, `useTeams()`) egyetlen közös hookból jön, nem komponensenként (T20, T21).
+- **Adatlekérés hookokban** (`hooks/`), `{ data, loading, error }` hármassal. A törzsadat (`useSeasons()`, `useTeams()`, `useFollowedTeam()`) a `hooks/useMasterData.ts`-ből jön, nem komponensenként (T20, T21): modul-szintű közös tároló (`lib/shared-resource.ts`), akárhány hívó mellett egy lekérdezés. Hiba után a `reload()` próbál újra.
 - Böngészős külső állapotot (localStorage) `useSyncExternalStore`-ral olvasunk (lásd `AppSidebar`), effectből indított szinkron `setState` nélkül.
 - Az `app/page.tsx` csak shell renderelést és tab routingot végez.
 
@@ -336,7 +339,7 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - A külső adatot (ESPN JSON, Supabase válasz) a rendszerhatáron validáljuk. ESPN-nél ez kizárólag a `lib/espn/schemas.ts`.
 - Típusimportok: `import type { ... }`, az importlista elején.
 - Path alias: `@/lib/...`, `@/components/...`, `@/hooks/...`. Relatív `../../` import nem megengedett. A tsx CLI is feloldja az aliast.
-- A Supabase sorok típusai a `lib/supabase.ts` `Database` típusából származnak (`TableInsert<'…'>`).
+- A Supabase sorok típusai a `lib/supabase.ts` `Database` típusából származnak (`TableRow<'…'>`, `TableInsert<'…'>`).
 - Generikus komponensek a `DataTable<T>` mintájára készülnek; a `ColumnDef<T>` típus a komponens fájljából exportálódik.
 
 ---

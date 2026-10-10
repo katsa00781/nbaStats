@@ -213,5 +213,8 @@ export type Database = {
 export type GameStatus = 'scheduled' | 'in_progress' | 'final' | 'postponed' | 'canceled'
 export type ShotZone = 'rim' | 'paint' | 'mid' | 'corner3' | 'above_break3'
 
+export type TableRow<T extends keyof Database['nba']['Tables']> =
+  Database['nba']['Tables'][T]['Row']
+
 export type TableInsert<T extends keyof Database['nba']['Tables']> =
   Database['nba']['Tables'][T]['Insert']

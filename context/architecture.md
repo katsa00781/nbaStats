@@ -14,6 +14,8 @@ Azonos az ASEStatsszel, **Playwright nélkül**:
 
 - `app/`: App Router oldalak, API route-ok (mind `force-dynamic`), `globals.css`.
 - `components/`: UI. A `components/ui/` shadcn-generált, kivéve a `stat-card.tsx` és a `data-table.tsx` fájlt.
+- `hooks/`: adatlekérési hookok, `{ data, loading, error }` alakban. A komponens nem kérdez közvetlenül Supabase-t.
+  - `useMasterData.ts`: `useSeasons()`, `useTeams()`, `useFollowedTeam()`. A törzsadat modul-szintű közös tárolóban él (`lib/shared-resource.ts`, `useSyncExternalStore`), így akárhány komponens hívja, egyszer töltődik be; a lekérdezések a `lib/master-data.ts`-ben vannak.
 - `lib/`: megosztott logika és típusok, valamint elemző motorok (később, az ASEStatsből portolva).
 - `lib/espn/`: ESPN adapter. Next.js-független, tiszta modulok:
   - `client.ts`: `fetch`, throttle ≥ 1 mp, retry 429/5xx-re;

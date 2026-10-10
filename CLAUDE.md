@@ -148,7 +148,7 @@ nbastats/
 
 ## Adatbázis táblák (Supabase PostgreSQL)
 
-A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben), **minden tábla az `nba` Postgres sémában**. A TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben, a szezon-összesítő view a 003-ban), **minden tábla és view az `nba` Postgres sémában**. A TS-tükre a `lib/supabase.ts` `Database` típusa.
 
 | Tábla | Tartalom | Dedup kulcs |
 |-------|---------|-------------|
@@ -161,12 +161,19 @@ A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben),
 | `shot_events` | Mezőnydobások: nyers x/y lábban (kosár a (25, 0) pontban), `distance_ft`, `zone`, `shot_value`, `made` | `(game_id, espn_play_id)` |
 | `espn_game_raw` | Nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, `lib/espn/raw-payload.ts`), újra-parse-oláshoz | `espn_event_id` |
 | `app_settings` | Egysoros tábla: `followed_team_id` (Los Angeles Lakers, ESPN `13`) | `id = true` |
+| `player_season_stats_by_season` | **View** (003): játékos szezon-összesítő (`total_*`, `games_played`), DNP nélkül, csak lezárt meccsekből | sor = játékos × szezon × `season_type` × csapat |
 
 - **Séma-izoláció (közös projekt):** a `public` sémában az ASEStats táblái élnek, köztük 6 azonos nevű (`seasons`, `teams`, `players`, `games`, `player_game_stats`, `team_game_stats`).
   - Minden NBAStats SQL `nba.`-minősített; migráció a `public` sémához nem nyúlhat.
   - Minden Supabase kliens a `createNbaClient()`-tel jön létre (`lib/db-schema.ts`, `db: { schema: 'nba' }`); közvetlen `createClient()` nem lehet. A kliens típusa `NbaClient`.
   - Az `nba` séma a Supabase Dashboardon ki van téve az API-ra (Settings → API → Exposed schemas).
 - **Tárhelykeret:** a free tier 500 MB-ja közös az ASEStatsszel (2026-09-30: ASEStats 129 MB; egy NBA szezon mérten kb. 130 MB, ebből a nyers JSON kb. 50 MB). két NBA szezon marad (2025/26 + 2026/27, döntés: 2026-09-30), kb. 390 / 500 MB a szezon végére. **Ha a projekt átlépi a 450 MB-ot, a legrégebbi szezon nyers JSON-ját (`espn_game_raw`, kb. 50 MB) töröljük.**
+- **Szezon-összesítő view (`player_season_stats_by_season`):**
+  - a lekérdezés szűrjön `season_id`-ra és `season_type`-ra (2 = alapszakasz): az alapszakasz és a rájátszás nem keveredik;
+  - a cserélt játékosnak csapatonként külön sora van, a ligaszintű összesítés a kliensben adja össze őket;
+  - egy szezon kb. 1000 sor → `fetchAllRows()` kötelező;
+  - kísérletszámhoz `total_fgm` / `total_fga` kell (box score), a `total_close_*` / `total_mid_*` csak arányhoz; valuation nincs a view-ban, a `simpleValuation()` számolja az összegekből;
+  - típus: `ViewRow<'player_season_stats_by_season'>`.
 - **Hazai/vendég modell, nincs `our_team_id`.** Egy csapat meccsei: `.or(`home_team_id.eq.${id},away_team_id.eq.${id}`)`.
 - **Név alapján soha nem párosítunk entitást.** Minden író ESPN-azonosítóra épülő kulcsra upsertel.
 - **Szezonon belüli csere:** a játékos csapata a `player_game_stats.team_id`-ből jön, nem a `players` táblából.

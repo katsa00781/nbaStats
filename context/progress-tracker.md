@@ -40,6 +40,8 @@
 
 - **Közös törzsadat-hookok kész (2026-10-10):** `useSeasons()`, `useTeams()`, `useFollowedTeam()` (`hooks/useMasterData.ts`), modul-szintű közös tárolóval (`lib/shared-resource.ts`) és a lekérdezésekkel (`lib/master-data.ts`). Akárhány komponens hívja, egy lekérdezés fut (T21). Ellenőrizve: tároló-teszt, valós DB-olvasás (2 szezon, 30 csapat, Lakers), `tsc`, `eslint`, `build`. **Böngészőben még nem futott:** nincs nézet, ami használná.
 
+- **Migráció 003 megírva (2026-10-10):** `nba.player_season_stats_by_season` view (játékos × szezon × szezontípus × csapat, DNP nélkül, csak lezárt meccsekből, `security_invoker`), a `Database` típusban `Views` + `ViewRow`. A lekérdezés a valós adatokon csak olvasva ellenőrizve (661 / 240 / 92 sor, a pontösszeg a nyers sorokkal egyezik), a DDL és a jogosultságok PGlite-on. **A Supabase-ben még nem futott** (lásd Kézi teendők 7.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -49,8 +51,9 @@
 5. Admin felhasználó: az Auth közös az ASEStatsszel, így a meglévő ASEStats admin (`user_metadata.role = "admin"`) itt is admin.
 6. **Ütemezett import élesítése** (`HOWTO-auto-import.md`, 1. pont):
    - két repo secret a GitHubon: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`;
-   - push a `master` ágra (a workflow csak az `origin`-on él, T7);
+   - ~~push a `master` ágra (a workflow csak az `origin`-on él, T7)~~: kész (2026-10-10);
    - első próba kézzel, `dry_run` bepipálva (Actions → *Adatimport (ESPN)* → Run workflow).
+7. **Migráció 003 futtatása:** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`). Ellenőrzés utána: `select season_type, count(*) from nba.player_season_stats_by_season group by 1;` → 2: 661, 3: 240, 5: 92.
 
 ## Következő lépések (roadmap)
 
@@ -62,8 +65,9 @@
    - ~~GitHub Actions cron naponta 10:00 CET-kor~~: megírva (2026-10-01), élesítés a felhasználónál (secretek + push).
 2. **Adat-hookok és alapnézetek:** Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella. Ide tartozik a `player_season_stats_by_season` view is (migráció 003).
    - ~~közös törzsadat-hookok (`useSeasons`, `useTeams`, `useFollowedTeam`)~~: kész (2026-10-10);
-   - következő: szezon- és csapatválasztó az AppShellben (döntés kell az alapértelmezett szezonról), majd `useGameData` + Mérkőzések nézet;
-   - a migráció 003 séma-változtatás: megírása előtt jóváhagyás kell.
+   - ~~migráció 003 (`player_season_stats_by_season` view)~~: megírva (2026-10-10), futtatás a felhasználónál;
+   - következő: szezon- és csapatválasztó az AppShellben (alapértelmezés: 2025/26 + követett csapat), majd `useGameData` + Mérkőzések nézet;
+   - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
@@ -76,9 +80,14 @@
 - Nyers JSON: gzip `bytea` (free tier marad).
 - Adatbázis: ~~önálló Supabase projekt~~ → **`nba` séma az ASEStats `ugkettlebell` projektjében** (2026-09-30). A migrációkat a felhasználó futtatja.
 
+## Eldöntött kérdések (2026-10-10)
+
+- Alapértelmezett szezon a választóban: **2025/26**, a tesztelés idejére (a 2026/27-nek 2026-10-20-ig nincs lejátszott meccse). Az alapértelmezett csapat a követett csapat.
+- Migráció 003 megírható; a felhasználó futtatja.
+- Tabella: **kell külön tabella-tábla** (kiemelés, GB, sorozat, clinch).
+
 ## Nyitott kérdések
 
-- **Alapértelmezett szezon a választóban (2026-10-10):** a csapat alapértelmezése a követett csapat (`project-overview.md`), a szezoné nincs definiálva. A dátum szerinti aktuális szezon a 2026/27, de 2026-10-20-ig nincs lejátszott meccse, így a statisztikai nézetek üresek lennének. Lehetőségek: (a) a legutóbbi szezon, amelynek van lezárt meccse; (b) mindig a dátum szerinti aktuális szezon.
-- **Migráció 003 (`player_season_stats_by_season` view):** a roadmapban szerepel, de séma-változtatás → megírása előtt jóváhagyás kell.
+- **Tabella-tábla sémája:** a döntés megvan (kell külön tábla, 2026-10-10), de az oszlopokat (kiemelés, GB, sorozat, clinch, hazai/idegen mérleg, utolsó 10) a migráció megírása előtt egyeztetni kell.
+- **Alapértelmezett szezon hosszú távon:** most a 2025/26-os (tesztelés); a 2026/27 indulása (2026-10-20) után felül kell vizsgálni.
 - **Tárhely-figyelés a napi futásban:** a projektméretet (`pg_database_size`) a service role csak SQL-függvényen át tudja lekérdezni (PostgREST RPC). Ehhez új migráció kell (pl. `nba.project_size_bytes()`), ami séma-változtatás → döntés kell. Alternatíva: marad a kézi ellenőrzés a Supabase dashboardon.
-- **Tabella nézet előtt:** kell-e külön tábla a hivatalos kiemeléshez (seed), GB-hez, sorozathoz és clinch jelzéshez, vagy elég a `games`-ből számolt győzelem–vereség (lásd `BACKLOG.md`).

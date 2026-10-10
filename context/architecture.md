@@ -32,7 +32,7 @@ Azonos az ASEStatsszel, **Playwright nélkül**:
 
 ## Storage Model
 
-A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/` fájljaiban él (001: táblák, 002: a 2027-es szezonsor, 003: szezon-összesítő view), a TS-tükre a `lib/supabase.ts` `Database` típusa.
 
 **Elhelyezés (döntés: 2026-09-30):**
 - A free tier 2 projektes korlátja miatt nincs önálló projekt. Az NBAStats az ASEStats `ugkettlebell` projektjében él, **saját `nba` Postgres sémában**.
@@ -56,6 +56,12 @@ A séma a `migrations/001-initial-schema.sql` fájlban él, a TS-tükre a `lib/s
   - A `distance_ft` és a `zone` (rim/paint/mid/corner3/above_break3) számított.
   - Büntető és kihagyott heave-dobás nem kerül ide (egyik sem FGA).
 - `espn_game_raw`: a nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, kb. 38 KB/meccs), újra-parse-oláshoz. Kódolás/dekódolás: `lib/espn/raw-payload.ts`.
+- `player_season_stats_by_season` (view, migráció 003): játékos szezon-összesítő.
+  - Egy sor = játékos × szezon × `season_type` × csapat; a csapat a meccs-sorból jön, a cserélt játékosnak csapatonként külön sora van.
+  - DNP nélkül, csak `final` meccsekből; `security_invoker = true`, így az alaptáblák RLS-e érvényes.
+  - Kísérletszám: `total_fgm` / `total_fga` (box score). A `total_close_*` / `total_mid_*` a dobás-eseményekből jön, szezonszinten néhány dobással eltérhet.
+  - Valuation nincs benne: az összegekből a `simpleValuation()` számolja.
+  - Egy szezon kb. 1000 sor → `fetchAllRows` kötelező.
 - `app_settings`: egysoros tábla, `followed_team_id` = követett csapat: **Los Angeles Lakers** (ESPN `13`).
 - `seasons` start/end: a migráció tölti ki az ESPN szezonablakából (001: 2026, 002: 2027); ehhez veti a szezon-kapu a `game_date`-et. Az import szezont nem hoz létre.
 - **RLS:** minden táblán SELECT a bejelentkezett felhasználóknak. Írni csak a service role tud.

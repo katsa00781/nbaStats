@@ -31,15 +31,17 @@ Szerkezet:
 - [x] `ingest-schedule.ts`: jövőbeli meccsek `scheduled` státusszal (élesítve 2026-09-30: 1200 meccs a 2026/27-re)
 - [ ] A csapatonkénti 2 NBA Cup-függő alapszakasz-meccs (30 meccs) felvétele, amikor az ESPN közzéteszi – a napi `ingest-schedule` futás ezt magától elvégzi (a cronban benne van, 2026-10-01); ellenőrizni kell, hogy a szezon végére csapatonként 82 meccs lett
 - [x] `ingest-standings.ts`: konferencia- és divíziómezők kitöltése a `teams`-ben (2026-09-30)
-- [ ] Döntés a Tabella nézet előtt: a győzelem–vereség a `games`-ből számolható, de a hivatalos kiemelés (seed), GB, sorozat és clinch jelzés csak az ESPN tabellában van → ezekhez új tábla kellene (séma-változtatás, rákérdezni)
+- [x] Döntés a Tabella nézet előtt: a győzelem–vereség a `games`-ből számolható, de a hivatalos kiemelés (seed), GB, sorozat és clinch jelzés csak az ESPN tabellában van. **Döntés (felhasználó, 2026-10-10): kell külön tabella-tábla**
+- [ ] Tabella-tábla: új migráció (a séma tervét a megírás előtt egyeztetni kell) + az `ingest-standings.ts` bővítése a tabella-sorok írásával. A Tabella nézet előfeltétele
 - [x] GitHub Actions napi cron (az ASEStats `scrape.yml` mintájára, Playwright nélkül, env-ellenőrző lépéssel) + `HOWTO-auto-import.md` (T7) – megírva 2026-10-01
 - [ ] **Az ütemezett import élesítése (felhasználó):** két repo secret (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), push, első kézi futás `dry_run`-nal. Az első GitHub-futás igazolja, hogy az ESPN a runner IP-címéről is elérhető (helyből nem ellenőrizhető)
 
 ### Adatréteg és alapnézetek (roadmap 2.)
 
-- [ ] Migráció 003 (**séma-változtatás, rákérdezni**): `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9)
+- [x] Migráció 003: `player_season_stats_by_season` view, a `player-stat-mapping` kompatibilis alakjában. A meccsszámból a DNP-t kiszűri, a csapat a meccs-sorból jön (T8, T9) – megírva 2026-10-10
+- [ ] **A 003 futtatása (felhasználó):** `migrations/003-player-season-stats-view.sql` a Supabase SQL Editorban (`ugkettlebell`)
 - [x] Közös törzsadat-hookok: `useSeasons()`, `useTeams()`, `useFollowedTeam()` (T21) – `hooks/useMasterData.ts` (2026-10-10)
-- [ ] Szezon- és csapatválasztó az AppShellben (a törzsadat-hookok első fogyasztója). **Döntés kell:** az alapértelmezett szezon (lásd `context/progress-tracker.md`, Nyitott kérdések)
+- [ ] Szezon- és csapatválasztó az AppShellben (a törzsadat-hookok első fogyasztója). Alapértelmezés: a 2025/26-os szezon (döntés: 2026-10-10, a tesztelés idejére) és a követett csapat
 - [ ] `useGameData` / `usePlayerData` semleges hazai/vendég sémára, `fetchAllRows`-szal (T1, T20)
 - [ ] Alapnézetek: Mérkőzések, Játékosok, Játékos-részletek, Csapatstatisztika, Tabella (DataTable / StatCard)
 - [ ] Követett csapat választó (admin, `app_settings.followed_team_id`)
@@ -61,8 +63,10 @@ Szerkezet:
 - [ ] Élő meccsállapot (scoreboard polling)
 - [ ] Tartalék adatforrás-adapter (balldontlie), ha az ESPN formátuma eltörik
 
-### Eldöntött kérdések (2026-09-29, módosítva 2026-09-30)
+### Eldöntött kérdések (2026-09-29, módosítva 2026-10-10)
 
+- Alapértelmezett szezon a választóban (2026-10-10): a 2025/26-os, a tesztelés idejére (a 2026/27-nek 2026-10-20-ig nincs lejátszott meccse). Később felül kell vizsgálni.
+- Tabella (2026-10-10): külön tabella-tábla készül a hivatalos kiemeléshez, GB-hez, sorozathoz és clinch jelzéshez.
 - Tárhely (2026-09-30): a 2025/26 és a 2026/27 szezon is marad (kb. 390 / 500 MB); 450 MB fölött a legrégebbi szezon nyers JSON-ja törlődik.
 - Adatbázis (2026-09-30): saját `nba` séma az ASEStats `ugkettlebell` Supabase projektjében. A harmadik projekt fizetős lenne; a közös `public` sémában 6 táblanév ütközik.
 - Visszatöltés (2026-09-30): a 2025/26-os szezon, alapszakasz + play-in + rájátszás, előszezon nélkül. Régebbi szezon nem kerül be; a 2026/27 napi importtal épül.
@@ -81,6 +85,22 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-10 – Migráció 003: játékos szezon-összesítő view – megírva, futtatás hátravan
+
+- **Döntések (felhasználó):** a migráció megírható; az alapértelmezett szezon a tesztelés idejére a 2025/26-os; kell külön tabella-tábla. Az előző commitok pusholva (`origin/master` naprakész).
+- **`migrations/003-player-season-stats-view.sql` (új):** `nba.player_season_stats_by_season`, `security_invoker = true`, olvasás az `authenticated` és a `service_role` szerepnek. Újrafuttatható (drop + create), táblához nem nyúl.
+  - Egy sor = játékos × szezon × szezontípus × csapat: a csapat a meccs-sorból jön (T9), a cserélt játékosnak csapatonként külön sora van; az alapszakasz, a rájátszás és a play-in nem keveredik.
+  - DNP sorok nélkül (T8), csak `final` meccsekből.
+  - Az összegek neve az ASEStats view-jával egyezik (`total_*`, `games_played`); új: `games_started`, `total_fgm` / `total_fga` (box score), `total_plus_minus`, `season_type`, `team_abbreviation`, `headshot_url`.
+  - Kimaradt: `total_valuation` / `avg_valuation` (lineáris, az összegekből a `simpleValuation()` számolja – a képlet egy helyen marad, T22) és `total_fouls_drawn` (az ESPN nem adja).
+- **`lib/supabase.ts`:** `Database['nba']['Views']` + `ViewRow<'…'>`.
+- **Ellenőrzés:**
+  - a view lekérdezése csak olvasva, a valós adatbázison (Supabase MCP, DDL nélkül): 2025/26 alapszakasz 661 sor (582 játékos, 72 több csapatos), rájátszás 240, play-in 92; a pontösszeg és a meccsszám a nyers, nem-DNP sorokéval egyezik (284 604 pont, 26 658 sor); kulcs-duplikáció nincs; a csapatpont-összeg 29 csapatnál egyezik a `team_game_stats`-szal, az egyetlen eltérés a CHI (9509 vs 9537 – az ismert Olbrich-hiány);
+  - PGlite (csak a scratchpadben), Supabase-szerű szerepkörökkel, 001 + 002 + 003 (kétszer): 14 állítás – csere → külön sor, rájátszás külön sor, DNP és folyamatban lévő meccs kimarad, csak-DNP játékosnak nincs sora; `authenticated` olvas, `anon` elutasítva, írás a view-n át nem megy, RLS policy nélkül a view üres (invoker jogai); a `public` sémába nem került semmi;
+  - `tsc`, `eslint`, `npm run build` hibátlan.
+- **Nem ellenőrzött:** a migráció a Supabase-ben még nem futott (Postgres 15; a teszt PGlite-on, Postgres 18-on ment).
+- **Megfigyelés:** egy szezon a view-ban 993 sor, közvetlenül az 1000-es PostgREST-limit alatt → a view-ra is kötelező a `fetchAllRows` (T1). Szezonszinten a 661 alapszakasz-sorból 81-nél `close + mid ≠ FGA − 3PA` (a meccsenkénti ±1–3 eltérés összeadódik): kísérletszámhoz a `total_fga` a forrás.
 
 ### 2026-10-10 – Közös törzsadat-hookok (T21) ✓
 

@@ -35,7 +35,7 @@ export type Json =
 
 type Timestamps = { created_at: string }
 
-// Típusok a Supabase táblákhoz – a migrations/001 tükre (`nba` séma).
+// Típusok a Supabase táblákhoz és view-khoz – a migrations/ tükre (`nba` séma).
 export type Database = {
   nba: {
     Tables: {
@@ -207,6 +207,54 @@ export type Database = {
         Update: Partial<Database['nba']['Tables']['app_settings']['Row']>
       }
     }
+    Views: {
+      /**
+       * migrations/003 – egy sor = játékos × szezon × szezontípus × csapat, DNP nélkül,
+       * csak lezárt meccsekből. Egy szezon kb. 1000 sor: `fetchAllRows` kell (T1).
+       * Kísérletszámhoz `total_fgm` / `total_fga` (box score); a close/mid a
+       * dobás-eseményekből jön, NULL, ha nincs dobásadat.
+       */
+      player_season_stats_by_season: {
+        Row: {
+          season_id: string
+          season_name: string
+          season_type: number
+          player_id: string
+          name: string
+          short_name: string | null
+          position: string | null
+          jersey: string | null
+          headshot_url: string | null
+          team_id: string
+          team_name: string
+          team_short_name: string | null
+          team_abbreviation: string
+          games_played: number
+          games_started: number
+          total_minutes: number
+          total_points: number
+          total_fgm: number
+          total_fga: number
+          total_close_made: number | null
+          total_close_attempted: number | null
+          total_mid_made: number | null
+          total_mid_attempted: number | null
+          total_three_made: number
+          total_three_attempted: number
+          total_free_throw_made: number
+          total_free_throw_attempted: number
+          total_offensive_rebounds: number
+          total_defensive_rebounds: number
+          total_rebounds: number
+          total_assists: number
+          total_steals: number
+          total_blocks: number
+          total_turnovers: number
+          total_fouls_committed: number
+          total_plus_minus: number | null
+        }
+      }
+    }
   }
 }
 
@@ -215,6 +263,9 @@ export type ShotZone = 'rim' | 'paint' | 'mid' | 'corner3' | 'above_break3'
 
 export type TableRow<T extends keyof Database['nba']['Tables']> =
   Database['nba']['Tables'][T]['Row']
+
+export type ViewRow<T extends keyof Database['nba']['Views']> =
+  Database['nba']['Views'][T]['Row']
 
 export type TableInsert<T extends keyof Database['nba']['Tables']> =
   Database['nba']['Tables'][T]['Insert']

@@ -65,8 +65,9 @@
 4. ~~Migráció 002 + menetrend-import~~: kész (2026-09-30).
 5. Admin felhasználó: az Auth közös az ASEStatsszel, így a meglévő ASEStats admin (`user_metadata.role = "admin"`) itt is admin.
 6. **Ütemezett import élesítése** (`HOWTO-auto-import.md`, 1. pont):
-   - két repo secret a GitHubon: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`;
+   - ~~két repo secret a GitHubon: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`~~: kész (2026-10-12);
    - ~~push a `master` ágra (a workflow csak az `origin`-on él, T7)~~: kész (2026-10-10);
+   - push a tabella-import lépéssel (`1d7aa80`): kész (2026-10-12);
    - első próba kézzel, `dry_run` bepipálva (Actions → *Adatimport (ESPN)* → Run workflow).
 7. ~~Migráció 003 futtatása~~: kész (2026-10-10; a view él, 2: 661, 3: 240, 5: 92).
 14. **Migráció 004 futtatása:** `migrations/004-standings.sql` a Supabase SQL Editorban (`ugkettlebell`); utána `nba.standings` üres táblaként létezik.

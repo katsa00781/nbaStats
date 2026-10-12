@@ -206,6 +206,30 @@ export type Database = {
         Insert: Partial<Database['nba']['Tables']['app_settings']['Row']>
         Update: Partial<Database['nba']['Tables']['app_settings']['Row']>
       }
+      /** migrations/004 – az ESPN tabella pillanatképe, csapat × szezon (alapszakasz). */
+      standings: {
+        Row: {
+          season_id: string
+          team_id: string
+          wins: number
+          losses: number
+          conference_seed: number | null
+          clincher: string | null
+          games_behind: number
+          home_record: string | null
+          road_record: string | null
+          division_record: string | null
+          conference_record: string | null
+          last_ten: string | null
+          streak: string | null
+          points_for: number | null
+          points_against: number | null
+          updated_at: string
+        }
+        Insert: Partial<Database['nba']['Tables']['standings']['Row']> &
+          Pick<Database['nba']['Tables']['standings']['Row'], 'season_id' | 'team_id' | 'wins' | 'losses'>
+        Update: Partial<Database['nba']['Tables']['standings']['Row']>
+      }
     }
     Views: {
       /**

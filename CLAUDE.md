@@ -180,7 +180,7 @@ nbastats/
 
 ## Adatbázis táblák (Supabase PostgreSQL)
 
-A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben, a szezon-összesítő view a 003-ban), **minden tábla és view az `nba` Postgres sémában**. A TS-tükre a `lib/supabase.ts` `Database` típusa.
+A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben, a szezon-összesítő view a 003-ban, a tabella a 004-ben), **minden tábla és view az `nba` Postgres sémában**. A TS-tükre a `lib/supabase.ts` `Database` típusa.
 
 | Tábla | Tartalom | Dedup kulcs |
 |-------|---------|-------------|
@@ -193,6 +193,7 @@ A séma a `migrations/001-initial-schema.sql`-ben van (a szezonsorok a 002-ben, 
 | `shot_events` | Mezőnydobások: nyers x/y lábban (kosár a (25, 0) pontban), `distance_ft`, `zone`, `shot_value`, `made` | `(game_id, espn_play_id)` |
 | `espn_game_raw` | Nyers summary JSON gzip-elt `bytea`-ként (`payload_gz`, `lib/espn/raw-payload.ts`), újra-parse-oláshoz | `espn_event_id` |
 | `app_settings` | Egysoros tábla: `followed_team_id` (Los Angeles Lakers, ESPN `13`) | `id = true` |
+| `standings` | Tabella (004): az ESPN pillanatképe, W-L, seed, clincher, GB, hazai/idegen/div./konf. mérleg, utolsó 10, sorozat; naponta felülírva | `(season_id, team_id)` |
 | `player_season_stats_by_season` | **View** (003): játékos szezon-összesítő (`total_*`, `games_played`), DNP nélkül, csak lezárt meccsekből | sor = játékos × szezon × `season_type` × csapat |
 
 - **Séma-izoláció (közös projekt):** a `public` sémában az ASEStats táblái élnek, köztük 6 azonos nevű (`seasons`, `teams`, `players`, `games`, `player_game_stats`, `team_game_stats`).

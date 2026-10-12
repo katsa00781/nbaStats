@@ -58,7 +58,10 @@ Szerkezet:
 - [x] `useLeagueTeamStats(seasonId)` a `team_game_stats` táblára (mind a 30 csapat, mindkét oldal), `fetchAllRows`-szal (T1, T14, T17, T20) – `hooks/useTeamStatsData.ts` + `lib/team-stats-data.ts` + `lib/team-stats-metrics.ts` (2026-10-12)
 - [x] Alapnézet: **Csapatstatisztika** (`TeamStatsView`, átlagok + fejlett mutatók + ligarangsor) – 2026-10-12
 - [ ] **A Csapatstatisztika ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Csapatstatisztika* → 2025/2026 + Lakers: Pont / meccs 116.3 (11. / 30), ORtg 115.4 (8. / 30), DRtg 113.7 (19. / 30); Rájátszás fül: helyezés „x. / 16"; csapatváltás nem tölt újra
-- [ ] Alapnézet: Tabella (DataTable / StatCard; előtte a tabella-tábla)
+- [x] Migráció 004: `nba.standings` + `Database` típus – megírva 2026-10-12
+- [ ] **A 004 futtatása (felhasználó):** `migrations/004-standings.sql` a Supabase SQL Editorban (`ugkettlebell`)
+- [ ] `ingest-standings.ts` bővítése: a tabella írása az `nba.standings`-be (`level=2`, szerkezeti ellenőrzés, `--dry-run`) + `ingest:standings` a napi `ingest.yml`-be (push kell, T7)
+- [ ] Alapnézet: Tabella (DataTable / StatCard)
 - [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
 - [x] Refaktor: a `useTeamGames` a közös `useSeasonScopedResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre, a közös betöltő semleges átnevezése, a `PlayerCell` / `PositionBadge` saját fájlba – kész 2026-10-12
@@ -104,6 +107,13 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-12 – Migráció 004: tabella-tábla – megírva, futtatás hátravan
+
+- **Döntések (felhasználó):** az ESPN `standings?level=2` mezőiből 13 oszlop (W-L, seed, clincher, GB, hazai / idegen / divízió / konferencia mérleg, utolsó 10, sorozat, pont+/−); a származtatott mutatókat a nézet számolja; az `ingest:standings` bekerül a napi futásba.
+- **`migrations/004-standings.sql` (új):** `nba.standings`, kulcs `(season_id, team_id)`, idempotens; `select` az `authenticated`-nek (RLS), írás a `service_role`-nak.
+- **`lib/supabase.ts`:** `standings` a `Database` típusban.
+- **Ellenőrzés:** `tsc`, `eslint` hibátlan; az ESPN mezőneveket valós `level=2` válaszon néztem meg. **A SQL-t nem futtattam** (a felhasználó futtatja).
 
 ### 2026-10-12 – Refaktor: közös betöltő, szakaszválasztás, PlayerCell ✓
 

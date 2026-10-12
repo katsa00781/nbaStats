@@ -5,12 +5,14 @@ import type { PlayerSeasonStats } from '@/lib/player-data';
 import type { PlayerGameLog, PlayerGameLogAbsence } from '@/lib/player-game-log-data';
 import type { ReactNode } from 'react';
 import { DataLoadError } from '@/components/DataLoadError';
+import { PlayerAnalysisPanel } from '@/components/PlayerAnalysisPanel';
 import { PlayerGameLogTable } from '@/components/PlayerGameLogTable';
 import { playerInitials, PositionBadge } from '@/components/PlayerCell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLeaguePlayerTotals } from '@/hooks/useLeaguePlayerData';
 import { usePlayerGameLog } from '@/hooks/usePlayerGameLogData';
 import { orderSeasonTypes, resolveSeasonType, seasonTypeLabel } from '@/lib/season-types';
 import Image from 'next/image';
@@ -50,6 +52,7 @@ export function PlayerDetailsView({
 }: PlayerDetailsViewProps) {
   const player = playerRows[0];
   const log = usePlayerGameLog(seasonId, player.playerId);
+  const league = useLeaguePlayerTotals(seasonId);
   const stages = orderSeasonTypes(playerRows.map(row => row.seasonType));
   const stage = resolveSeasonType(stages, chosenStage);
 
@@ -75,6 +78,12 @@ export function PlayerDetailsView({
         {playerRows.map(row => (
           <TabsContent key={row.seasonType} value={String(row.seasonType)} className="flex flex-col gap-8">
             <StageAverages row={row} />
+            <PlayerAnalysisPanel
+              league={league}
+              playerId={row.playerId}
+              teamId={team.id}
+              seasonType={row.seasonType}
+            />
             {log.error ? (
               <DataLoadError message={log.error} onRetry={log.reload} />
             ) : log.loading || !log.data ? (

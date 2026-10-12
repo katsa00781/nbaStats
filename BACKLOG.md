@@ -66,7 +66,10 @@ Szerkezet:
 - [ ] **A Tabella ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Tabella* → 2025/2026 + Lakers: Nyugat fül, 15 sor, OKC 64–18 (`*`) elöl, Lakers #4 (`y`, .646, GB 11, L10 7-3, GY3) kiemelve; Kelet: Detroit 60–22 (`z`); 2026/2027: üres állapot
 - [x] Elemző motor 1/4: **situational-analysis** portolva (`lib/situational-analysis.ts`) + adapter (`lib/adapters/situational-adapter.ts`) + `useTeamGameStatRows` + **Szituációk** nézet (`SituationalView`) – 2026-10-12
 - [ ] **A Szituációk ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Szituációk* → 2025/2026 + Lakers: Hazai 28–13, Vendég 25–16, Szoros 11–4, Gála 16–16; ORtg 115.4; Rájátszás fül: 10 meccs, ORtg 105.8
-- [ ] Következő motorok (roadmap 3.): `player-analysis`, `team-analysis`, `pregame-scouting`, `postgame-report`, `player-postgame` (az adapter-minta a `lib/adapters/`-ban)
+- [x] Elemző motor 2/4: **player-analysis** portolva (`lib/player-analysis.ts`) + adapter (`lib/adapters/player-analysis-adapter.ts`) + `useLeaguePlayerTotals` + **Játékos-elemzés** szekció a Játékos-részletekben (`PlayerAnalysisPanel`) – 2026-10-12
+- [ ] **A Játékos-elemzés ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Játékosok* → Luka Doncic: szerepkörök „Pontszerző csatár”, „Kiegészítő játéképítő”, skill-sávok (Pontszerzés 100, Lepattanózás 100, Játéképítés 85), öt haladó blokk; Rájátszás fül: „nincs értelmezhető liga-összevetés” üzenet; kis mintájú játékosnál „Kis minta” üzenet
+- [ ] Következő motorok (roadmap 3.): `team-analysis`, `pregame-scouting`, `postgame-report`, `player-postgame` (az adapter-minta a `lib/adapters/`-ban)
+- [ ] `player-analysis`: forma-trend riport (`PlayerTrend`, utolsó 5 meccs) és hasonlósági mutató – meccsenkénti bemenet kell, külön egység
 - [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
 - [x] Refaktor: a `useTeamGames` a közös `useSeasonScopedResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre, a közös betöltő semleges átnevezése, a `PlayerCell` / `PositionBadge` saját fájlba – kész 2026-10-12
@@ -112,6 +115,18 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-12 – Játékos-elemzés: a `player-analysis` motor portja ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** a kimenet a Játékos-részletek új szekciója (nincs új tab); a benchmark a liga azonos posztú játékosaiból épül, szakaszonként, 36 percre normalizálva, küszöb 8 meccs / 18 perc (az ASEStats 15 perce ×1,2 a 48 percre); a használati arány marad `usageProxyPer36` (FGA + 0,44·FTA + TOV), nem USG% (T18 eltérés, nem vezettük be).
+- **`lib/player-analysis.ts` (új):** az ASEStats motor portja: per-36 normalizálás, poszt szerinti percentilisek (P10–P90), szerepkör-felismerés (16 szerepkör), skill-pontok, erősségek / limitációk / fejlesztendők, összefoglaló, öt haladó blokk. Eltérések: nincs `league` / `season` kulcs (a hívó szakaszonként építi a poolt); `MIN_BENCHMARK_POOL = 10` (kisebb poszt-poolból nem készül benchmark); a `fouls.received` kimaradt (az ESPN nem adja); az ESPN „G” / „F” jelölése nem rendezett, ezért ott a statisztikai illesztés dönt (az ASEStats a lista első elemét vette volna, így minden hátvéd PG lett volna); a forma-trend riport és a hasonlósági mutató kimaradt (meccsenkénti bemenet kell); a forrásban lévő cirill betűs elírás („dобás”) javítva.
+- **`lib/league-player-data.ts`, `hooks/useLeaguePlayerData.ts` (új):** `fetchLeaguePlayerTotals()` a szezon összes játékosának összegeit adja a `player_season_stats_by_season` view-ból (close / mid / hármas bontás, lepattanó-bontás, személyi hiba; `fetchAllRows`), `useLeaguePlayerTotals(seasonId)` a `useSeasonScopedResource()`-ra, csak a szezon a kulcs (játékos- és csapatváltáskor nem kérdez újra).
+- **`lib/adapters/player-analysis-adapter.ts` (új):** `buildStageBenchmarks()` (a cserélt játékos csapatonkénti sorai egy játékossá összegződnek a poolban), `analyzeStagePlayer()` (a játékost a kiválasztott csapatnál elemzi, a lista átlagaival azonos meccsek). Eredmény: `ready` / `small-sample` / `no-benchmark` / `no-shot-data`.
+- **`components/PlayerAnalysisPanel.tsx`, `components/PlayerAnalysisBlocks.tsx` (új):** szekció a szakasz átlag-kártyái alatt: szerepkör-jelvények, összefoglaló, hat skill-sáv, erősségek / limitációk / fejlesztendő, öt haladó blokk (dobás, játéképítés, védekezés, pontszerzés, hatékonyság); skeleton / `DataLoadError` / tájékoztató üzenet. **`components/PlayerDetailsView.tsx`:** a hívás és a szekció bekötése.
+- **Dokumentáció:** `CLAUDE.md`, `context/architecture.md`, `context/progress-tracker.md`.
+- **Ellenőrzés:** valós DB (2025/26: 993 view-sor, egyiknél sincs hiányzó dobásbontás; alapszakasz: mind az 5 poszt-poolban van benchmark – alkalmas játékos PG 25, SG 153, SF 76, PF 40, C 49; Luka Doncic SG: Pontszerzés 100, Játéképítés 85, Lepattanózás 100, TS% 61.6%; LeBron James SF, Deandre Ayton C), a két komponens szerveroldali renderje valós adatból (6 skill-sáv, 7 kártya, magyar szövegek), `tsc`, `eslint`, `build` hibátlan.
+- **Nem ellenőrzött:** böngészős futás, képernyőkép (T32).
+- **Ismert korlát:** a rájátszásban csak az SG pool éri el a 10 játékost (8 meccs / 18 perc mellett), a play-inben egy sem – ott a szekció tájékoztató üzenetet ad.
 
 ### 2026-10-12 – Szituációk nézet: a `situational-analysis` motor portja ✓ (éles böngészős próba hátravan)
 

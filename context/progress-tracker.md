@@ -61,6 +61,8 @@
 
 - **Szituációk nézet kész (2026-10-12):** a `situational-analysis` motor portja (`lib/situational-analysis.ts`), adapterrel (`lib/adapters/situational-adapter.ts`), `useTeamGameStatRows()` (`hooks/useSituationalData.ts`, `lib/situational-data.ts`) és `SituationalView` / `SituationalTables` az *Analitika → Szituációk* tabon. Hazai / vendég, szoros, gála és hosszabbításos mérleg, fejlett mutatók (összes / hazai / vendég), forma. Döntések (felhasználó): ez a motor az első; az adapter `lib/adapters/*.ts`. A negyedenkénti bontás kimaradt (nincs linescore). Ellenőrizve: valós DB (Lakers 2025/26: 28–13 / 25–16, ORtg 115.41 = a Csapatstatisztika értéke), `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 16.).
 
+- **Játékos-elemzés kész (2026-10-12):** a `player-analysis` motor portja (`lib/player-analysis.ts`), adapterrel (`lib/adapters/player-analysis-adapter.ts`), `useLeaguePlayerTotals()` (`hooks/useLeaguePlayerData.ts`, `lib/league-player-data.ts`) és `PlayerAnalysisPanel` / `PlayerAnalysisBlocks` a Játékos-részletekben. Szerepkörök, hat skill-pont, erősségek / limitációk / fejlesztendők és öt haladó blokk, a liga azonos posztú játékosaihoz képest, 36 percre vetítve. Döntések (felhasználó): a Játékos-részletek új szekciója; poszt szerinti liga-pool, 8 meccs / 18 perc küszöb; a használat marad proxy (nem USG%). Ellenőrizve: valós DB (2025/26: 993 sor, mind az 5 poszt-poolban van benchmark, Luka Doncic Pontszerzés 100 / Játéképítés 85), a komponensek szerveroldali renderje valós adatból, `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 17.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -92,6 +94,8 @@
 
 16. **A Szituációk kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Szituációk*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül; kártyák: Hazai 28–13, Vendég 25–16, Szoros 11–4, Gálameccs 16–16; a fejlett mutatók táblában ORtg 115.4 (hazai 116.1, vendég 114.7); a forma táblában legfelül 2026. 04. 12. (131–107); Rájátszás: 10 meccs, ORtg 105.8; képernyőképen is átnézni (T32); a konzol hibamentes.
 
+17. **A Játékos-elemzés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Játékosok* → „Luka Doncic”. Várt: a négy átlag-kártya alatt „Játékos-elemzés”; jelvények „Pontszerző csatár”, „Kiegészítő játéképítő”, SG, „Megbízhatóság: Magas”; skill-sávok (Pontszerzés 100, Dobás 54, Játéképítés 85, Lepattanózás 100, Védekezés 78, Hatékonyság 88); öt blokk (Dobás TS% 61.6%, Játéképítés AST/36 8.3, Pontszerzés PTS/36 33.6 stb.); Rájátszás fül: tájékoztató üzenet (nincs elég alkalmas játékos a poszton); kis mintájú játékosnál „Kis minta” üzenet; képernyőképen is átnézni (T32); a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -115,7 +119,8 @@
    - ~~Tabella nézet (`useStandings` + `StandingsView`)~~: kész (2026-10-12), éles böngészős próba a felhasználónál.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira (`lib/adapters/`), a percküszöbök 48 percre skálázása.
    - ~~`situational-analysis` + Szituációk nézet~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
-   - hátravan: `player-analysis`, `team-analysis`, `pregame-scouting`, `postgame-report`, `player-postgame`.
+   - ~~`player-analysis` + Játékos-elemzés szekció~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
+   - hátravan: `team-analysis`, `pregame-scouting`, `postgame-report`, `player-postgame`.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
 6. **Opcionális:** play-by-play (win probability, run-ok, clutch). Ehhez Supabase tier-döntés kell.
@@ -146,6 +151,18 @@
   - a hazai / vendég bontás csak az ORtg-nél és az eFG%-nál van;
   - a lekérdezés csapat × szezon kulcsú (csapatváltáskor újra kérdez, kb. 180–220 sor), nem gyorsítótárazott;
   - a forma tábla a szakasz összes meccsét mutatja, nincs forma-grafikon.
+
+- **Játékos-elemzés – megvalósítási döntések, felülbírálhatók:**
+  - a benchmark szakaszonként épül a liga összes játékosából (poszt szerint); a szezon közben igazolt játékos a poolban egy összegzett játékos, az elemzett sor viszont a kiválasztott csapaté (a lista átlagaival azonos meccsek);
+  - az ESPN csak G / F / C jelölést ad (a 591 játékosból 279 / 221 / 88), ezért a G → PG vagy SG, az F → SF vagy PF a statisztikai illesztésből jön. Ennek eredménye a pool-eloszlás: alapszakaszban SG 153, SF 76, C 49, PF 40, PG 25 alkalmas játékos – a hátvédek többsége SG-nek számít, a PG pool kicsi. Ha ez zavaró, a posztfeloldás finomítása (pl. AST-súly) külön szakmai döntés;
+  - a rájátszásban csak az SG pool éri el a 10 játékost (8 meccs / 18 perc mellett), a play-inben egy sem: ott tájékoztató üzenet jön. Alternatíva: a rájátszás játékosát az alapszakasz benchmarkjához mérni (külön döntés);
+  - a perc-küszöb 18 (az ASEStats 15 perce ×1,2); a 8 meccs változatlan; a minimális pool 10 játékos (saját érték);
+  - a használati arány a `usageProxyPer36` (FGA + 0,44·FTA + TOV per 36), nem USG% (T18): a szerepkör-szabályok küszöbei ehhez hangoltak;
+  - a szerepkör-nevek az ASEStats magyar címkéi (pl. az SG „Scoring Wing” = „Pontszerző csatár”); a szöveges megállapítások az ASEStats sablonjai, NBA-kalibráció nélkül;
+  - a „büntetődobás stabilitás javítása” fejlesztendő-pont az FT% ≤ P50 esetén jelenik meg (a szabály szerint a játékosok kb. felénél);
+  - a dobásbontás (közeli ≤ 8 láb / közép) a dobás-eseményekből jön, a `fga` a motorban a három bontás összege: a box score-tól játékossoronként ritkán néhány dobással eltérhet (migráció 003 megjegyzése);
+  - a lekérdezés a szezon összes játékosára szól (kb. 1000 sor, 1 lap), szezononként egyszer, gyorsítótár nélkül;
+  - forma-trend és hasonló játékosok nincs.
 
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
 - **Döntés (2026-10-12): a 2027-es tabella nem íródik, amíg nincs lezárt meccs** (`writeStandings()` 0-t ad, `ℹ` tájékoztatás); a Tabella nézet addig üres állapotot mutat. Csapatszűrő a ligás Tabellán: kiemelés (mind a 30 csapat látszik). Eredeti megfigyelés – **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.

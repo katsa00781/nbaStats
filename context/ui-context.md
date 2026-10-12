@@ -350,6 +350,14 @@ A `SeasonTeamSelector` (NBAStats, 2026-10-10) minden tabon látszik: két shadcn
 
 Új token, új animáció és új alapkomponens itt sincs.
 
+**Tabella** (`StandingsView`, NBAStats, 2026-10-12) – a Liga csoport „Tabella” eleme (`standings`, `Trophy`):
+- felül négy `StatCard` a kiválasztott csapatról (Mérleg, Kiemelés, Utolsó 10, Sorozat; a másodlagos adat `trendValue`, `trend="neutral"`), alattuk konferencia-fülök (Keleti / Nyugati; a csapat konferenciája nyílik meg, csapatváltáskor visszaáll);
+- egy-egy 15 soros `DataTable` kiemelés szerint rendezve: # | Csapat (logó + név + clincher-jelvény `badge-positive` / `badge-warning` (pb) / `badge-negative` (e), `title` a magyarázattal) | GY | V | GY% | GB | Hazai | Idegen | Div. | Konf. | L10 | Sorozat (`.dt-num--pos` / `.dt-num--neg`, „GY3” / „V2”) | PF | PA | Különbség. A kiválasztott csapat sora `activeRowId`-val kiemelt;
+- a tábla alatt a benne előforduló clincher-jelölések magyarázata (`text-xs text-secondary`, ESPN-leírások);
+- betöltéskor `.skeleton-shimmer`, hibánál `DataLoadError`, tabella nélküli szezonra (2026/27 az első lezárt meccsig) magyarázó üres állapot (`Card` + `Trophy`).
+
+Új token, új animáció és új alapkomponens itt sincs.
+
 Layout-konstansok (nem design tokenek, komponens-lokális méretek):
 `--sb-w-expanded: 240px` · `--sb-w-collapsed: 64px` · `--sb-transition: 220ms cubic-bezier(.4,0,.2,1)`
 

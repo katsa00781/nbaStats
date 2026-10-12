@@ -11,7 +11,7 @@ const MIN_RANKED_FOR_TONE = 6;
 const RANK_WIDTH = 120;
 
 // Valódi mínuszjel, hogy a mono oszlopban a +/− azonos szélességű legyen.
-function formatSigned(value: number): string {
+export function formatSigned(value: number): string {
   const rounded = Math.abs(value).toFixed(1);
   if (Number(rounded) === 0) return '0.0';
   return `${value > 0 ? '+' : '−'}${rounded}`;

@@ -61,7 +61,9 @@ Szerkezet:
 - [x] Migráció 004: `nba.standings` + `Database` típus – megírva 2026-10-12
 - [x] **A 004 futtatása (felhasználó):** kész 2026-10-12
 - [x] `ingest-standings.ts` bővítése: a tabella írása az `nba.standings`-be (`level=2`, szerkezeti ellenőrzés, `--dry-run`) + `ingest:standings` a napi `ingest.yml`-be – 2026-10-12 (a workflow-hoz push kell, T7)
-- [ ] Alapnézet: Tabella (DataTable / StatCard)
+- [x] `useStandings(seasonId)` az `nba.standings` táblára (≤ 30 sor, T20) – `hooks/useStandingsData.ts` + `lib/standings-data.ts` (2026-10-12)
+- [x] Alapnézet: **Tabella** (`StandingsView` + `StandingsTable`, konferencia-fülök, a kiválasztott csapat kiemelve) – 2026-10-12
+- [ ] **A Tabella ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Tabella* → 2025/2026 + Lakers: Nyugat fül, 15 sor, OKC 64–18 (`*`) elöl, Lakers #4 (`y`, .646, GB 11, L10 7-3, GY3) kiemelve; Kelet: Detroit 60–22 (`z`); 2026/2027: üres állapot
 - [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
 - [x] Refaktor: a `useTeamGames` a közös `useSeasonScopedResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre, a közös betöltő semleges átnevezése, a `PlayerCell` / `PositionBadge` saját fájlba – kész 2026-10-12
@@ -107,6 +109,17 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-12 – `useStandings` + Tabella nézet ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** két konferencia-fül (Keleti / Nyugati), teljes oszlopkészlet. A fül-választás a csapathoz kötött (származtatott érték, nem effect).
+- **`lib/standings-data.ts` (új):** `fetchStandings()` (az `nba.standings` egy szezonra, ≤ 30 sor, nincs lapozás) + `toStandingRow()` (win%, meccsenkénti PF / PA) + `CLINCHER_LABELS` (az ESPN saját leírásai: `*` `z` `y` `x` `xp` `pb` `e`, valós válaszból).
+- **`hooks/useStandingsData.ts` (új):** `useStandings(seasonId)` a `useSeasonScopedResource()`-ra, csak a szezon a kulcs.
+- **`components/StandingsView.tsx`, `components/StandingsTable.tsx` (új):** négy `StatCard` a csapatról, konferencia-fülök, 15 oszlopos `DataTable` (kiemelés szerint, `activeRowId`), clincher-jelvény `title`-lel, a jelölések magyarázata a tábla alatt, skeleton / `DataLoadError` / üres állapot.
+- **`app/page.tsx`:** a `standings` tab a `StandingsView`-ra köt. **`components/TeamStatsTable.tsx`:** a `formatSigned` exportált (a Különbség oszlop ezt használja, nem másoltam).
+- **Dokumentáció:** `CLAUDE.md`, `context/architecture.md`, `context/ui-context.md`, `context/progress-tracker.md`.
+- **Ellenőrzés:** valós DB (2025/26: 30 sor, 15 + 15, seed 1–15; Lakers 53–29, #4, `y`, GB 11, 28-13 / 25-16, L10 7-3, GY3, PF 116.3 / PA 114.6; 2026/27: 0 sor), a Nyugati tábla szerveroldali renderje valós adatból (kiemelt sor, rendezett kiemelés, OKC `*` elöl), `tsc`, `eslint`, `build` hibátlan.
+- **Nem ellenőrzött:** böngészős futás, képernyőkép (T32), a GitHub Actions tabella-lépése.
 
 ### 2026-10-12 – Tabella-import (`nba.standings`) + napi futás ✓ (GitHub Actions-ben nem futott)
 

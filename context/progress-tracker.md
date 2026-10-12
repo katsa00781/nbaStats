@@ -57,6 +57,8 @@
 - **Tabella-import kész (2026-10-12):** az `ingest-standings.ts` a besorolás mellett az `nba.standings`-et is írja (`level=2`, `lib/espn/write-standings.ts`, `parseConferenceStandings()`), szerkezeti ellenőrzéssel és `--dry-run`-nal; a napi `ingest.yml`-be új lépés került (csak push után hat, T7). Ellenőrizve: dry-run 2026 és 2027, éles írás 2026-ra kétszer (30 sor, idempotens), visszaolvasás (Lakers 53–29, seed 4, `y`, GB 11, 28-13 / 25-16, L10 7-3, W3), `tsc`, `eslint`. A GitHub Actions-ben nem futott. **A Tabella nézet még hátravan.**
 - **Migráció 004 megírva és lefuttatva (2026-10-12):** `nba.standings` (csapat × szezon: W-L, seed, clincher, GB, hazai / idegen / divízió / konferencia mérleg, utolsó 10, sorozat, pont+/−), RLS és jogosultságok, `Database` típus. Döntések (felhasználó): ezek a 13 oszlop; az `ingest:standings` bekerül a napi futásba. **Futtatás a felhasználónál; az import-bővítés, a workflow és a nézet még hátravan.**
 
+- **Tabella nézet kész (2026-10-12):** `useStandings()` (`hooks/useStandingsData.ts`, `lib/standings-data.ts`) + `StandingsView` / `StandingsTable` a *Liga → Tabella* tabon – az `nba.standings` első fogyasztója. Négy kulcskártya a kiválasztott csapatról, alatta Keleti / Nyugati konferencia-fül (a csapaté nyílik meg), kiemelés szerint rendezett tábla (mérleg, GY%, GB, hazai / idegen / div. / konf., L10, sorozat, PF / PA / különbség, clincher-jelvény), a kiválasztott csapat kiemelve. Döntések (felhasználó): két konferencia-fül; teljes oszlopkészlet. Ellenőrizve: valós DB (2025/26: 30 sor, konferenciánként 15, seed 1–15; Lakers 53–29, #4, `y`, GB 11, L10 7-3, GY3, PF 116.3 / PA 114.6; 2026/27: 0 sor → üres állapot), a Nyugati tábla szerveroldali renderje valós adatból (16 sor fejléccel, 1 kiemelt sor), a clincher-magyarázatok az ESPN válaszából, `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 15.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -84,6 +86,8 @@
 
 13. **A Csapatstatisztika kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Csapatstatisztika*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül; kártyák: Pont / meccs 116.3 (11. / 30), ORtg 115.4 (8. / 30), DRtg 113.7 (19. / 30), NetRtg +1.7 (14. / 30); a táblában FG% 50.2% (1. / 30), TS% 60.9% (2. / 30), Tempó 100.7 (22. / 30, szín nélkül); a Rájátszás fülön a helyezés „x. / 16”; csapatváltás nem tölt újra (nincs skeleton); a konzol hibamentes.
 
+15. **A Tabella kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Tabella*. Várt: 2025/2026 + Lakers mellett négy kártya (Mérleg 53–29, Kiemelés 4. / GB 11, Utolsó 10 7-3, Sorozat GY3); a Nyugati konferencia nyílik meg, 15 sor, legfelül Oklahoma City Thunder (`*`, 64–18), a Lakers sora kiemelve (#4, `y`, .646); a jelvényekre húzva magyar magyarázat; a Keleti fülön Detroit Pistons (`z`, 60–22) az első; csapatot váltva a másik konferencia nyílik, nincs skeleton; 2026/2027-re váltva üres állapot; a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -104,8 +108,7 @@
    - ~~külön refaktor lépés~~: kész (2026-10-12);
    - ~~tabella-tábla migrációja (004)~~: megírva (2026-10-12), futtatás a felhasználónál;
    - ~~`ingest-standings.ts` bővítése + napi futás~~: kész (2026-10-12), a workflow-hoz push kell;
-   - következő: a Tabella nézet (`useStandings` + `StandingsView`);
-   - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
+   - ~~Tabella nézet (`useStandings` + `StandingsView`)~~: kész (2026-10-12), éles böngészős próba a felhasználónál.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
@@ -131,7 +134,7 @@
 
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
 - **Döntés (2026-10-12): a 2027-es tabella nem íródik, amíg nincs lezárt meccs** (`writeStandings()` 0-t ad, `ℹ` tájékoztatás); a Tabella nézet addig üres állapotot mutat. Csapatszűrő a ligás Tabellán: kiemelés (mind a 30 csapat látszik). Eredeti megfigyelés – **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.
-- **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabella és a ligás Játékosok nézetnél el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.
+- **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabellán kiemelésre szolgál (kész, 2026-10-12). A ligás Játékosok nézetnél még el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.
 - **Mérkőzések nézet – megvalósítási döntések, felülbírálhatók:**
   - a „Következő mérkőzések” alapból az első 5 meccset mutatja; az elhalasztott és a törölt meccs is itt szerepel (státusz-jelvénnyel), nem tűnik el;
   - a kezdés a böngésző helyi idejében látszik, a dátum az amerikai keleti parti nap (`game_date`);
@@ -178,6 +181,15 @@
   - az a meccs, amelyiknek az ellenfél-sora hiányzik, kimarad, és a nézet figyelmeztet (a valós adatban nincs ilyen);
   - a lekérdezés csak a szezon kulcsára épül (a második kulcs a szezon azonosítója): csapatváltáskor nincs új lekérdezés, szezonváltáskor van (3 lap, kb. 2650 sor); gyorsítótár nincs;
   - nincs szezon-trend, forma és ellenfél-oldali bontás (pl. kapott 3P%): külön egység.
+- **Tabella – megvalósítási döntések, felülbírálhatók:**
+  - két konferencia-fül (Keleti / Nyugati), a kiválasztott csapat konferenciája nyílik meg; a fül választása a csapathoz kötött (csapatváltáskor visszaáll); az összes 30 csapatos ligás sorrend nincs;
+  - csak alapszakasz van (az `nba.standings` csak az alapszakasz tabelláját tárolja, 004), ezért nincs szakasz-választó;
+  - a sorrend alapból a hivatalos kiemelés (`conference_seed`), minden oszlop rendezhető; a play-in sáv (7–10.) és a kiesők nincsenek külön jelölve, csak a clincher-jelvény;
+  - a clincher-jelvények magyarázata az ESPN saját leírása (`*`, `z`, `y`, `x`, `xp`, `pb`, `e`), a tábla alatt csak a benne előforduló kódoké;
+  - a PF / PA / különbség a tárolt összpontból számolt meccsenkénti átlag (az ESPN összpontja 1 ponttal eltérhet a `team_game_stats`-tól, lásd a tabella-import megfigyelését);
+  - a Hazai / Idegen / Div. / Konf. / L10 oszlop az ESPN szövege (pl. „28-13”), rendezéskor győzelmi aránnyá alakítva;
+  - a tabella naponta frissül (10:00 CET import), nem a `games`-ből élőben számolódik: a nézet nem jelzi a pillanatkép idejét (`updated_at` van, de nem jelenik meg);
+  - nincs GY% szerinti ligasorrend és nincs pont-/forma-grafikon.
 - **Meccs-lekérdezés gyorsítótára:** a `useTeamGames` nem tárol; csapat- vagy szezonváltáskor (és a tabra visszalépve) újra lekérdez (kb. 100 sor). Ha zavaró, kulcsolt közös tároló kell – az adatréteg-döntés.
 - **Tabella-tábla sémája:** a döntés megvan (kell külön tábla, 2026-10-10), de az oszlopokat (kiemelés, GB, sorozat, clinch, hazai/idegen mérleg, utolsó 10) a migráció megírása előtt egyeztetni kell.
 - **Alapértelmezett szezon hosszú távon:** most a 2025/26-os (tesztelés); a 2026/27 indulása (2026-10-20) után felül kell vizsgálni.

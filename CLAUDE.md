@@ -62,7 +62,7 @@ Az UI egységes, sportos, telemetria-érzetű sötét felület, változatlanul �
 - `AppTopbar`: breadcrumb, user-chip, kijelentkezés.
 - `SeasonTeamSelector`: globális szezon- és csapatszűrő a topbar alatt, minden tabon. Alapértelmezés: `DEFAULT_SEASON_ESPN_YEAR` (`lib/selection.ts`, most a 2025/26-os szezon) és a követett csapat.
 - Az `activeTab` tiszta `useState`, nincs URL routing. Új nézet = új `NAV_GROUPS` elem + tartalom-komponens.
-- Kész nézetek: **Mérkőzések** (`games` → `GamesView`, benne a **Meccs-részletek**: `GameDetailsView`), **Játékosok** (`players` → `PlayersView`, benne a **Játékos-részletek**: `PlayerDetailsView`) és **Csapatstatisztika** (`teamstats` → `TeamStatsView`). A többi tabon „épül” kártya áll.
+- Kész nézetek: **Mérkőzések** (`games` → `GamesView`, benne a **Meccs-részletek**: `GameDetailsView`), **Játékosok** (`players` → `PlayersView`, benne a **Játékos-részletek**: `PlayerDetailsView`) **Csapatstatisztika** (`teamstats` → `TeamStatsView`) és **Tabella** (`standings` → `StandingsView`). A többi tabon „épül” kártya áll.
 - **Részletnézet** (döntés: 2026-10-10): a lista helyén nyílik meg, „Vissza” gombbal; a megnyitott elem a nézet saját állapota (nincs URL, nincs AppShell-szintű state). Tab-, szezon- vagy csapatváltáskor a lista jön vissza.
 
 ---
@@ -121,6 +121,8 @@ nbastats/
 │   ├── PlayerGameLogTable.tsx  # PlayerGameLogTable: a játékos meccsei egy szakaszban (ellenfél, eredmény, box score sor)
 │   ├── TeamStatsView.tsx       # Csapatstatisztika nézet: szakasz-fülek, kulcsmutató-kártyák, alap- és fejlett mutatók a liga-átlaggal és helyezéssel
 │   ├── TeamStatsTable.tsx      # TeamStatsTable (mutató, csapat, liga átlag, helyezés) + formatMetricValue / formatRank / rankTone
+│   ├── StandingsView.tsx       # Tabella nézet: kulcskártyák a kiválasztott csapatról, konferencia-fülök, a csapat kiemelve
+│   ├── StandingsTable.tsx      # StandingsTable (kiemelés, mérleg, GB, hazai/idegen, L10, sorozat, PF/PA) + formatWinPct / formatGamesBehind / formatStreak
 │   ├── DataLoadError.tsx       # nézet-szintű betöltési hiba: inline panel „Újrapróbálás” gombbal + toast
 │   └── StatInfoTooltip.tsx, TerminologyGlossary.tsx
 ├── lib/
@@ -151,6 +153,7 @@ nbastats/
 │   ├── player-data.ts          # fetchTeamPlayerStats() + PlayerSeasonStats (view-sor → meccsenkénti átlag, százalék)
 │   ├── player-game-log-data.ts # fetchPlayerGameLog() + PlayerGameLog (pályára lépések + DNP, a meccs a játékos csapatának nézőpontjából)
 │   ├── team-stats-data.ts      # fetchLeagueTeamStats() + TeamStageStats (a 30 csapat csapatsorai szakaszonként, saját + ellenfél oldal)
+│   ├── standings-data.ts       # fetchStandings() + StandingRow (az nba.standings sorai, származtatott win% és meccsenkénti pont), CLINCHER_LABELS
 │   ├── team-stats-metrics.ts   # TEAM_METRICS (alap + fejlett mutatók) és buildTeamMetricRows() (érték, liga átlag, helyezés)
 │   ├── box-score-data.ts       # fetchGameBoxScore() + BoxScoreTeam (játékossorok, DNP, csapatsor, összeg-eltérések)
 │   ├── season-types.ts         # REGULAR_SEASON / PLAY_IN / PLAYOFFS, SEASON_TYPE_ORDER, seasonTypeLabel(), orderSeasonTypes(), resolveSeasonType()
@@ -163,6 +166,7 @@ nbastats/
 │   ├── usePlayerData.ts        # useTeamPlayerStats(seasonId, teamId) – a csapat játékosainak szezon-összesítői
 │   ├── usePlayerGameLogData.ts # usePlayerGameLog(seasonId, playerId) – egy játékos meccsenkénti naplója a szezonban
 │   ├── useTeamStatsData.ts     # useLeagueTeamStats(seasonId) – a 30 csapat szezon-összesítői (csapatváltáskor nem kérdez újra)
+│   ├── useStandingsData.ts     # useStandings(seasonId) – a szezon tabellája (csapatváltáskor nem kérdez újra)
 │   ├── useBoxScoreData.ts      # useGameBoxScore(seasonId, gameId) – egy meccs box score-ja, csapatonként
 │   ├── useSeasonScopedResource.ts  # közös betöltő a szezonra + egy második kulcsra (csapat / játékos / meccs) szűrt adathoz (kulcsból származtatott állapot)
 │   └── useSeasonTeamSelection.ts  # a kiválasztott szezon + csapat (egyszer, az AppShellben hívjuk)
@@ -375,6 +379,7 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - **Egy meccs box score-ja:** `useGameBoxScore(seasonId, gameId)` (`hooks/useBoxScoreData.ts`, `lib/box-score-data.ts`), a `useSeasonScopedResource()`-ra építve (a második kulcs itt a meccs). A részletnézet megnyitásakor kérdez, nem tárol. A csapatösszeg a csapatsorból (`team_game_stats`) jön, nem a játékossorok összegéből; ha a kettő eltér, a nézet figyelmeztet (`sumMismatches`, T19).
 - **Egy játékos meccsnaplója:** `usePlayerGameLog(seasonId, playerId)` (`hooks/usePlayerGameLogData.ts`, `lib/player-game-log-data.ts`), a `useSeasonScopedResource()`-ra építve (a második kulcs itt a játékos). A lekérdezés a játékos összes sorát adja a szezonra (minden szakasz és csapat, beágyazott meccs-sorral, csak lezárt meccsek); a nézet a kiválasztott csapatra és szakaszra szűr, így a napló sorainak száma a Játékosok lista meccsszámával egyezik. A fejléc és az átlag-kártyák a lista már betöltött soraiból jönnek, lekérdezés nélkül.
 - **Csapatstatisztika:** `useLeagueTeamStats(seasonId)` (`hooks/useTeamStatsData.ts`, `lib/team-stats-data.ts`), a `useSeasonScopedResource()`-ra építve, de csak a szezon a kulcs (a szezon azonosítója áll a második helyen is): a lekérdezés mind a 30 csapat csapatsorait adja (kb. 2650 sor, `fetchAllRows`), a nézet ebből választja ki a csapatot, ezért csapatváltáskor nincs új lekérdezés. A mutatók és a rangsor a `lib/team-stats-metrics.ts`-ben élnek; a fejlett mutatók az ASEStats-döntéseket követik (T14, T17).
+- **Tabella:** `useStandings(seasonId)` (`hooks/useStandingsData.ts`, `lib/standings-data.ts`), a `useSeasonScopedResource()`-ra építve, csak a szezon a kulcs (a szezon azonosítója áll a második helyen is): az `nba.standings` legfeljebb 30 sort ad (nincs lapozás), a nézet ebből emeli ki a kiválasztott csapatot, ezért csapatváltáskor nincs új lekérdezés. Csak alapszakasz van (nincs szakasz-választó). A 2027-es szezonra az import addig nem ír, amíg nincs lezárt meccs: ott üres állapot jön.
 - **Megnyitott részletnézet:** a nézet saját `useState`-je (`GamesView`: `openedGameId`, `PlayersView`: `openedPlayerId`). A szezon- vagy csapatváltás renderelés közben ejti el (előző érték state-ben), nem effectből. A Játékos-részletek a lista szakasz-választását használja és állítja (közös `chosenStage`).
 - **Szakaszok nem keverednek:** a nézet egyszerre egy szezontípust mutat (`lib/season-types.ts`: alapszakasz / play-in / rájátszás); a mérleg és az átlagok szakaszonként számolódnak.
 - A törzsadat- és a választó-hook csak az auth guard mögött hívható (RLS): ezért a `Home` csak guard, a hookok az `AppShell`-ben futnak.

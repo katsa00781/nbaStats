@@ -1,13 +1,20 @@
 'use client';
 
 import type { SeasonTeamSelection } from '@/hooks/useSeasonTeamSelection';
+import type { SeasonScopedResourceState } from '@/hooks/useSeasonScopedResource';
+import type { LeaguePlayerTotals } from '@/lib/league-player-data';
+import type { Team } from '@/lib/master-data';
+import type { PlayerSeasonStats } from '@/lib/player-data';
 import type { TeamStageStats } from '@/lib/team-stats-data';
 import type { ReactNode } from 'react';
 import { DataLoadError } from '@/components/DataLoadError';
+import { TeamAnalysisPanel } from '@/components/TeamAnalysisPanel';
 import { formatMetricValue, formatRank, TeamStatsTable } from '@/components/TeamStatsTable';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLeaguePlayerTotals } from '@/hooks/useLeaguePlayerData';
+import { useTeamPlayerStats } from '@/hooks/usePlayerData';
 import { useLeagueTeamStats } from '@/hooks/useTeamStatsData';
 import { orderSeasonTypes, resolveSeasonType, seasonTypeLabel } from '@/lib/season-types';
 import { buildTeamMetricRows } from '@/lib/team-stats-metrics';
@@ -28,6 +35,9 @@ interface TeamStatsViewProps {
 export function TeamStatsView({ selection }: TeamStatsViewProps) {
   const { season, team } = selection;
   const league = useLeagueTeamStats(season?.id ?? null);
+  // A csapat-elemzés rosterének adata: a liga játékosai (benchmark) és a csapat játékosai (nevek).
+  const leaguePlayers = useLeaguePlayerTotals(season?.id ?? null);
+  const teamPlayers = useTeamPlayerStats(season?.id ?? null, team?.id ?? null);
   const [chosenStage, setChosenStage] = useState<number | null>(null);
   const teamId = team?.id ?? null;
   // A csapatnak lejátszott szakaszai: ahol nincs sora, ott nincs mit mutatni.
@@ -73,6 +83,10 @@ export function TeamStatsView({ selection }: TeamStatsViewProps) {
             stageStats={league.data?.stats.filter(s => s.seasonType === type) ?? []}
             teamId={team.id}
             teamName={team.name}
+            seasonType={type}
+            teams={selection.teams}
+            leaguePlayers={leaguePlayers}
+            teamPlayers={teamPlayers}
           />
         </TabsContent>
       ))}
@@ -84,9 +98,13 @@ interface TeamStatsStageProps {
   stageStats: TeamStageStats[];
   teamId: string;
   teamName: string;
+  seasonType: number;
+  teams: readonly Team[];
+  leaguePlayers: SeasonScopedResourceState<LeaguePlayerTotals[]>;
+  teamPlayers: SeasonScopedResourceState<PlayerSeasonStats[]>;
 }
 
-function TeamStatsStage({ stageStats, teamId, teamName }: TeamStatsStageProps) {
+function TeamStatsStage({ stageStats, teamId, teamName, seasonType, teams, leaguePlayers, teamPlayers }: TeamStatsStageProps) {
   const rows = useMemo(() => buildTeamMetricRows(stageStats, teamId), [stageStats, teamId]);
   const games = stageStats.find(s => s.teamId === teamId)?.games ?? 0;
   const basic = rows.filter(row => row.metric.group === 'basic');
@@ -144,6 +162,15 @@ function TeamStatsStage({ stageStats, teamId, teamName }: TeamStatsStageProps) {
         </p>
         <TeamStatsTable rows={advanced} />
       </section>
+
+      <TeamAnalysisPanel
+        stageStats={stageStats}
+        league={leaguePlayers}
+        players={teamPlayers}
+        teams={teams}
+        teamId={teamId}
+        seasonType={seasonType}
+      />
     </div>
   );
 }

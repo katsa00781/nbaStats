@@ -39,7 +39,7 @@ export const ANALYSIS_REQUIREMENTS = {
 } as const;
 
 /** View-sor(ok) → a motor nyers sora; `null`, ha a dobásbontás hiányzik. */
-function toRawPlayerStat(totals: LeaguePlayerTotals): RawPlayerSeasonStat | null {
+export function toRawPlayerStat(totals: LeaguePlayerTotals): RawPlayerSeasonStat | null {
   if (
     totals.total_close_made === null ||
     totals.total_close_attempted === null ||

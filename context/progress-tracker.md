@@ -63,6 +63,8 @@
 
 - **Játékos-elemzés kész (2026-10-12):** a `player-analysis` motor portja (`lib/player-analysis.ts`), adapterrel (`lib/adapters/player-analysis-adapter.ts`), `useLeaguePlayerTotals()` (`hooks/useLeaguePlayerData.ts`, `lib/league-player-data.ts`) és `PlayerAnalysisPanel` / `PlayerAnalysisBlocks` a Játékos-részletekben. Szerepkörök, hat skill-pont, erősségek / limitációk / fejlesztendők és öt haladó blokk, a liga azonos posztú játékosaihoz képest, 36 percre vetítve. Döntések (felhasználó): a Játékos-részletek új szekciója; poszt szerinti liga-pool, 8 meccs / 18 perc küszöb; a használat marad proxy (nem USG%). Ellenőrizve: valós DB (2025/26: 993 sor, mind az 5 poszt-poolban van benchmark, Luka Doncic Pontszerzés 100 / Játéképítés 85), a komponensek szerveroldali renderje valós adatból, `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 17.).
 
+- **Csapat-elemzés kész (2026-10-12):** a `team-analysis` motor portja (`lib/team-analysis.ts`), adapterrel (`lib/adapters/team-analysis-adapter.ts`) és a `TeamAnalysisPanel` / `TeamAnalysisBlocks` a Csapatstatisztika nézetben. Stílus, klaszter, 11 sávos liga-profil, erősségek / limitációk / kockázatok, védekezési profil és roster a szakasz (≥ 10 meccset játszott) csapatai között. Döntések (felhasználó): a Csapatstatisztika új szekciója; a benchmark szakaszonként a 30 csapatból. Ellenőrizve: valós DB (Lakers ORtg 115.4 = a Csapatstatisztika értéke, 30 csapatra lefut, a komponensek szerveroldali renderje valós adatból), `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 18.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -96,6 +98,8 @@
 
 17. **A Játékos-elemzés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Játékosok* → „Luka Doncic”. Várt: a négy átlag-kártya alatt „Játékos-elemzés”; jelvények „Pontszerző csatár”, „Kiegészítő játéképítő”, SG, „Megbízhatóság: Magas”; skill-sávok (Pontszerzés 100, Dobás 54, Játéképítés 85, Lepattanózás 100, Védekezés 78, Hatékonyság 88); öt blokk (Dobás TS% 61.6%, Játéképítés AST/36 8.3, Pontszerzés PTS/36 33.6 stb.); Rájátszás fül: tájékoztató üzenet (nincs elég alkalmas játékos a poszton); kis mintájú játékosnál „Kis minta” üzenet; képernyőképen is átnézni (T32); a konzol hibamentes.
 
+18. **A Csapat-elemzés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Csapatstatisztika*. Várt: 2025/2026 + Lakers mellett az alap- és fejlett mutatók alatt „Csapat-elemzés”; jelvények „Kiegyensúlyozott támadás”, „Kevés faultos védekezés”, „Perimétervédelem”, „Gyors, belső fókuszú”; liga-profil (Tempó 100.7 / 27, FT rate 0.244 / 95, ORtg 115.4 / 85, Net rating +1.7 / 61); Védekezési profil (sebezhető gyűrűvédekezés, stabil perimétervédekezés, erős védelmi lepattanózás); Roster: PG 14.3% … C 16.1%, „3&D Wing · 5”, „Secondary Playmaker · 6”; Rájátszás fül: figyelmeztetés a vékony rosterről („Csak 2 alkalmas játékos”); csapatváltáskor frissül; képernyőképen is átnézni (T32); a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -120,7 +124,8 @@
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira (`lib/adapters/`), a percküszöbök 48 percre skálázása.
    - ~~`situational-analysis` + Szituációk nézet~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
    - ~~`player-analysis` + Játékos-elemzés szekció~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
-   - hátravan: `team-analysis`, `pregame-scouting`, `postgame-report`, `player-postgame`.
+   - ~~`team-analysis` + Csapat-elemzés szekció a Csapatstatisztikában~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
+   - hátravan: `pregame-scouting`, `postgame-report`, `player-postgame`.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
 6. **Opcionális:** play-by-play (win probability, run-ok, clutch). Ehhez Supabase tier-döntés kell.
@@ -164,6 +169,15 @@
   - a lekérdezés a szezon összes játékosára szól (kb. 1000 sor, 1 lap), szezononként egyszer, gyorsítótár nélkül;
   - forma-trend és hasonló játékosok nincs.
 
+- **Csapat-elemzés – megvalósítási döntések, felülbírálhatók:**
+  - a benchmark a szakasz legalább 10 meccset játszott csapataiból épül (min. 8 csapat); kisebb mintájú csapatnál és a play-inben tájékoztató üzenet jön. A rájátszásban 2025/26-ban pont 8 csapat éri el a küszöböt;
+  - NBA-kalibráció (valós adaton mérve): három roster-jelzés és a védelmi lepattanó percentilis-alapú lett (lásd a BACKLOG fejlesztési történetét: `scorerDependency` ≥ 80., `weakReboundingPresence` ≤ 20. percentilis, `dreb_rate` ≥ 60 / ≤ 40); az FT-szabály küszöbe 0,23 (FTM / FGA). **Változatlan ASEStats-küszöbök, NBA-kalibráció nélkül:** a „kiegyensúlyozott belső-külső” szabály (|2P-arány − 3P-arány| ≤ 0,08; az NBA-ban 4/30 csapatnál teljesül), a poszt-percek kockázati küszöbei (PG 11/16, SG 9/14, SF 10/15, PF 8/13, C 8/12 %), a stílus-felismerés percentilis-küszöbei (60/70/75) és `MIN_CREATORS = 2`. Ha ezek zavarók, az szakmai döntés;
+  - a roster poszt-, szerepkör- és használat-adata a Játékos-elemzésé: csak az alkalmas (8 meccs / 18 perc) és benchmarkkal rendelkező játékosnak van szerepköre és használata (a perce mindenkinél számít). 2025/26 alapszakaszban csapatonként 7–22 alkalmas játékos van, a rájátszásban 2–5, ezért ott a roster-alapú rész vékony (a nézet 6 alatt figyelmeztet). Alternatíva: a rájátszás rosterét az alapszakasz játékos-benchmarkjához mérni (külön döntés);
+  - a használat-koncentráció a top-2 játékos per-36 `usageProxy` részesedése az alkalmasak összegéből (nem USG%, T18);
+  - nincs magasság-alapú elem (az ESPN-adat nem tartalmazza), nincs forma / clutch / dobástérkép / lineup / impact profil;
+  - a csapat `val` értéke a csapat összesített box score-jából számolt `simpleValuation()` (a csapatszintű eladott labdákkal), nem a játékosok összege;
+  - a posztfeloldás a Játékos-elemzés ESPN G / F / C → statisztikai illesztése (lásd fent), ezért a PG-perc kicsi (a Lakersnél 14%), és ez a „PG szűk rotáció” kockázatot gyakran kiváltja;
+  - a számítás a böngészőben fut (kb. 50 ms), gyorsítótár nélkül; a nézet a liga játékosainak (kb. 1000 sor) és a csapat játékosainak lekérdezését is indítja (a Játékosok / Játékos-részletek nézetekkel azonos hookok, de nézetenként külön lekérdezéssel).
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
 - **Döntés (2026-10-12): a 2027-es tabella nem íródik, amíg nincs lezárt meccs** (`writeStandings()` 0-t ad, `ℹ` tájékoztatás); a Tabella nézet addig üres állapotot mutat. Csapatszűrő a ligás Tabellán: kiemelés (mind a 30 csapat látszik). Eredeti megfigyelés – **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.
 - **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabellán kiemelésre szolgál (kész, 2026-10-12). A ligás Játékosok nézetnél még el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.

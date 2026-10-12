@@ -27,9 +27,20 @@ export function checkStandings(entries: EspnStandingsEntry[], conferenceSizes: n
   return errors;
 }
 
-/** Visszaadja a kiírt sorok számát. */
+/**
+ * Visszaadja a kiírt sorok számát. Amíg a szezonnak nincs lezárt meccse a
+ * `games`-ben, nem ír (0-t ad): az ESPN már a szezonkezdet előtt is mutathat
+ * mérleget (előszezon), ami nem egyezne a mi adatunkkal.
+ */
 export async function writeStandings(db: NbaClient, seasonYear: number, entries: EspnStandingsEntry[]): Promise<number> {
   const season = await requireSeason(db, seasonYear);
+  const { count, error: countError } = await db
+    .from('games')
+    .select('id', { count: 'exact', head: true })
+    .eq('season_id', season.id)
+    .eq('status', 'final');
+  if (countError) throw new Error(`games count: ${countError.message}`);
+  if (!count) return 0;
   const { data, error } = await db
     .from('teams')
     .select('id, espn_team_id')

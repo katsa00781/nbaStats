@@ -130,7 +130,7 @@
 ## Nyitott kérdések
 
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
-- **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.
+- **Döntés (2026-10-12): a 2027-es tabella nem íródik, amíg nincs lezárt meccs** (`writeStandings()` 0-t ad, `ℹ` tájékoztatás); a Tabella nézet addig üres állapotot mutat. Csapatszűrő a ligás Tabellán: kiemelés (mind a 30 csapat látszik). Eredeti megfigyelés – **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.
 - **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabella és a ligás Játékosok nézetnél el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.
 - **Mérkőzések nézet – megvalósítási döntések, felülbírálhatók:**
   - a „Következő mérkőzések” alapból az első 5 meccset mutatja; az elhalasztott és a törölt meccs is itt szerepel (státusz-jelvénnyel), nem tűnik el;

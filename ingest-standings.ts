@@ -72,7 +72,11 @@ async function main(): Promise<void> {
     const changed = await writeTeamAlignment(db, alignments);
     console.log(`  ✓ besorolás mentve: ${changed} csapat változott (${alignments.length - changed} már naprakész)`);
     const written = await writeStandings(db, seasonYear, standings);
-    console.log(`  ✓ tabella mentve: ${written} sor`);
+    console.log(
+      written > 0
+        ? `  ✓ tabella mentve: ${written} sor`
+        : 'ℹ tabella nem írva: a szezonnak még nincs lezárt meccse a games-ben (az ESPN előszezont is számolhat)',
+    );
   }
 }
 

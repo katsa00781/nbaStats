@@ -117,7 +117,8 @@ Szerkezet:
 - **`.github/workflows/ingest.yml` + `HOWTO-auto-import.md`:** új „Tabella-import” lépés a menetrend után; nem nyeli el a kilépési kódot.
 - **Ellenőrzés:** dry-run 2026 és 2027; éles írás 2026-ra kétszer (30 sor, idempotens); visszaolvasás: Lakers 53–29, seed 4, `y`, GB 11, 28-13 / 25-16, L10 7-3, W3, PF 9540 / PA 9395; clincher-értékek: `z * y x xp pb e`; `tsc`, `eslint`.
 - **Megfigyelés:** az ESPN pont-kapott pontja 9395, a `team_game_stats`-ból számolt 9396 (1 pont eltérés, az ESPN saját adata). A 2027-es tabella az ESPN-nél már 2–0 / 0–2 mérleget mutat, nálunk nincs lejátszott meccs.
-- **Nem ellenőrzött:** a GitHub Actions futás (push + secretek kellenek).
+- **Utólagos döntés (felhasználó):** a `writeStandings()` nem ír, amíg a szezonnak nincs lezárt meccse a `games`-ben (`ℹ`); ellenőrizve: 2027 → nem írt, 2026 → 30 sor.
+- **Nem ellenőrzött:** a GitHub Actions futás (a felhasználó dry-run próbája hátravan).
 
 ### 2026-10-12 – Migráció 004: tabella-tábla – megírva, futtatás hátravan
 

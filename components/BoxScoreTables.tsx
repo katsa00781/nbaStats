@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from '@/components/ui/data-table';
 import type { BoxScorePlayer, BoxScoreTeamTotals } from '@/lib/box-score-data';
-import { PlayerCell, PositionBadge } from '@/components/PlayersTable';
+import { PlayerCell, PositionBadge } from '@/components/PlayerCell';
 import { DataTable } from '@/components/ui/data-table';
 import { formatPercent, shootingPct } from '@/lib/stat-formulas';
 import { cn } from '@/lib/utils';

@@ -11,8 +11,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTeamGames } from '@/hooks/useGameData';
-import { seasonTypesOf, summarizeRecord } from '@/lib/game-data';
-import { REGULAR_SEASON, seasonTypeLabel } from '@/lib/season-types';
+import { summarizeRecord } from '@/lib/game-data';
+import { orderSeasonTypes, resolveSeasonType, seasonTypeLabel } from '@/lib/season-types';
 import { useMemo, useState } from 'react';
 import { CalendarX, Diff, House, Plane, Trophy } from 'lucide-react';
 
@@ -40,7 +40,7 @@ export function GamesView({ selection }: GamesViewProps) {
     setOpenedGameId(null);
   }
   const teamsById = useMemo(() => new Map(teams.map(t => [t.id, t])), [teams]);
-  const stages = useMemo(() => seasonTypesOf(games.data ?? []), [games.data]);
+  const stages = useMemo(() => orderSeasonTypes((games.data ?? []).map(game => game.seasonType)), [games.data]);
 
   // A törzsadat hibáját és üres állapotát a választó jeleníti meg.
   if (selection.error) return null;
@@ -80,12 +80,8 @@ export function GamesView({ selection }: GamesViewProps) {
 
   // A választott szakasz csak akkor érvényes, ha a csapatnak van benne meccse;
   // különben az alapszakasz (annak híján az első szakasz) látszik.
-  const stage =
-    chosenStage !== null && stages.includes(chosenStage)
-      ? chosenStage
-      : stages.includes(REGULAR_SEASON)
-        ? REGULAR_SEASON
-        : stages[0];
+  const stage = resolveSeasonType(stages, chosenStage);
+  if (stage === null) return null;
 
   return (
     <Tabs value={String(stage)} onValueChange={value => setChosenStage(Number(value))} className="gap-6">

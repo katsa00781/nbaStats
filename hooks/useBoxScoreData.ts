@@ -1,8 +1,8 @@
 'use client';
 
-import type { SeasonTeamResourceState } from '@/hooks/useSeasonTeamResource';
+import type { SeasonScopedResourceState } from '@/hooks/useSeasonScopedResource';
 import type { BoxScoreTeam } from '@/lib/box-score-data';
-import { useSeasonTeamResource } from '@/hooks/useSeasonTeamResource';
+import { useSeasonScopedResource } from '@/hooks/useSeasonScopedResource';
 import { fetchGameBoxScore } from '@/lib/box-score-data';
 import { supabase } from '@/lib/supabase';
 
@@ -18,6 +18,6 @@ const loadGameBoxScore = (seasonId: string, gameId: string) => fetchGameBoxScore
 export function useGameBoxScore(
   seasonId: string | null,
   gameId: string | null,
-): SeasonTeamResourceState<BoxScoreTeam[]> {
-  return useSeasonTeamResource(seasonId, gameId, loadGameBoxScore, ERROR_PREFIX);
+): SeasonScopedResourceState<BoxScoreTeam[]> {
+  return useSeasonScopedResource(seasonId, gameId, loadGameBoxScore, ERROR_PREFIX);
 }

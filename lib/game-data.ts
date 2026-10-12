@@ -5,7 +5,6 @@
 
 import type { NbaClient } from '@/lib/db-schema';
 import type { GameStatus, TableRow } from '@/lib/supabase';
-import { SEASON_TYPE_ORDER } from '@/lib/season-types';
 
 // A napló-lekérdezés (lib/player-game-log-data.ts) ugyanezeket az oszlopokat ágyazza be.
 export const GAME_COLUMNS =
@@ -95,14 +94,6 @@ export async function fetchTeamGames(db: NbaClient, seasonId: string, teamId: st
     .order('start_time', { ascending: true });
   if (error) throw new Error(error.message);
   return ((data ?? []) as GameRow[]).map(row => toTeamGame(row, teamId));
-}
-
-/** A meccsek között előforduló szezontípusok, időrendben (alapszakasz → play-in → rájátszás). */
-export function seasonTypesOf(games: TeamGame[]): number[] {
-  const present = new Set(games.map(g => g.seasonType));
-  const known = SEASON_TYPE_ORDER.filter(type => present.has(type));
-  const unknown = [...present].filter(type => !SEASON_TYPE_ORDER.includes(type)).sort((a, b) => a - b);
-  return [...known, ...unknown];
 }
 
 /** Mérleg és pontösszeg a lezárt meccsekből; a le nem zárt meccs nem számít. */

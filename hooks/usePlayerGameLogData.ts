@@ -1,8 +1,8 @@
 'use client';
 
-import type { SeasonTeamResourceState } from '@/hooks/useSeasonTeamResource';
+import type { SeasonScopedResourceState } from '@/hooks/useSeasonScopedResource';
 import type { PlayerGameLog } from '@/lib/player-game-log-data';
-import { useSeasonTeamResource } from '@/hooks/useSeasonTeamResource';
+import { useSeasonScopedResource } from '@/hooks/useSeasonScopedResource';
 import { fetchPlayerGameLog } from '@/lib/player-game-log-data';
 import { supabase } from '@/lib/supabase';
 
@@ -18,6 +18,6 @@ const loadPlayerGameLog = (seasonId: string, playerId: string) => fetchPlayerGam
 export function usePlayerGameLog(
   seasonId: string | null,
   playerId: string | null,
-): SeasonTeamResourceState<PlayerGameLog> {
-  return useSeasonTeamResource(seasonId, playerId, loadPlayerGameLog, ERROR_PREFIX);
+): SeasonScopedResourceState<PlayerGameLog> {
+  return useSeasonScopedResource(seasonId, playerId, loadPlayerGameLog, ERROR_PREFIX);
 }

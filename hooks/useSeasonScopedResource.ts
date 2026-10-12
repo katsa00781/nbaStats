@@ -3,7 +3,7 @@
 import type { ResourceState } from '@/lib/shared-resource';
 import { useCallback, useEffect, useState } from 'react';
 
-export type SeasonTeamResourceState<T> = ResourceState<T> & { reload: () => void };
+export type SeasonScopedResourceState<T> = ResourceState<T> & { reload: () => void };
 
 interface Loaded<T> {
   key: string;
@@ -12,28 +12,28 @@ interface Loaded<T> {
 }
 
 /**
- * Szezonra és csapatra szűrt adat betöltése (T20). Amíg nincs szezon vagy csapat
- * (a választó még tölt), nem indít lekérdezést, és `loading: false`, `data: null`
- * állapotot ad. Szezon- vagy csapatváltáskor a régi adat nem látszik tovább: a
+ * Szezonra és egy második kulcsra (csapat, játékos vagy meccs azonosítója) szűrt
+ * adat betöltése (T20). Amíg nincs szezon vagy kulcs (a választó még tölt), nem
+ * indít lekérdezést, és `loading: false`, `data: null` állapotot ad. Szezon- vagy kulcsváltáskor a régi adat nem látszik tovább: a
  * betöltés állapota a kérés kulcsából származtatott érték, nem effectből
  * állított state. A `load` legyen stabil (modul-szintű) függvény, különben
  * minden renderelés új lekérdezést indít. Csak az auth guard mögött hívható (RLS).
  */
-export function useSeasonTeamResource<T>(
+export function useSeasonScopedResource<T>(
   seasonId: string | null,
-  teamId: string | null,
-  load: (seasonId: string, teamId: string) => Promise<T>,
+  scopeId: string | null,
+  load: (seasonId: string, scopeId: string) => Promise<T>,
   errorPrefix: string,
-): SeasonTeamResourceState<T> {
+): SeasonScopedResourceState<T> {
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const key = seasonId && teamId ? `${seasonId}|${teamId}|${attempt}` : null;
+  const key = seasonId && scopeId ? `${seasonId}|${scopeId}|${attempt}` : null;
 
   useEffect(() => {
-    if (!seasonId || !teamId || !key) return;
+    if (!seasonId || !scopeId || !key) return;
     // Váltás után a későn visszaérkező régi válasz nem írhatja felül az újat.
     let cancelled = false;
-    load(seasonId, teamId).then(
+    load(seasonId, scopeId).then(
       data => {
         if (!cancelled) setLoaded({ key, data, error: null });
       },
@@ -47,7 +47,7 @@ export function useSeasonTeamResource<T>(
     return () => {
       cancelled = true;
     };
-  }, [seasonId, teamId, key, load, errorPrefix]);
+  }, [seasonId, scopeId, key, load, errorPrefix]);
 
   const reload = useCallback(() => setAttempt(n => n + 1), []);
   const current = loaded?.key === key ? loaded : null;

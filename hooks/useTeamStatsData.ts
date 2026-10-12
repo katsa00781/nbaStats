@@ -1,8 +1,8 @@
 'use client';
 
-import type { SeasonTeamResourceState } from '@/hooks/useSeasonTeamResource';
+import type { SeasonScopedResourceState } from '@/hooks/useSeasonScopedResource';
 import type { LeagueTeamStats } from '@/lib/team-stats-data';
-import { useSeasonTeamResource } from '@/hooks/useSeasonTeamResource';
+import { useSeasonScopedResource } from '@/hooks/useSeasonScopedResource';
 import { supabase } from '@/lib/supabase';
 import { fetchLeagueTeamStats } from '@/lib/team-stats-data';
 
@@ -16,8 +16,8 @@ const loadLeagueTeamStats = (seasonId: string) => fetchLeagueTeamStats(supabase,
  * A 30 csapat szezon-összesítői szakaszonként. Csak a szezon a kulcs: a csapatváltás
  * nem kérdez újra, a nézet a betöltött ligaadatból választja ki a csapatot.
  */
-export function useLeagueTeamStats(seasonId: string | null): SeasonTeamResourceState<LeagueTeamStats> {
+export function useLeagueTeamStats(seasonId: string | null): SeasonScopedResourceState<LeagueTeamStats> {
   // A közös betöltő mindig szezon + csapat kulcsot vár: a szezon azonosítója áll a
   // második helyen is, így a kulcs csak szezonváltáskor változik.
-  return useSeasonTeamResource(seasonId, seasonId, loadLeagueTeamStats, ERROR_PREFIX);
+  return useSeasonScopedResource(seasonId, seasonId, loadLeagueTeamStats, ERROR_PREFIX);
 }

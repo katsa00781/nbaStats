@@ -6,7 +6,7 @@ import type { PlayerGameLog, PlayerGameLogAbsence } from '@/lib/player-game-log-
 import type { ReactNode } from 'react';
 import { DataLoadError } from '@/components/DataLoadError';
 import { PlayerGameLogTable } from '@/components/PlayerGameLogTable';
-import { playerInitials, PositionBadge } from '@/components/PlayersTable';
+import { playerInitials, PositionBadge } from '@/components/PlayerCell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';

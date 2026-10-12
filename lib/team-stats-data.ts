@@ -15,9 +15,9 @@ const REGULATION_PERIODS = 4;
 const REGULATION_MINUTES = 48;
 const OVERTIME_MINUTES = 5;
 
-const STAT_COLUMNS =
+export const STAT_COLUMNS =
   'game_id, team_id, opponent_team_id, points, fgm, fga, fg3m, fg3a, ftm, fta, oreb, dreb, reb, ast, stl, blk, tov, pf, points_in_paint, fast_break_points, points_off_turnovers, games(season_type, status, periods)';
-type TeamGameRow = Pick<
+export type TeamGameRow = Pick<
   TableRow<'team_game_stats'>,
   | 'game_id'
   | 'team_id'

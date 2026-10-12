@@ -59,6 +59,8 @@
 
 - **Tabella nézet kész (2026-10-12):** `useStandings()` (`hooks/useStandingsData.ts`, `lib/standings-data.ts`) + `StandingsView` / `StandingsTable` a *Liga → Tabella* tabon – az `nba.standings` első fogyasztója. Négy kulcskártya a kiválasztott csapatról, alatta Keleti / Nyugati konferencia-fül (a csapaté nyílik meg), kiemelés szerint rendezett tábla (mérleg, GY%, GB, hazai / idegen / div. / konf., L10, sorozat, PF / PA / különbség, clincher-jelvény), a kiválasztott csapat kiemelve. Döntések (felhasználó): két konferencia-fül; teljes oszlopkészlet. Ellenőrizve: valós DB (2025/26: 30 sor, konferenciánként 15, seed 1–15; Lakers 53–29, #4, `y`, GB 11, L10 7-3, GY3, PF 116.3 / PA 114.6; 2026/27: 0 sor → üres állapot), a Nyugati tábla szerveroldali renderje valós adatból (16 sor fejléccel, 1 kiemelt sor), a clincher-magyarázatok az ESPN válaszából, `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 15.).
 
+- **Szituációk nézet kész (2026-10-12):** a `situational-analysis` motor portja (`lib/situational-analysis.ts`), adapterrel (`lib/adapters/situational-adapter.ts`), `useTeamGameStatRows()` (`hooks/useSituationalData.ts`, `lib/situational-data.ts`) és `SituationalView` / `SituationalTables` az *Analitika → Szituációk* tabon. Hazai / vendég, szoros, gála és hosszabbításos mérleg, fejlett mutatók (összes / hazai / vendég), forma. Döntések (felhasználó): ez a motor az első; az adapter `lib/adapters/*.ts`. A negyedenkénti bontás kimaradt (nincs linescore). Ellenőrizve: valós DB (Lakers 2025/26: 28–13 / 25–16, ORtg 115.41 = a Csapatstatisztika értéke), `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 16.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -88,6 +90,8 @@
 
 15. **A Tabella kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Tabella*. Várt: 2025/2026 + Lakers mellett négy kártya (Mérleg 53–29, Kiemelés 4. / GB 11, Utolsó 10 7-3, Sorozat GY3); a Nyugati konferencia nyílik meg, 15 sor, legfelül Oklahoma City Thunder (`*`, 64–18), a Lakers sora kiemelve (#4, `y`, .646); a jelvényekre húzva magyar magyarázat; a Keleti fülön Detroit Pistons (`z`, 60–22) az első; csapatot váltva a másik konferencia nyílik, nincs skeleton; 2026/2027-re váltva üres állapot; a konzol hibamentes.
 
+16. **A Szituációk kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Szituációk*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül; kártyák: Hazai 28–13, Vendég 25–16, Szoros 11–4, Gálameccs 16–16; a fejlett mutatók táblában ORtg 115.4 (hazai 116.1, vendég 114.7); a forma táblában legfelül 2026. 04. 12. (131–107); Rájátszás: 10 meccs, ORtg 105.8; képernyőképen is átnézni (T32); a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -109,7 +113,9 @@
    - ~~tabella-tábla migrációja (004)~~: megírva (2026-10-12), futtatás a felhasználónál;
    - ~~`ingest-standings.ts` bővítése + napi futás~~: kész (2026-10-12), a workflow-hoz push kell;
    - ~~Tabella nézet (`useStandings` + `StandingsView`)~~: kész (2026-10-12), éles böngészős próba a felhasználónál.
-3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
+3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira (`lib/adapters/`), a percküszöbök 48 percre skálázása.
+   - ~~`situational-analysis` + Szituációk nézet~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
+   - hátravan: `player-analysis`, `team-analysis`, `pregame-scouting`, `postgame-report`, `player-postgame`.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
 6. **Opcionális:** play-by-play (win probability, run-ok, clutch). Ehhez Supabase tier-döntés kell.
@@ -131,6 +137,15 @@
 - Részletnézet megnyitása: **a nézet saját állapota** (ASEStats-minta) – a lista helyén, „Vissza” gombbal; nincs URL routing és nincs AppShell-szintű állapot.
 
 ## Nyitott kérdések
+
+- **Szituációk – megvalósítási döntések, felülbírálhatók:**
+  - a szoros (≤ 5 pont) és a gála (≥ 15 pont) küszöb az ASEStatsből jön változatlanul; az NBA-ban a pontszám-skála nagyobb (kb. 115 vs. 80 pont), a 15 pont itt kevésbé „gála" (a 82 meccsből 32 ilyen a Lakersnél). Ha a küszöb eltér, az szakmai definíció-döntés;
+  - negyedenkénti bontás nincs: a `games` táblában nincs linescore (migráció + import-bővítés kellene, külön döntés); ezek a mutatók (negyedek mérlege, félidei vezetés, az 1. negyed megnyerése) kimaradtak;
+  - hosszabbítás-bucket helyett a „Hosszabbítás" szituáció (a meccs `periods` > 4);
+  - a fejlett mutatók az összesített box score-ból jönnek (T12), nem meccsenkénti értékek átlagából; ugyanaz az ORtg, mint a Csapatstatisztikán;
+  - a hazai / vendég bontás csak az ORtg-nél és az eFG%-nál van;
+  - a lekérdezés csapat × szezon kulcsú (csapatváltáskor újra kérdez, kb. 180–220 sor), nem gyorsítótárazott;
+  - a forma tábla a szakasz összes meccsét mutatja, nincs forma-grafikon.
 
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
 - **Döntés (2026-10-12): a 2027-es tabella nem íródik, amíg nincs lezárt meccs** (`writeStandings()` 0-t ad, `ℹ` tájékoztatás); a Tabella nézet addig üres állapotot mutat. Csapatszűrő a ligás Tabellán: kiemelés (mind a 30 csapat látszik). Eredeti megfigyelés – **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.

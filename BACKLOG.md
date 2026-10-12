@@ -64,6 +64,9 @@ Szerkezet:
 - [x] `useStandings(seasonId)` az `nba.standings` táblára (≤ 30 sor, T20) – `hooks/useStandingsData.ts` + `lib/standings-data.ts` (2026-10-12)
 - [x] Alapnézet: **Tabella** (`StandingsView` + `StandingsTable`, konferencia-fülök, a kiválasztott csapat kiemelve) – 2026-10-12
 - [ ] **A Tabella ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Tabella* → 2025/2026 + Lakers: Nyugat fül, 15 sor, OKC 64–18 (`*`) elöl, Lakers #4 (`y`, .646, GB 11, L10 7-3, GY3) kiemelve; Kelet: Detroit 60–22 (`z`); 2026/2027: üres állapot
+- [x] Elemző motor 1/4: **situational-analysis** portolva (`lib/situational-analysis.ts`) + adapter (`lib/adapters/situational-adapter.ts`) + `useTeamGameStatRows` + **Szituációk** nézet (`SituationalView`) – 2026-10-12
+- [ ] **A Szituációk ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Szituációk* → 2025/2026 + Lakers: Hazai 28–13, Vendég 25–16, Szoros 11–4, Gála 16–16; ORtg 115.4; Rájátszás fül: 10 meccs, ORtg 105.8
+- [ ] Következő motorok (roadmap 3.): `player-analysis`, `team-analysis`, `pregame-scouting`, `postgame-report`, `player-postgame` (az adapter-minta a `lib/adapters/`-ban)
 - [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
 - [x] Refaktor: a `useTeamGames` a közös `useSeasonScopedResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre, a közös betöltő semleges átnevezése, a `PlayerCell` / `PositionBadge` saját fájlba – kész 2026-10-12
@@ -109,6 +112,19 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-12 – Szituációk nézet: a `situational-analysis` motor portja ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** az első portolt motor a `situational-analysis` (a legkisebb); az adapter külön fájlban él (`lib/adapters/*.ts`), a motor kódja a lehető legkevésbé tér el az ASEStatsétől.
+- **`lib/situational-analysis.ts` (új):** `buildSituationalData()`: hazai / vendég, szoros (≤ 5 pont), gálameccs (≥ 15 pont), hosszabbításos meccsek mérlege, forma (gördülő 5 meccses győzelmi arány), fejlett mutatók. A küszöbök az ASEStats-döntések változatlanul (`CLOSE_GAME_MARGIN`, `BLOWOUT_MARGIN`), de az NBA-ban a pontszám-skála nagyobb: ha a 15 pont túl alacsony, az külön döntés.
+- **Ami kimaradt:** a negyedenkénti bontás (negyedek mérlege, félidei vezetés, az 1. negyed megnyerése): a `games` táblában nincs linescore. A hosszabbítás-bucket helyett a „Hosszabbítás” szituáció került be (`games.periods` > 4).
+- **T12 / T14 / T17:** a fejlett mutatók nem meccsenkénti értékek átlagai (ahogy az ASEStats motor számolta), hanem az összesített box score-ból, a Csapatstatisztika `TEAM_METRICS` képleteivel. Így az ORtg a két nézetben azonos.
+- **`lib/adapters/situational-adapter.ts` (új):** `toSituationalInput()`: `TeamGame[]` + csapatsorok → a motor bemenete egy szakaszra; a hazai / vendég részhalmaz külön összegződik.
+- **`lib/situational-data.ts`, `hooks/useSituationalData.ts` (új):** `fetchTeamGameStatRows()` (a csapat és az ellenfelei csapatsorai a szezonban, `fetchAllRows`), `useTeamGameStatRows()` a `useSeasonScopedResource()`-ra. **`lib/team-stats-data.ts`:** a `STAT_COLUMNS` és a `TeamGameRow` exportált.
+- **`components/SituationalView.tsx`, `components/SituationalTables.tsx` (új):** szakasz-fülek, négy `StatCard`, szituációk / fejlett mutatók / forma táblák, kis minta jelzés (T15), hiányzó csapatsor figyelmeztetés, skeleton / `DataLoadError` / üres állapot. **`app/page.tsx`:** a `situational` tab a `SituationalView`-ra köt.
+- **Dokumentáció:** `CLAUDE.md`, `context/architecture.md`, `context/progress-tracker.md`.
+- **Ellenőrzés:** valós DB (2025/26 Lakers: alapszakasz 82 meccs, Hazai 28–13, Vendég 25–16 = a Mérkőzések mérlege; Szoros 11–4, Gála 16–16, Hosszabbítás 1–0; ORtg 115.41 = a Csapatstatisztika értéke mindkét szakaszban; rájátszás 10 meccs, ORtg 105.76), `tsc`, `eslint`, `build` hibátlan.
+- **Nem ellenőrzött:** böngészős futás, képernyőkép (T32).
 
 ### 2026-10-12 – `useStandings` + Tabella nézet ✓ (éles böngészős próba hátravan)
 

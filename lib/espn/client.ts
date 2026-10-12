@@ -53,6 +53,10 @@ export const fetchSummary = (eventId: string) => espnGet('summary', { event: eve
 export const fetchTeamSchedule = (espnTeamId: string, seasonYear: number, seasonType: number) =>
   espnGet(`teams/${espnTeamId}/schedule`, { season: String(seasonYear), seasontype: String(seasonType) });
 
+/** Tabella konferenciánként (`level=2`): itt a GB és a kiemelés a konferenciára vonatkozik. */
+export const fetchConferenceStandings = (seasonYear: number) =>
+  espnGet('standings', { season: String(seasonYear), level: '2' }, ESPN_STANDINGS_BASE);
+
 /** Tabella konferencia → divízió → csapat bontásban (`level=3`). */
 export const fetchDivisionStandings = (seasonYear: number) =>
   espnGet('standings', { season: String(seasonYear), level: '3' }, ESPN_STANDINGS_BASE);

@@ -363,6 +363,76 @@ export function parseDivisionStandings(json: unknown): EspnTeamAlignment[] {
   return result;
 }
 
+// ── Tabella: konferenciánként (standings?level=2) ──────────────────────────
+
+export interface EspnStandingsEntry {
+  espnTeamId: string;
+  wins: number;
+  losses: number;
+  conferenceSeed: number | null;
+  /** z / y / x / e / pi / * ... ; hiányzik, amíg nincs eldöntött helyzet. */
+  clincher: string | null;
+  gamesBehind: number;
+  homeRecord: string | null;
+  roadRecord: string | null;
+  divisionRecord: string | null;
+  conferenceRecord: string | null;
+  lastTen: string | null;
+  streak: string | null;
+  pointsFor: number | null;
+  pointsAgainst: number | null;
+}
+
+/** A konferencia-tabella csapatsorai. Hiányzó kötelező mező (csapat, W, L, GB) EspnSchemaError. */
+export function parseConferenceStandings(json: unknown): EspnStandingsEntry[] {
+  const root = obj(json, 'standings');
+  const result: EspnStandingsEntry[] = [];
+  arr(root.children, 'standings.children').forEach((c, i) => {
+    const cPath = `standings.children[${i}]`;
+    const entries = arr(obj(obj(c, cPath).standings, `${cPath}.standings`).entries, `${cPath}.standings.entries`);
+    if (entries.length === 0) throw new EspnSchemaError(`${cPath}.standings.entries`, 'nem üres tömb');
+    entries.forEach((e, k) => {
+      const ePath = `${cPath}.standings.entries[${k}]`;
+      const entry = obj(e, ePath);
+      const stats = new Map<string, Obj>();
+      arr(entry.stats, `${ePath}.stats`).forEach((s, n) => {
+        const stat = obj(s, `${ePath}.stats[${n}]`);
+        stats.set(str(stat.name, `${ePath}.stats[${n}].name`), stat);
+      });
+      const required = (name: string): Obj => {
+        const stat = stats.get(name);
+        if (!stat) throw new EspnSchemaError(`${ePath}.stats`, `'${name}' mutató`);
+        return stat;
+      };
+      const optValue = (name: string): number | null => {
+        const stat = stats.get(name);
+        return stat && stat.value !== undefined ? num(stat.value, `${ePath}.stats.${name}.value`) : null;
+      };
+      const text = (name: string): string | null => {
+        const stat = stats.get(name);
+        return stat ? optStr(stat.displayValue) : null;
+      };
+      result.push({
+        espnTeamId: str(obj(entry.team, `${ePath}.team`).id, `${ePath}.team.id`),
+        wins: num(required('wins').value, `${ePath}.stats.wins.value`),
+        losses: num(required('losses').value, `${ePath}.stats.losses.value`),
+        conferenceSeed: optValue('playoffSeed'),
+        clincher: text('clincher'),
+        gamesBehind: num(required('gamesBehind').value, `${ePath}.stats.gamesBehind.value`),
+        homeRecord: text('Home'),
+        roadRecord: text('Road'),
+        divisionRecord: text('vs. Div.'),
+        conferenceRecord: text('vs. Conf.'),
+        lastTen: text('Last Ten Games'),
+        streak: text('streak'),
+        pointsFor: optValue('pointsFor'),
+        pointsAgainst: optValue('pointsAgainst'),
+      });
+    });
+  });
+  return result;
+}
+
 // ── Csapat-menetrend (teams/{id}/schedule) ─────────────────────────────────
 
 export interface EspnScheduleEvent {

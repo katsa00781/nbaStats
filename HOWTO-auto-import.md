@@ -11,9 +11,9 @@ Két lépést futtat, mindkettő idempotens (upsert ESPN ID-re):
 2. `npm run ingest:schedule -- --season <év>`: a jövőbeli meccsek (`scheduled` /
    `postponed` / `canceled`). A lezárt meccshez nem nyúl. Ez veszi fel az NBA Cup-függő
    alapszakasz-meccseket és a rájátszás párosításait, amikor az ESPN közzéteszi őket.
-
-A konferencia- és divízióbesorolás (`ingest:standings`) nincs a napi futásban: szezon
-közben nem változik. Szezononként egyszer kézzel kell futtatni.
+3. `npm run ingest:standings -- --season <év>`: a konferencia- és divízióbesorolás
+   (`nba.teams`) és a tabella pillanatképe (`nba.standings`: W-L, kiemelés, GB, mérlegek,
+   sorozat). A tabella minden futáskor felülíródik az ESPN aktuális állásával.
 
 Futásidő: a szezon elején 2–3 perc, a végén kb. 8 perc (naponként egy scoreboard-kérés,
 1 mp-es throttle-lel).
@@ -88,7 +88,7 @@ A lépés logjának végén összesítő áll: `Kész: N meccs feldolgozva …`,
 `Figyelmeztetés:` és a `Hiba:` lista meccsenként. A run összefoglaló oldalán ugyanez
 rövid annotációként is megjelenik.
 
-A menetrend-lépés a meccs-import hibája után is lefut. Hiányzó secret vagy sikertelen
+A menetrend- és a tabella-lépés a meccs-import hibája után is lefut. Hiányzó secret vagy sikertelen
 `npm ci` után egyik import sem indul el.
 
 ---
@@ -121,7 +121,7 @@ szezon kerül be. Új szezon előtt, ebben a sorrendben:
    a Supabase SQL Editorban.
 3. `NBA_SEASON_YEAR` repo variable átírása (**Settings → Secrets and variables → Actions →
    Variables**), pl. `2028`. Amíg nincs beállítva, a workflow `2027`-tel fut.
-4. `npm run ingest:standings -- --season 2028` helyben, egyszer.
+4. A következő napi futás a besorolást és a tabellát is felveszi; helyben is futtatható: `npm run ingest:standings -- --season 2028`.
 
 A holtszezonban a futás zöld marad: a meccs-import a szezon `end_date`-jéig néz, és nem
 talál új meccset.

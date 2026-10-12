@@ -59,8 +59,8 @@ Szerkezet:
 - [x] Alapnézet: **Csapatstatisztika** (`TeamStatsView`, átlagok + fejlett mutatók + ligarangsor) – 2026-10-12
 - [ ] **A Csapatstatisztika ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Csapatstatisztika* → 2025/2026 + Lakers: Pont / meccs 116.3 (11. / 30), ORtg 115.4 (8. / 30), DRtg 113.7 (19. / 30); Rájátszás fül: helyezés „x. / 16"; csapatváltás nem tölt újra
 - [x] Migráció 004: `nba.standings` + `Database` típus – megírva 2026-10-12
-- [ ] **A 004 futtatása (felhasználó):** `migrations/004-standings.sql` a Supabase SQL Editorban (`ugkettlebell`)
-- [ ] `ingest-standings.ts` bővítése: a tabella írása az `nba.standings`-be (`level=2`, szerkezeti ellenőrzés, `--dry-run`) + `ingest:standings` a napi `ingest.yml`-be (push kell, T7)
+- [x] **A 004 futtatása (felhasználó):** kész 2026-10-12
+- [x] `ingest-standings.ts` bővítése: a tabella írása az `nba.standings`-be (`level=2`, szerkezeti ellenőrzés, `--dry-run`) + `ingest:standings` a napi `ingest.yml`-be – 2026-10-12 (a workflow-hoz push kell, T7)
 - [ ] Alapnézet: Tabella (DataTable / StatCard)
 - [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
@@ -107,6 +107,17 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-12 – Tabella-import (`nba.standings`) + napi futás ✓ (GitHub Actions-ben nem futott)
+
+- **`lib/espn/client.ts`:** `fetchConferenceStandings()` (`level=2`: itt a GB és a kiemelés konferenciára vonatkozik; a `level=3` GB-je a divízióé).
+- **`lib/espn/schemas.ts`:** `parseConferenceStandings()` – a mutatókat név szerint olvassa; kötelező a csapat, a W, L, GB (hiány: `EspnSchemaError` pontos útvonallal), a többi nullable (a `clincher` hiányzik, amíg nincs eldöntött helyzet).
+- **`lib/espn/write-standings.ts` (új):** `checkStandings()` (30 NBA-csapat egyszer, konferenciánként 15) és `writeStandings()` (szezon a `requireSeason()`-nel, ESPN ID → UUID, upsert `(season_id, team_id)`).
+- **`ingest-standings.ts`:** a besorolás mellett a tabellát is írja; `--dry-run` DB nélkül.
+- **`.github/workflows/ingest.yml` + `HOWTO-auto-import.md`:** új „Tabella-import” lépés a menetrend után; nem nyeli el a kilépési kódot.
+- **Ellenőrzés:** dry-run 2026 és 2027; éles írás 2026-ra kétszer (30 sor, idempotens); visszaolvasás: Lakers 53–29, seed 4, `y`, GB 11, 28-13 / 25-16, L10 7-3, W3, PF 9540 / PA 9395; clincher-értékek: `z * y x xp pb e`; `tsc`, `eslint`.
+- **Megfigyelés:** az ESPN pont-kapott pontja 9395, a `team_game_stats`-ból számolt 9396 (1 pont eltérés, az ESPN saját adata). A 2027-es tabella az ESPN-nél már 2–0 / 0–2 mérleget mutat, nálunk nincs lejátszott meccs.
+- **Nem ellenőrzött:** a GitHub Actions futás (push + secretek kellenek).
 
 ### 2026-10-12 – Migráció 004: tabella-tábla – megírva, futtatás hátravan
 

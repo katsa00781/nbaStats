@@ -1,4 +1,4 @@
-# Ütemezett napi ESPN adatimport: lezárt meccsek + menetrend.
+# Ütemezett napi ESPN adatimport: lezárt meccsek + menetrend + tabella.
 #
 # A CLI import szkripteket futtatja (nem API route-ot, T29), Playwright nélkül.
 # Mindkét import idempotens (upsert ESPN ID-re), így az ismételt futás nem
@@ -128,5 +128,21 @@ jobs:
             0) ;;
             2) echo "::warning title=Menetrend-import::Figyelmeztetés volt (exit 2). Lásd a lépés logját." ;;
             *) echo "::error title=Menetrend-import::A menetrend-import elbukott (exit $code). Lásd a lépés logját." ;;
+          esac
+          exit "$code"
+
+      # Független a meccs-importtól: az ESPN aktuális tabelláját írja (felülírás).
+      - name: Tabella-import (besorolás + állás)
+        if: ${{ !cancelled() && steps.games.conclusion != 'skipped' }}
+        run: |
+          args=(--season "$SEASON_YEAR")
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          set +e
+          npm run ingest:standings -- "${args[@]}"
+          code=$?
+          set -e
+          case "$code" in
+            0) ;;
+            *) echo "::error title=Tabella-import::A tabella-import elbukott (exit $code). Lásd a lépés logját." ;;
           esac
           exit "$code"

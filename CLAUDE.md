@@ -133,7 +133,8 @@ nbastats/
 │   │   ├── season-gate.ts      # szezon-kapu (T4): szezontípus-szűrés + dátumablak
 │   │   ├── write-game.ts       # upsert service role klienssel, ESPN ID → UUID feloldás, requireSeason()
 │   │   ├── write-schedule.ts   # menetrend (scheduled/postponed/canceled) – lezárt meccshez nem nyúl
-│   │   └── write-teams.ts      # konferencia/divízió a tabellából + szerkezeti ellenőrzés (2 × 3 × 5)
+│   │   ├── write-teams.ts      # konferencia/divízió a tabellából + szerkezeti ellenőrzés (2 × 3 × 5)
+│   │   └── write-standings.ts  # nba.standings írása (level=2 konferencia-tabella), szerkezeti ellenőrzés, upsert csapat × szezon
 │   ├── db-schema.ts            # DB_SCHEMA = 'nba', createNbaClient() + NbaClient – MINDEN Supabase kliens ezen át
 │   ├── supabase.ts             # böngészős kliens (globalThis singleton) + Database típus
 │   ├── supabase-admin.ts       # getSupabaseAdmin() – service role, csak szerver
@@ -170,7 +171,7 @@ nbastats/
 ├── .github/workflows/ingest.yml  # napi cron (09:00 UTC): ingest:games --season + ingest:schedule
 ├── ingest-games.ts             # CLI: npm run ingest:games -- --date YYYY-MM-DD | --season YYYY [--dry-run]
 ├── ingest-schedule.ts          # CLI: npm run ingest:schedule -- --season YYYY [--dry-run]
-├── ingest-standings.ts         # CLI: npm run ingest:standings -- --season YYYY [--dry-run]
+├── ingest-standings.ts         # CLI: npm run ingest:standings -- --season YYYY [--dry-run] (besorolás + tabella)
 ├── HOWTO-auto-import.md        # az ütemezett import beállítása, hibakeresése, szezonváltás
 ├── BACKLOG.md
 └── .env.local                  # titkos változók – soha nem kerül git-be
@@ -440,10 +441,9 @@ Nincs külső state manager, a React 19 beépített hookjait használjuk:
 - **Minden import szkriptnek van `--dry-run` módja**, ami DB nélkül validál és kiír.
 - **A nyers JSON gzip-elve az `espn_game_raw.payload_gz`-be kerül** (`lib/espn/raw-payload.ts`). Formátumváltáskor innen parse-olunk újra, nem töltünk le.
 - **Import-író változás csak push után hat** az ütemezett GitHub Actions futásra. A push is része a lezárásnak (T7).
-- **Ütemezett futás (`.github/workflows/ingest.yml`, `HOWTO-auto-import.md`):** naponta 09:00 UTC-kor `ingest:games --season` (a szezon elejétől a mai napig, a mentett meccset kihagyja), majd `ingest:schedule`.
+- **Ütemezett futás (`.github/workflows/ingest.yml`, `HOWTO-auto-import.md`):** naponta 09:00 UTC-kor `ingest:games --season` (a szezon elejétől a mai napig, a mentett meccset kihagyja), majd `ingest:schedule`, végül `ingest:standings` (tabella pillanatkép, felülírás).
   - A szezonév az `NBA_SEASON_YEAR` repo variable (default `2027`); a két Supabase-érték repo secret.
   - A 2-es kilépési kód is pirosra állítja a futást. A workflow-ban a kódot nem nyeljük el (`continue-on-error` nincs).
-  - Az `ingest:standings` nincs a napi futásban (szezononként egyszer, kézzel).
 
 ```bash
 npm run ingest:games -- --date 2026-03-01 --dry-run   # validálás DB nélkül
@@ -452,7 +452,7 @@ npm run ingest:games -- --season 2026                 # szezon-visszatöltés; a
 npm run ingest:games -- --season 2026 --from 2026-03-01 --to 2026-03-31   # részintervallum
 npm run ingest:schedule -- --season 2027 --dry-run    # menetrend validálása (30 csapat × 3 szezontípus)
 npm run ingest:schedule -- --season 2027              # jövőbeli meccsek írása; lezárt meccshez nem nyúl
-npm run ingest:standings -- --season 2027             # teams.conference (East/West) + division (Atlantic…)
+npm run ingest:standings -- --season 2027             # teams.conference + division, és az nba.standings tabella-pillanatkép
 ```
 
 ---

@@ -1,17 +1,21 @@
-// A csapatok konferencia- és divízió-besorolása az ESPN tabellájából.
+// A tabella az ESPN-ből: a csapatok konferencia- és divízió-besorolása, valamint
+// a tabella pillanatképe (W-L, kiemelés, GB, mérlegek, sorozat).
 //
 // Használat:
 //   npx tsx ingest-standings.ts --season 2027 --dry-run   # DB nélkül, csak validál és kiír
-//   npx tsx ingest-standings.ts --season 2027             # nba.teams.conference / division frissítése
+//   npx tsx ingest-standings.ts --season 2027             # nba.teams.conference / division + nba.standings
 //
-// Egy kérés. Írás előtt szerkezeti ellenőrzés: 30 NBA-csapat, 2 konferencia ×
-// 3 divízió × 5 csapat; eltérésnél semmit nem ír. Csak a változott sort frissíti.
+// Két kérés (level=3 a besoroláshoz, level=2 a tabellához). Írás előtt szerkezeti
+// ellenőrzés: 30 NBA-csapat, 2 konferencia × 3 divízió × 5 csapat; eltérésnél
+// semmit nem ír. A besorolásnál csak a változott sort frissíti, a tabella
+// pillanatkép minden futáskor felülíródik. Napi futás: .github/workflows/ingest.yml.
 // Kilépési kód: 0 = rendben, 1 = hiba.
 
 import * as dotenv from 'dotenv';
 import { createNbaClient, type NbaClient } from '@/lib/db-schema';
-import { fetchDivisionStandings } from '@/lib/espn/client';
-import { parseDivisionStandings } from '@/lib/espn/schemas';
+import { fetchConferenceStandings, fetchDivisionStandings } from '@/lib/espn/client';
+import { parseConferenceStandings, parseDivisionStandings } from '@/lib/espn/schemas';
+import { checkStandings, writeStandings } from '@/lib/espn/write-standings';
 import { checkAlignment, writeTeamAlignment } from '@/lib/espn/write-teams';
 
 const USAGE = 'Használat: npx tsx ingest-standings.ts --season YYYY [--dry-run]';
@@ -52,9 +56,23 @@ async function main(): Promise<void> {
   console.log(`Szezon ${seasonYear}: ${alignments.length} csapat, ${byDivision.size} divízió${dryRun ? ' (dry-run, nincs DB írás)' : ''}`);
   for (const [key, ids] of byDivision) console.log(`  ${key.padEnd(20)} ESPN ID: ${ids.join(', ')}`);
 
+  const conferenceJson = await fetchConferenceStandings(seasonYear);
+  const standings = parseConferenceStandings(conferenceJson);
+  const conferenceSizes = [...new Set(alignments.map(a => a.conference))].map(
+    conference => alignments.filter(a => a.conference === conference).length,
+  );
+  const standingsErrors = checkStandings(standings, conferenceSizes);
+  if (standingsErrors.length > 0) {
+    fail(`Tabella szerkezeti hiba, nincs írás:\n${standingsErrors.map(e => `  ✗ ${e}`).join('\n')}`);
+  }
+  const leader = [...standings].sort((a, b) => a.losses - b.losses || b.wins - a.wins)[0];
+  console.log(`Tabella: ${standings.length} csapat; legjobb mérleg: ESPN ${leader.espnTeamId} (${leader.wins}–${leader.losses})`);
+
   if (db) {
     const changed = await writeTeamAlignment(db, alignments);
-    console.log(`  ✓ mentve: ${changed} csapat változott (${alignments.length - changed} már naprakész)`);
+    console.log(`  ✓ besorolás mentve: ${changed} csapat változott (${alignments.length - changed} már naprakész)`);
+    const written = await writeStandings(db, seasonYear, standings);
+    console.log(`  ✓ tabella mentve: ${written} sor`);
   }
 }
 

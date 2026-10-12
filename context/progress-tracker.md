@@ -54,7 +54,8 @@
 
 - **Csapatstatisztika kész (2026-10-12):** `useLeagueTeamStats()` (`hooks/useTeamStatsData.ts`, `lib/team-stats-data.ts`, `lib/team-stats-metrics.ts`) + `TeamStatsView` az új *Analitika → Csapatstatisztika* tabon. A kiválasztott csapat meccsenkénti átlagai és fejlett mutatói szakaszonként, a 30 csapat átlagával és helyezésével. Döntések (felhasználó): átlagok + ligarangsor; fejlett mutatók az ASEStats-döntésekkel; szakaszonként külön, a rangsor azonos szakaszon belül. Ellenőrizve: valós DB (2025/26: a csapat- és ellenfélpont-összeg egyezik szakaszonként, 1231 / 85 / 6 meccs ×2 csapatsor, nincs hiányos meccs; Lakers 82 meccs, 9540 : 9396, 116.3 pont, TS% 2. hely), a táblák szerveroldali renderje valós adatból, `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 13.).
 
-- **Migráció 004 megírva (2026-10-12):** `nba.standings` (csapat × szezon: W-L, seed, clincher, GB, hazai / idegen / divízió / konferencia mérleg, utolsó 10, sorozat, pont+/−), RLS és jogosultságok, `Database` típus. Döntések (felhasználó): ezek a 13 oszlop; az `ingest:standings` bekerül a napi futásba. **Futtatás a felhasználónál; az import-bővítés, a workflow és a nézet még hátravan.**
+- **Tabella-import kész (2026-10-12):** az `ingest-standings.ts` a besorolás mellett az `nba.standings`-et is írja (`level=2`, `lib/espn/write-standings.ts`, `parseConferenceStandings()`), szerkezeti ellenőrzéssel és `--dry-run`-nal; a napi `ingest.yml`-be új lépés került (csak push után hat, T7). Ellenőrizve: dry-run 2026 és 2027, éles írás 2026-ra kétszer (30 sor, idempotens), visszaolvasás (Lakers 53–29, seed 4, `y`, GB 11, 28-13 / 25-16, L10 7-3, W3), `tsc`, `eslint`. A GitHub Actions-ben nem futott. **A Tabella nézet még hátravan.**
+- **Migráció 004 megírva és lefuttatva (2026-10-12):** `nba.standings` (csapat × szezon: W-L, seed, clincher, GB, hazai / idegen / divízió / konferencia mérleg, utolsó 10, sorozat, pont+/−), RLS és jogosultságok, `Database` típus. Döntések (felhasználó): ezek a 13 oszlop; az `ingest:standings` bekerül a napi futásba. **Futtatás a felhasználónál; az import-bővítés, a workflow és a nézet még hátravan.**
 
 ## Kézi teendők (felhasználó)
 
@@ -101,7 +102,8 @@
    - ~~Csapatstatisztika nézet (a `team_game_stats`-ból, liga-rangsorral)~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
    - ~~külön refaktor lépés~~: kész (2026-10-12);
    - ~~tabella-tábla migrációja (004)~~: megírva (2026-10-12), futtatás a felhasználónál;
-   - következő: az `ingest-standings.ts` bővítése (tabella írása + napi futás), majd a Tabella nézet;
+   - ~~`ingest-standings.ts` bővítése + napi futás~~: kész (2026-10-12), a workflow-hoz push kell;
+   - következő: a Tabella nézet (`useStandings` + `StandingsView`);
    - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
@@ -127,6 +129,7 @@
 ## Nyitott kérdések
 
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
+- **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.
 - **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabella és a ligás Játékosok nézetnél el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.
 - **Mérkőzések nézet – megvalósítási döntések, felülbírálhatók:**
   - a „Következő mérkőzések” alapból az első 5 meccset mutatja; az elhalasztott és a törölt meccs is itt szerepel (státusz-jelvénnyel), nem tűnik el;

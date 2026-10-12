@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
   Users,
+  BarChart3,
   Sparkles,
   Target,
   Trophy,
@@ -38,6 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: 'overview', label: 'Áttekintés', icon: LayoutDashboard },
       { key: 'players', label: 'Játékosok', icon: Users },
+      { key: 'teamstats', label: 'Csapatstatisztika', icon: BarChart3 },
       { key: 'comparison', label: 'Elemzések', icon: Sparkles, tone: 'ai' },
       { key: 'situational', label: 'Szituációk', icon: Target },
     ],

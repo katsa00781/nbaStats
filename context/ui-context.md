@@ -342,6 +342,14 @@ A `SeasonTeamSelector` (NBAStats, 2026-10-10) minden tabon látszik: két shadcn
 
 Új token, új animáció és új alapkomponens itt sincs. **Figyelem:** a `text-base` ebben a projektben szín (`--color-base`), nem betűméret.
 
+**Csapatstatisztika** (`TeamStatsView`, NBAStats, 2026-10-12) – az Analitika csoport „Csapatstatisztika” eleme (`teamstats`, `BarChart3`):
+- szakasz-fülek (csak ha több szakasz van), alatta négy `StatCard` (Pont / meccs, ORtg, DRtg, NetRtg): az érték mellett a helyezés `trendValue`-ként („11. / 30”, `trend="neutral"`, mert a nyíl nem jelent jobb vagy rosszabb irányt);
+- „Alapmutatók” és „Fejlett mutatók”: egy-egy `DataTable` (Mutató + egysoros magyarázat `text-xs text-muted` | Csapat | Liga átlag `.dt-num--muted` | Helyezés „5. / 30”). A helyezés felső harmada `.dt-num--pos`, alsó harmada `.dt-num--neg`; 6 csapat alatti rangsorban és a tempónál nincs szín;
+- kis mintánál (10 meccs alatt) `text-warning` sor (`AlertTriangle`, `role="note"`); ugyanígy, ha az ellenfél-sor hiánya miatt meccs kimaradt;
+- betöltéskor `.skeleton-shimmer`, hibánál `DataLoadError`, lejátszott meccs nélkül magyarázó üres állapot (`Card` + `Gauge`).
+
+Új token, új animáció és új alapkomponens itt sincs.
+
 Layout-konstansok (nem design tokenek, komponens-lokális méretek):
 `--sb-w-expanded: 240px` · `--sb-w-collapsed: 64px` · `--sb-transition: 220ms cubic-bezier(.4,0,.2,1)`
 

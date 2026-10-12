@@ -1,6 +1,6 @@
 # Backlog
 
-Utolsó frissítés: 2026-10-10
+Utolsó frissítés: 2026-10-12
 
 Szerkezet:
 1. Nyitott feladatok
@@ -55,7 +55,10 @@ Szerkezet:
 - [x] `usePlayerGameLog(seasonId, playerId)` a `player_game_stats` táblára, beágyazott meccs-sorral (T8, T9, T20) – `hooks/usePlayerGameLogData.ts` + `lib/player-game-log-data.ts` (2026-10-10)
 - [x] Alapnézet: **Játékos-részletek** (`PlayerDetailsView`, meccsenkénti napló) – a Játékosok tábla nevéből nyílik, a nézet saját állapotával (2026-10-10)
 - [ ] **A Játékos-részletek ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Játékosok* → „Luka Doncic”: kártyák 64 / 33.5 / 7.7 / 8.3, 64 sor, legfelül 2026. 04. 02. (OKC, 96–139); LeBron James: Alapszakasz 60 / Rájátszás 10 sor
-- [ ] Alapnézetek: Csapatstatisztika (következő; a tartalmát előtte egyeztetni kell), Tabella (DataTable / StatCard)
+- [x] `useLeagueTeamStats(seasonId)` a `team_game_stats` táblára (mind a 30 csapat, mindkét oldal), `fetchAllRows`-szal (T1, T14, T17, T20) – `hooks/useTeamStatsData.ts` + `lib/team-stats-data.ts` + `lib/team-stats-metrics.ts` (2026-10-12)
+- [x] Alapnézet: **Csapatstatisztika** (`TeamStatsView`, átlagok + fejlett mutatók + ligarangsor) – 2026-10-12
+- [ ] **A Csapatstatisztika ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Csapatstatisztika* → 2025/2026 + Lakers: Pont / meccs 116.3 (11. / 30), ORtg 115.4 (8. / 30), DRtg 113.7 (19. / 30); Rájátszás fül: helyezés „x. / 16"; csapatváltás nem tölt újra
+- [ ] Alapnézet: Tabella (DataTable / StatCard; előtte a tabella-tábla)
 - [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
 - [ ] Refaktor (külön lépés): a `useTeamGames` a közös `useSeasonTeamResource()`-ra, a `GamesView` szakaszválasztása az `orderSeasonTypes()` / `resolveSeasonType()` helperekre (most két azonos logikájú megvalósítás van). Ugyanitt: a `useSeasonTeamResource()` semleges neve (a box score már szezon + meccs kulccsal használja), és a `PlayerCell` / `PositionBadge` saját fájlba (most a `PlayersTable.tsx` exportálja, a box score is innen veszi); a meccs-sor közös alakja és formázói (`formatShots`, `formatSigned`, bedobott/kísérlet oszlop) – most a `BoxScoreTables.tsx` és a `PlayerGameLogTable.tsx` külön tartja őket
@@ -101,6 +104,22 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-12 – `useLeagueTeamStats` + Csapatstatisztika nézet ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** a nézet a kiválasztott csapat szezon-átlagait és a 30 csapatos ligarangsort mutatja; a fejlett mutatók (tempó, ORtg / DRtg, TO%, OREB%, FT-mutató) az ASEStats-döntésekkel kerülnek be; a szakaszok külön, a rangsor azonos szakaszon belül készül.
+- **`lib/stat-formulas.ts`:** új `estimatePossessions()`, `ratingPer100()`, `turnoverPct()` (Oliver), `offensiveReboundPct()`, `freeThrowRate()` (FTM / FGA) – a képletek egy helyen (T22).
+- **`lib/team-stats-data.ts` (új):** `fetchLeagueTeamStats(db, seasonId)` – a szezon összes `team_game_stats` sora a beágyazott meccs-sorral (`season_type`, `status`, `periods`), `fetchAllRows`-szal, `id` szerinti rendezéssel (T1). `toLeagueTeamStats()`: csak lezárt meccsek, csapatonként és szakaszonként összegezve a saját és az ellenfél oldalt (az ellenfél-sor a `game_id` + `opponent_team_id` párról); az ellenfél-sor nélküli meccs kimarad és számolódik (`incompleteGames`). Játékperc: 48 meccsenként + 5 hosszabbításonként.
+- **`lib/team-stats-metrics.ts` (új):** `TEAM_METRICS` (17 alap + 7 fejlett mutató, irány: jobb a több / kevesebb / nincs) és `buildTeamMetricRows()`: érték, liga átlag, helyezés (holtversenynél azonos).
+- **`hooks/useTeamStatsData.ts` (új):** `useLeagueTeamStats(seasonId)` a `useSeasonTeamResource()`-ra építve, csak a szezon a kulcs (a szezon azonosítója a második helyen is) – csapatváltáskor nincs új lekérdezés.
+- **`components/TeamStatsView.tsx` + `TeamStatsTable.tsx` (új):** szakasz-fülek, négy `StatCard` (Pont / meccs, ORtg, DRtg, NetRtg, a helyezéssel), „Alapmutatók” és „Fejlett mutatók” `DataTable`, kis minta és hiányos adat figyelmeztetés, skeleton, hibapanel, üres állapot. **`components/AppSidebar.tsx`:** új nav elem (`teamstats`, Analitika csoport); **`app/page.tsx`:** a `teamstats` tabon a `TeamStatsView`.
+- **Megvalósítási döntések (jelezve a felhasználónak, részletek a progress-trackerben):** súlyozatlan liga átlag; a helyezés felső / alsó harmada színezett (6 csapat alatt és a tempónál nem); a festékpont / gyorsindítás / eladott labdából szerzett pont csak az ESPN által megadott meccsekből átlagolódik; nincs trend, forma és ellenfél-oldali bontás. Új token, új csomag, séma-változás nincs.
+- **Ellenőrzés:**
+  - valós DB (service role, csak olvasás), a tényleges `fetchLeagueTeamStats`: 2025/26 alapszakasz 30 csapat / 2462 csapat-meccs (= 2 × 1231), rájátszás 16 csapat / 170 (= 2 × 85), play-in 8 csapat / 12 (= 2 × 6); a szerzett és a kapott pont összege szakaszonként egyezik; hiányos meccs nincs. Lakers: 82 meccs, 9540 : 9396 pont (egyezik a Mérkőzések nézet mérlegével), 116.3 pont, FG% 50.2% (1.), TS% 60.9% (2.), tempó 100.7, ORtg 115.4, DRtg 113.7;
+  - a `TeamStatsTable` szerveroldali renderje valós adatból (alap- és fejlett csoport, alapszakasz és rájátszás): sorok száma, értékek, helyezés-színezés (6 csapat alatt nincs), formázás;
+  - `tsc`, `eslint`, `npm run build` hibátlan.
+- **Nem ellenőrzött:** böngészőben (headless Chrome-ban sem) és az éles alkalmazásban, bejelentkezve nem futott; a mobil elrendezés képen nincs átnézve (T32). A hosszabbításos meccsek percszámítása (5 perc / hosszabbítás) a `games.periods`-ra épül.
+- **Megfigyelés:** a csapatsor eladott labdája a csapatszintűeket is tartalmazza, ezért a TO% és a tempó a játékosok összegéből számolva kicsit más lenne; a liga átlagos NetRtg-je nem pontosan 0 (0.04), mert a csapatok közös birtoklásszáma különbözik.
 
 ### 2026-10-10 – `usePlayerGameLog` + Játékos-részletek (meccsenkénti napló) ✓ (éles böngészős próba hátravan)
 

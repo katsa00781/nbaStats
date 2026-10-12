@@ -52,6 +52,8 @@
 
 - **Játékos-részletek kész (2026-10-10):** `usePlayerGameLog()` (`hooks/usePlayerGameLogData.ts`, `lib/player-game-log-data.ts`) + `PlayerDetailsView` a Játékosok nézeten belül. A Játékosok tábla nevére kattintva a lista helyén nyílik meg: fejléc (kép, mez, poszt, csapat), a szakasz átlagai kártyákon (a lista soraiból, lekérdezés nélkül), a meccsenkénti napló (ellenfél, kimenetel, eredmény, box score sor) és a DNP-összesítő indokonként. Ellenőrizve: valós DB (Lakers, Knicks, Bulls – 68 játékos: a napló meccsszáma, kezdései és pontösszege minden szakaszban egyezik a szezon-összesítő view-val; 21 cserélt játékos), headless Chrome valós adatokkal (64 állítás), `tsc`, `eslint`, `build`. **Élesben, bejelentkezve még nem futott** (lásd Kézi teendők 12.).
 
+- **Csapatstatisztika kész (2026-10-12):** `useLeagueTeamStats()` (`hooks/useTeamStatsData.ts`, `lib/team-stats-data.ts`, `lib/team-stats-metrics.ts`) + `TeamStatsView` az új *Analitika → Csapatstatisztika* tabon. A kiválasztott csapat meccsenkénti átlagai és fejlett mutatói szakaszonként, a 30 csapat átlagával és helyezésével. Döntések (felhasználó): átlagok + ligarangsor; fejlett mutatók az ASEStats-döntésekkel; szakaszonként külön, a rangsor azonos szakaszon belül. Ellenőrizve: valós DB (2025/26: a csapat- és ellenfélpont-összeg egyezik szakaszonként, 1231 / 85 / 6 meccs ×2 csapatsor, nincs hiányos meccs; Lakers 82 meccs, 9540 : 9396, 116.3 pont, TS% 2. hely), a táblák szerveroldali renderje valós adatból, `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 13.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -74,6 +76,8 @@
 
 12. **A Játékos-részletek kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Játékosok* → a „Luka Doncic” névre kattintva. Várt: fejléc (#77, Los Angeles Lakers), kártyák 64 / 33.5 / 7.7 / 8.3, 64 sor, legfelül 2026. 04. 02. Idegenben, Oklahoma City Thunder, V, 96–139, 26 perc, 12 pont; a tábla alatt „suspended by league 1×”. „Vissza a játékosokhoz” → LeBron James: Alapszakasz (60 sor) / Rájátszás fül (10 sor, 23.2 pont, legfelül 2026. 05. 11. 110–115); vissza → a lista is a Rájátszás fülön áll; csapatot váltva megnyitott játékossal a lista jön vissza; a konzol hibamentes.
 
+13. **A Csapatstatisztika kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Csapatstatisztika*. Várt: 2025/2026 + Lakers mellett Alapszakasz / Rájátszás fül; kártyák: Pont / meccs 116.3 (11. / 30), ORtg 115.4 (8. / 30), DRtg 113.7 (19. / 30), NetRtg +1.7 (14. / 30); a táblában FG% 50.2% (1. / 30), TS% 60.9% (2. / 30), Tempó 100.7 (22. / 30, szín nélkül); a Rájátszás fülön a helyezés „x. / 16”; csapatváltás nem tölt újra (nincs skeleton); a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -90,7 +94,8 @@
    - ~~`usePlayerData` + Játékosok nézet (a `player_season_stats_by_season` view első fogyasztója)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
    - ~~Meccs-részletek (box score) a Mérkőzések nézetben~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
    - ~~Játékos-részletek (meccsenkénti napló a `player_game_stats`-ból; a Játékosok tábla nevéből nyílik)~~: kész (2026-10-10), éles böngészős próba a felhasználónál;
-   - következő: Csapatstatisztika nézet (a `team_game_stats`-ból; a tartalmát – mutatók, liga-rangsor – a megírás előtt egyeztetni kell);
+   - ~~Csapatstatisztika nézet (a `team_game_stats`-ból, liga-rangsorral)~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
+   - következő: Tabella (előtte a tabella-tábla migrációja, a séma egyeztetése után), vagy a külön refaktor lépés;
    - külön refaktor lépés: a `useTeamGames` és a `GamesView` szakaszválasztása a közös `useSeasonTeamResource()` / `orderSeasonTypes()` / `resolveSeasonType()` helperekre; a közös betöltő semleges átnevezése (már meccsre is használjuk); a `PlayerCell` / `PositionBadge` saját fájlba;
    - a Tabella nézet előtt: tabella-tábla (új migráció, a séma egyeztetése után) + az `ingest-standings.ts` bővítése.
 3. **Elemző motorok portolása** (B-lista, lásd `context/megvalosithatosag.md`): adapterek az NBA sémáról a motorok bemeneti típusaira, a percküszöbök 48 percre skálázása.
@@ -154,6 +159,16 @@
   - a DNP meccsek nincsenek a táblában: a tábla alatt indokonként összevonva állnak (pl. „edzői döntés 12×”). Ez nem a kihagyott meccsek teljes köre – az ESPN csak a meccs keretébe nevezett játékost sorolja fel (LeBron James: 60 lejátszott meccs, 0 DNP-sor a 82-ből);
   - a meccs-sor nem kattintható: a Meccs-részletek más tabon él, az átnavigáláshoz AppShell-szintű állapot kellene (külön döntés);
   - a napló nem gyorsítótárazott: minden megnyitás 1 lekérdezés (legfeljebb kb. 110 sor).
+- **Csapatstatisztika – megvalósítási döntések, felülbírálhatók:**
+  - a kiválasztott csapat mutatói a szakaszában; a rangsor a szakaszban játszott csapatok között készül (rájátszás: 16, play-in: 8 csapat), holtversenynél azonos helyezéssel; az 1. a legjobb (a kapott pontnál, eladott labdánál, személyi hibánál, DRtg-nél, TO%-nál a kevesebb);
+  - a liga átlag a csapatok mutatóinak súlyozatlan átlaga;
+  - mutatók: 17 alap (pont, kapott pont, FG% / 3P% / FT% / TS% / eFG%, lepattanó, támadó lepattanó, gólpassz, szerzett labda, blokk, eladott labda, személyi hiba, festékpont, gyorsindítás-pont, pont eladott labdából) és 7 fejlett (tempó, ORtg, DRtg, NetRtg, TO%, OREB%, FT-mutató);
+  - a tempó és mindkét rating közös birtoklásszámot használ ((saját + ellenfél) / 2, T14); birtoklás = FGA + 0,44·FTA + TOV − OREB; a tempó 48 percre vetített (48 perc meccsenként + 5 perc hosszabbításonként); TO% Oliver-féle (T14); FT-mutató = FTM / FGA (T17);
+  - a festékpont, a gyorsindítás-pont és az eladott labdából szerzett pont az ESPN-nél nem minden meccsen van: az átlag csak azokból a meccsekből számolódik, ahol van érték;
+  - az eladott labda a csapatszintű eladott labdákat is tartalmazza (a csapatsorból), ezért kicsit több, mint a játékosok összege;
+  - az a meccs, amelyiknek az ellenfél-sora hiányzik, kimarad, és a nézet figyelmeztet (a valós adatban nincs ilyen);
+  - a lekérdezés csak a szezon kulcsára épül (a második kulcs a szezon azonosítója): csapatváltáskor nincs új lekérdezés, szezonváltáskor van (3 lap, kb. 2650 sor); gyorsítótár nincs;
+  - nincs szezon-trend, forma és ellenfél-oldali bontás (pl. kapott 3P%): külön egység.
 - **Meccs-lekérdezés gyorsítótára:** a `useTeamGames` nem tárol; csapat- vagy szezonváltáskor (és a tabra visszalépve) újra lekérdez (kb. 100 sor). Ha zavaró, kulcsolt közös tároló kell – az adatréteg-döntés.
 - **Tabella-tábla sémája:** a döntés megvan (kell külön tábla, 2026-10-10), de az oszlopokat (kiemelés, GB, sorozat, clinch, hazai/idegen mérleg, utolsó 10) a migráció megírása előtt egyeztetni kell.
 - **Alapértelmezett szezon hosszú távon:** most a 2025/26-os (tesztelés); a 2026/27 indulása (2026-10-20) után felül kell vizsgálni.

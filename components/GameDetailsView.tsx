@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { BoxScoreTable, TeamComparisonTable } from '@/components/BoxScoreTables';
 import { DataLoadError } from '@/components/DataLoadError';
 import { GameResultBadges } from '@/components/GamesTables';
+import { PostgameReportPanel } from '@/components/PostgameReportPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useGameBoxScore } from '@/hooks/useBoxScoreData';
@@ -67,7 +68,7 @@ export function GameDetailsView({ seasonId, game, team, opponent, onBack }: Game
       ) : boxScore.loading || !boxScore.data ? (
         <BoxScoreSkeleton />
       ) : (
-        <BoxScore teams={boxScore.data} game={game} team={team} opponent={opponent} />
+        <BoxScore seasonId={seasonId} teams={boxScore.data} game={game} team={team} opponent={opponent} />
       )}
     </div>
   );
@@ -137,13 +138,14 @@ function TeamSide({ team, reversed = false }: { team: Team | undefined; reversed
 }
 
 interface BoxScoreProps {
+  seasonId: string;
   teams: BoxScoreTeam[];
   game: TeamGame;
   team: Team;
   opponent: Team | undefined;
 }
 
-function BoxScore({ teams, game, team, opponent }: BoxScoreProps) {
+function BoxScore({ seasonId, teams, game, team, opponent }: BoxScoreProps) {
   const own = teams.find(side => side.teamId === team.id);
   const other = teams.find(side => side.teamId === game.opponentTeamId);
   const sides = [
@@ -157,6 +159,8 @@ function BoxScore({ teams, game, team, opponent }: BoxScoreProps) {
 
   return (
     <>
+      <PostgameReportPanel seasonId={seasonId} boxScore={teams} game={game} team={team} opponent={opponent} />
+
       {(own?.totals || other?.totals) && (
         <section className="animate-fade-slide-up">
           <h2 className="mb-3 text-xl">Csapatstatisztika</h2>

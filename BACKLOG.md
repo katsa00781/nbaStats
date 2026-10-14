@@ -78,6 +78,9 @@ Szerkezet:
 - [ ] **A Meccs utáni riport ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Mérkőzések* → Rájátszás → 2026. 05. 11. „Box score”: a box score fölött „Meccs utáni riport” – kártyák (Eredmény 110–115, ORtg 112.0, DRtg 117.1, NetRtg −5.1 a szezonátlag-referenciával), összefoglaló (fő ok: védekezés), kulcsmutató-tábla, döntő tényezők, játékos-tábla (legfelül Jaxson Hayes, „Stabil alappillér (padról)”); alapszakasz-meccsen (2026. 01. 18., Toronto) Ayton „Elsődleges motor”; képernyőképen is átnézni (T32); a konzol hibamentes
 - [ ] **A `postgame-report` / `player-postgame` NBA-kalibrációja (döntés kell):** a per-meccs VAL-küszöbök és több szöveges küszöb ASEStats-értéken áll, részletek a progress-tracker „Nyitott kérdések / Meccs utáni riport” pontjában
 - [ ] Meccs utáni riport: dobástérkép (NBA-geometria, roadmap 5.), lineup, clutch, pontforrások, negyedek (linescore nincs), X-faktor visszacsatolás (a Scouting riportjának mentése kell hozzá)
+- [x] **Markdown export** (vágólapra): meccs utáni riport, box score, csapatstatisztika (+ Csapat-elemzés), játékos szezonértékelés (+ Játékos-elemzés) – `lib/export-to-md.ts`, `components/CopyMarkdownButton.tsx` – 2026-10-14
+- [ ] **A Markdown exportok ellenőrzése böngészőben (felhasználó):** Meccs-részletek: „Box score MD” és a riport „Riport MD” gombja; Csapatstatisztika: „Csapat MD”; Játékos-részletek: „Játékos MD” – kattintás után toast, a vágólap tartalma beilleszthető (táblák, nincs `NaN` / `undefined`)
+- [ ] Markdown export: Scouting riport (`pregameReportToMd`), Szituációk, Tabella; fájlletöltés; meccsnapló-export
 - [ ] `player-postgame` önálló nézet / játékos-szintű riport a Játékos-részletekben (a motor már megvan, a meccs utáni játékostábla a riportban látszik)
 - [ ] Scouting: dobásprofil (`shotProfiles`: saját, ellenfél, liga, kapott zónák a `shot_events`-ből; NBA-geometria döntés kell) és sérülés-kontextus (az adatbázisban nincs sérülésadat)
 - [ ] `player-analysis`: forma-trend riport (`PlayerTrend`, utolsó 5 meccs) és hasonlósági mutató – meccsenkénti bemenet kell, külön egység
@@ -126,6 +129,16 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-14 – Markdown export (vágólapra) ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** AI riport nem kell, csak az MD export; kell: meccs utáni riport, csapatstatisztika, játékos és box score; a Scouting nem; csak vágólapra másolás (nincs fájlletöltés).
+- **`lib/export-to-md.ts` (új):** négy tiszta függvény az ASEStats `export-to-md` szakaszszerkezetét követve, de az NBA adattípusaira írva (az ASEStats-függvények Kosarstat-típusokra épülnek, szó szerinti port nem lett volna értelmes): `postgameReportToMd` (kulcsmutatók ▲/▼ iránnyal és liga mediánnal, ellenfél, box score, dobásprofil, döntő tényezők, játékos bontás, erősségek / problémák / fókusz, kiemelések, adatminőség, összefoglalás), `gameBoxScoreToMd` (csapatstatisztika, fejlett mutatók, mindkét csapat játékostáblája, DNP, összeg-eltérés), `teamStatsToMd` (alap- és fejlett mutatók a liga átlaggal és helyezéssel + Csapat-elemzés: liga-profil, erősségek, limitációk, kockázatok, védekezési profil, roster), `playerSeasonToMd` (átlagok és /36, százalékok, Játékos-elemzés skill-pontokkal és haladó blokkokkal, utolsó 10 meccs). A lábjegyzetek a kódbeli küszöbökből (`player-postgame` konstansai, exportálva) és a mi definícióinkból (T14, T17) épülnek; az Impact küszöbök NBA-kalibrációjára hivatkoznak.
+- **`components/CopyMarkdownButton.tsx` (új):** `navigator.clipboard`, a szöveg kattintáskor épül fel; toast és rövid pipa. Bekötés: `GameDetailsView` („Box score MD”), `PostgameReportPanel` („Riport MD”, csak kész riportnál), `TeamStatsView` („Csapat MD”, a liga játékosainak betöltéséig letiltva; a Csapat-elemzést kattintáskor számolja), `PlayerDetailsView` („Játékos MD”). A `GamesView` / `PlayersView` a `seasonName` propot adja tovább.
+- **Dokumentáció:** `CLAUDE.md`, `context/architecture.md`, `context/progress-tracker.md`.
+- **Ellenőrzés:** valós DB (2025/26): a Lakers–Thunder 2026. 05. 11-i meccs riportja és box score-ja, a Lakers alapszakasz csapatexportja (Csapat-elemzéssel), Luka Doncic játékos-exportja: nincs `NaN` / `undefined` / `[object`, minden táblasor oszlopszáma egyezik; `tsc`, `eslint`, `build` hibátlan.
+- **Nem ellenőrzött:** a vágólap böngészőben (a `navigator.clipboard` biztonságos környezetet kér: `localhost` vagy https), képernyőkép (T32).
+- **Ismert korlát:** nincs Scouting-, Szituációk- és Tabella-export; a játékos-export a meccsnaplóból csak az utolsó 10 meccset adja; negyedek, lineup, dobástérkép nincs.
 
 ### 2026-10-14 – Meccs utáni riport: a `postgame-report` és a `player-postgame` motor portja ✓ (éles böngészős próba hátravan)
 

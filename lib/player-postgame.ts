@@ -182,19 +182,19 @@ const mapImpactLabel = (impactClass: PlayerImpactClass) => {
  * játszók fele „Limitált hatás” lett (a 30+ percet játszóknak is 37%-a). A küszöbök az
  * eloszlás P70 / P25 értékéhez kerültek (47 / 25).
  */
-const ENGINE_MIN_SCORE = 47;
-const SUPPORT_MIN_SCORE = 25;
+export const ENGINE_MIN_SCORE = 47;
+export const SUPPORT_MIN_SCORE = 25;
 
 /** Elég játékidő az `engine` osztályhoz: 16 perc, kezdőnél 12. */
-const ENGINE_MINUTES = scaleMinutes(16);
-const ENGINE_STARTER_MINUTES = scaleMinutes(12);
+export const ENGINE_MINUTES = scaleMinutes(16);
+export const ENGINE_STARTER_MINUTES = scaleMinutes(12);
 const hasEngineMinutes = (minutes: number, isStarter: boolean) =>
   minutes >= ENGINE_MINUTES || (isStarter && minutes >= ENGINE_STARTER_MINUTES);
 
 /** A „Hatékony szerepjátékos” küszöbei: VAL/36, TS% és játékidő alacsony usage mellett. */
-const ROLE_PLAYER_MIN_VAL_PER36 = 18;
-const ROLE_PLAYER_MIN_TS_PCT = 55;
-const ROLE_PLAYER_MIN_MINUTES = scaleMinutes(12);
+export const ROLE_PLAYER_MIN_VAL_PER36 = 18;
+export const ROLE_PLAYER_MIN_TS_PCT = 55;
+export const ROLE_PLAYER_MIN_MINUTES = scaleMinutes(12);
 
 /**
  * Hatékony szerepjátékos: alacsony usage (≤ 15%) mellett erős és hatékony

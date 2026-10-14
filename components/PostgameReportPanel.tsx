@@ -4,6 +4,7 @@ import type { BoxScoreTeam } from '@/lib/box-score-data';
 import type { TeamGame } from '@/lib/game-data';
 import type { Team } from '@/lib/master-data';
 import type { ReactNode } from 'react';
+import { CopyMarkdownButton } from '@/components/CopyMarkdownButton';
 import { DataLoadError } from '@/components/DataLoadError';
 import {
   PostgameFactors,
@@ -16,11 +17,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useLeaguePlayerTotals } from '@/hooks/useLeaguePlayerData';
 import { useLeagueTeamStats } from '@/hooks/useTeamStatsData';
 import { buildGameReport } from '@/lib/adapters/postgame-adapter';
+import { postgameReportToMd } from '@/lib/export-to-md';
+import { seasonTypeLabel } from '@/lib/season-types';
 import { AlertTriangle, Info } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface PostgameReportPanelProps {
   seasonId: string;
+  seasonName: string;
   /** A meccs box score-ja (már betöltve): a riport alapja. */
   boxScore: BoxScoreTeam[];
   /** A meccs a kiválasztott csapat nézőpontjából. */
@@ -33,7 +37,7 @@ interface PostgameReportPanelProps {
 // mutatóit a szezonátlaghoz (a meccs nélkül) és a liga mediánhoz méri a motor
 // (lib/postgame-report.ts). A szezon csapat- és játékos-összesítőit a Csapatstatisztika és
 // a Játékos-elemzés hookjai adják, ezért új lekérdezés nincs.
-export function PostgameReportPanel({ seasonId, boxScore, game, team, opponent }: PostgameReportPanelProps) {
+export function PostgameReportPanel({ seasonId, seasonName, boxScore, game, team, opponent }: PostgameReportPanelProps) {
   const league = useLeagueTeamStats(seasonId);
   const leaguePlayers = useLeaguePlayerTotals(seasonId);
 
@@ -95,7 +99,24 @@ export function PostgameReportPanel({ seasonId, boxScore, game, team, opponent }
   return (
     <section className="flex flex-col gap-6">
       <div>
-        <h2 className="text-xl">Meccs utáni riport</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl">Meccs utáni riport</h2>
+          {outcome?.status === 'ready' && (
+            <CopyMarkdownButton
+              label="Riport MD"
+              build={() =>
+                postgameReportToMd(outcome.report, {
+                  seasonName,
+                  gameDate: game.gameDate,
+                  stageLabel: seasonTypeLabel(game.seasonType),
+                  isHome: game.isHome,
+                  venue: game.venue,
+                  hasLeagueBenchmark: outcome.hasLeagueBenchmark,
+                })
+              }
+            />
+          )}
+        </div>
         <p className="mt-1 text-sm text-secondary">
           A meccs mutatói a(z) {team.name} szezonátlagához (a meccs nélkül, kis mintánál a liga mediánhoz) és a liga
           mediánhoz mérve. A birtoklásszám a két csapaté közös átlaga, a hatás-pontszám a VAL/36, a TS% és a használat

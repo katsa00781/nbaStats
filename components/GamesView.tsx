@@ -64,6 +64,7 @@ export function GamesView({ selection }: GamesViewProps) {
       <GameDetailsView
         key={openedGame.id}
         seasonId={season.id}
+        seasonName={season.name}
         game={openedGame}
         team={team}
         opponent={teamsById.get(openedGame.opponentTeamId)}

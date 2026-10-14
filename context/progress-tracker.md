@@ -69,6 +69,8 @@
 
 - **Meccs utáni riport kész (2026-10-14):** a `postgame-report` és a `player-postgame` motor portja (`lib/postgame-report.ts`, `lib/player-postgame.ts`), adapterrel (`lib/adapters/postgame-adapter.ts`) és `PostgameReportPanel` / `PostgameReportBlocks` a Meccs-részletekben. Egy lezárt meccs a kiválasztott csapat nézőpontjából: ratingek, döntő tényezők, erősségek / problémák, következő fókusz, ellenfél profil, játékos-hatás táblával. Döntések (felhasználó): két motor egy lépésben; a Meccs-részletek új szekciója; dobástérkép, lineup, clutch, pontforrás nélkül. Új lekérdezés nincs. Ellenőrizve: valós DB (három Lakers-meccs, az Impact osztályok eloszlása, 6 meccs szerveroldali renderje), `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 20.).
 
+- **Markdown export kész (2026-10-14):** `lib/export-to-md.ts` (meccs utáni riport, box score, csapatstatisztika + Csapat-elemzés, játékos szezonértékelés + Játékos-elemzés) és a `CopyMarkdownButton` (csak vágólapra másolás) a Meccs-részletekben, a Csapatstatisztikában és a Játékos-részletekben. Döntések (felhasználó): AI riport nincs, csak az MD export; a Scouting nem; nincs fájlletöltés. Új lekérdezés nincs. Ellenőrizve: valós DB (4 export, nincs `NaN` / `undefined`, táblák épek), `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 21.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -108,6 +110,8 @@
 
 20. **A Meccs utáni riport kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Mérkőzések* → Rájátszás fül → 2026. 05. 11. „Box score”. Várt: a fejléc alatt „Meccs utáni riport”; kártyák (Eredmény 110–115 Vereség, ORtg 112.0 / DRtg 117.1 / NetRtg −5.1, szezonátlag-referenciával), összefoglaló („Fő ok: a hátrányt elsősorban a védekezés alakította”), kulcsmutató-tábla, döntő tényezők (Labdabiztonsági hátrány TO rate 17.9% vs 11.6%), játékos-tábla (legfelül Jaxson Hayes „Stabil alappillér (padról)”, Ayton „Rotációs hozzájárulás”, Kennard „Limitált hatás”); alatta a Csapatstatisztika és a box score; Alapszakasz 2026. 01. 18. (Toronto): Ayton „Elsődleges motor”; képernyőképen is átnézni (T32); a konzol hibamentes.
 
+21. **A Markdown exportok kipróbálása böngészőben:** `npm run dev`, bejelentkezés. *Liga → Mérkőzések* → Rájátszás → 2026. 05. 11. „Box score”: „Box score MD” (a lap tetején) és a „Meccs utáni riport” fejlécében „Riport MD”; *Analitika → Csapatstatisztika*: „Csapat MD”; *Analitika → Játékosok* → Luka Doncic: „Játékos MD”. Várt: toast („…a vágólapra másolva”), a gomb rövid ideig pipa; beillesztve Markdown, rendezett táblákkal (a riport első sora „# Postgame elemzés: Los Angeles Lakers vs Oklahoma City Thunder”, kulcsmutató-tábla ▲/▼ jelekkel); a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -136,7 +140,7 @@
    - ~~`pregame-scouting` + Scouting nézet~~: kész (2026-10-14), éles böngészős próba a felhasználónál;
    - ~~`postgame-report` + `player-postgame` + Meccs utáni riport a Meccs-részletekben~~: kész (2026-10-14), éles böngészős próba a felhasználónál;
    - mind a hat elemző motor portolva.
-4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
+4. **AI riportok** (a felhasználó döntése, 2026-10-14: nem kell; csak a Markdown export készült el): pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
 6. **Opcionális:** play-by-play (win probability, run-ok, clutch). Ehhez Supabase tier-döntés kell.
 

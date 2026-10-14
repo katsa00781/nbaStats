@@ -52,6 +52,7 @@ export function PlayersView({ selection }: PlayersViewProps) {
       <PlayerDetailsView
         key={openedPlayerId}
         seasonId={season.id}
+        seasonName={season.name}
         team={team}
         playerRows={openedRows}
         teamsById={teamsById}

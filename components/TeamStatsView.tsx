@@ -7,6 +7,7 @@ import type { Team } from '@/lib/master-data';
 import type { PlayerSeasonStats } from '@/lib/player-data';
 import type { TeamStageStats } from '@/lib/team-stats-data';
 import type { ReactNode } from 'react';
+import { CopyMarkdownButton } from '@/components/CopyMarkdownButton';
 import { DataLoadError } from '@/components/DataLoadError';
 import { TeamAnalysisPanel } from '@/components/TeamAnalysisPanel';
 import { formatMetricValue, formatRank, TeamStatsTable } from '@/components/TeamStatsTable';
@@ -16,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLeaguePlayerTotals } from '@/hooks/useLeaguePlayerData';
 import { useTeamPlayerStats } from '@/hooks/usePlayerData';
 import { useLeagueTeamStats } from '@/hooks/useTeamStatsData';
+import { analyzeStageTeam } from '@/lib/adapters/team-analysis-adapter';
+import { teamStatsToMd } from '@/lib/export-to-md';
 import { orderSeasonTypes, resolveSeasonType, seasonTypeLabel } from '@/lib/season-types';
 import { buildTeamMetricRows } from '@/lib/team-stats-metrics';
 import { useMemo, useState } from 'react';
@@ -83,6 +86,7 @@ export function TeamStatsView({ selection }: TeamStatsViewProps) {
             stageStats={league.data?.stats.filter(s => s.seasonType === type) ?? []}
             teamId={team.id}
             teamName={team.name}
+            seasonName={season.name}
             seasonType={type}
             teams={selection.teams}
             leaguePlayers={leaguePlayers}
@@ -98,13 +102,14 @@ interface TeamStatsStageProps {
   stageStats: TeamStageStats[];
   teamId: string;
   teamName: string;
+  seasonName: string;
   seasonType: number;
   teams: readonly Team[];
   leaguePlayers: SeasonScopedResourceState<LeaguePlayerTotals[]>;
   teamPlayers: SeasonScopedResourceState<PlayerSeasonStats[]>;
 }
 
-function TeamStatsStage({ stageStats, teamId, teamName, seasonType, teams, leaguePlayers, teamPlayers }: TeamStatsStageProps) {
+function TeamStatsStage({ stageStats, teamId, teamName, seasonName, seasonType, teams, leaguePlayers, teamPlayers }: TeamStatsStageProps) {
   const rows = useMemo(() => buildTeamMetricRows(stageStats, teamId), [stageStats, teamId]);
   const games = stageStats.find(s => s.teamId === teamId)?.games ?? 0;
   const basic = rows.filter(row => row.metric.group === 'basic');
@@ -117,8 +122,30 @@ function TeamStatsStage({ stageStats, teamId, teamName, seasonType, teams, leagu
     { key: 'netRating', label: 'NetRtg', icon: <Scale {...STAT_ICON_PROPS} />, accent: 'green' as const },
   ];
 
+  // A Csapat-elemzés kimenete az exportba csak kattintáskor számolódik (a panel a sajátját számolja).
+  const exportMarkdown = () => {
+    const outcome = leaguePlayers.data
+      ? analyzeStageTeam(stageStats, leaguePlayers.data, teamId, seasonType, {
+          teamNames: new Map(teams.map(item => [item.id, item.name])),
+          playerNames: new Map((teamPlayers.data ?? []).map(player => [player.playerId, player.name])),
+        })
+      : null;
+    return teamStatsToMd({
+      seasonName,
+      stageLabel: seasonTypeLabel(seasonType),
+      teamName,
+      games,
+      rows,
+      analysis: outcome?.status === 'ready' ? outcome.analysis : null,
+      leagueTeams: rows[0]?.of ?? 0,
+    });
+  };
+
   return (
     <div className="flex flex-col gap-8">
+      <div className="flex justify-end">
+        <CopyMarkdownButton label="Csapat MD" build={exportMarkdown} disabled={!leaguePlayers.data} />
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {headline.map((card, index) => {
           const row = byKey(card.key);

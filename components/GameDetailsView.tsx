@@ -7,10 +7,12 @@ import type { ReactNode } from 'react';
 import { BoxScoreTable, TeamComparisonTable } from '@/components/BoxScoreTables';
 import { DataLoadError } from '@/components/DataLoadError';
 import { GameResultBadges } from '@/components/GamesTables';
+import { CopyMarkdownButton } from '@/components/CopyMarkdownButton';
 import { PostgameReportPanel } from '@/components/PostgameReportPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useGameBoxScore } from '@/hooks/useBoxScoreData';
+import { gameBoxScoreToMd } from '@/lib/export-to-md';
 import { formatGameDate } from '@/lib/format-date';
 import { seasonTypeLabel } from '@/lib/season-types';
 import { cn } from '@/lib/utils';
@@ -40,6 +42,7 @@ const SUMMED_STAT_LABELS: Record<SummedStat, string> = {
 
 interface GameDetailsViewProps {
   seasonId: string;
+  seasonName: string;
   /** A meccs a kiválasztott csapat nézőpontjából. */
   game: TeamGame;
   team: Team;
@@ -49,7 +52,7 @@ interface GameDetailsViewProps {
 
 // Meccs-részletek: eredmény-fejléc, a két csapat összesítője és a box score.
 // A kiválasztott csapat áll elöl, ahogy a Mérkőzések listában is.
-export function GameDetailsView({ seasonId, game, team, opponent, onBack }: GameDetailsViewProps) {
+export function GameDetailsView({ seasonId, seasonName, game, team, opponent, onBack }: GameDetailsViewProps) {
   const boxScore = useGameBoxScore(seasonId, game.id);
 
   return (
@@ -68,7 +71,7 @@ export function GameDetailsView({ seasonId, game, team, opponent, onBack }: Game
       ) : boxScore.loading || !boxScore.data ? (
         <BoxScoreSkeleton />
       ) : (
-        <BoxScore seasonId={seasonId} teams={boxScore.data} game={game} team={team} opponent={opponent} />
+        <BoxScore seasonId={seasonId} seasonName={seasonName} teams={boxScore.data} game={game} team={team} opponent={opponent} />
       )}
     </div>
   );
@@ -139,13 +142,14 @@ function TeamSide({ team, reversed = false }: { team: Team | undefined; reversed
 
 interface BoxScoreProps {
   seasonId: string;
+  seasonName: string;
   teams: BoxScoreTeam[];
   game: TeamGame;
   team: Team;
   opponent: Team | undefined;
 }
 
-function BoxScore({ seasonId, teams, game, team, opponent }: BoxScoreProps) {
+function BoxScore({ seasonId, seasonName, teams, game, team, opponent }: BoxScoreProps) {
   const own = teams.find(side => side.teamId === team.id);
   const other = teams.find(side => side.teamId === game.opponentTeamId);
   const sides = [
@@ -159,7 +163,35 @@ function BoxScore({ seasonId, teams, game, team, opponent }: BoxScoreProps) {
 
   return (
     <>
-      <PostgameReportPanel seasonId={seasonId} boxScore={teams} game={game} team={team} opponent={opponent} />
+      <div className="flex justify-end">
+        <CopyMarkdownButton
+          label="Box score MD"
+          build={() =>
+            gameBoxScoreToMd({
+              seasonName,
+              stageLabel: seasonTypeLabel(game.seasonType),
+              gameDate: game.gameDate,
+              isHome: game.isHome,
+              venue: game.venue,
+              teamName: team.name,
+              opponentName: opponent?.name ?? UNKNOWN_TEAM,
+              teamScore: game.teamScore,
+              opponentScore: game.opponentScore,
+              own,
+              opponent: other,
+            })
+          }
+        />
+      </div>
+
+      <PostgameReportPanel
+        seasonId={seasonId}
+        seasonName={seasonName}
+        boxScore={teams}
+        game={game}
+        team={team}
+        opponent={opponent}
+      />
 
       {(own?.totals || other?.totals) && (
         <section className="animate-fade-slide-up">

@@ -4,6 +4,7 @@ import type { Team } from '@/lib/master-data';
 import type { PlayerSeasonStats } from '@/lib/player-data';
 import type { PlayerGameLog, PlayerGameLogAbsence } from '@/lib/player-game-log-data';
 import type { ReactNode } from 'react';
+import { CopyMarkdownButton } from '@/components/CopyMarkdownButton';
 import { DataLoadError } from '@/components/DataLoadError';
 import { PlayerAnalysisPanel } from '@/components/PlayerAnalysisPanel';
 import { PlayerGameLogTable } from '@/components/PlayerGameLogTable';
@@ -14,6 +15,8 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLeaguePlayerTotals } from '@/hooks/useLeaguePlayerData';
 import { usePlayerGameLog } from '@/hooks/usePlayerGameLogData';
+import { analyzeStagePlayer, buildStageBenchmarks } from '@/lib/adapters/player-analysis-adapter';
+import { playerSeasonToMd } from '@/lib/export-to-md';
 import { orderSeasonTypes, resolveSeasonType, seasonTypeLabel } from '@/lib/season-types';
 import Image from 'next/image';
 import { ArrowLeft, CalendarCheck, CalendarX, Grab, Handshake, Target } from 'lucide-react';
@@ -28,6 +31,7 @@ type TeamsById = ReadonlyMap<string, Team>;
 
 interface PlayerDetailsViewProps {
   seasonId: string;
+  seasonName: string;
   /** A kiválasztott csapat: a napló az ő színeiben játszott meccseket mutatja. */
   team: Team;
   /** A játékos szezon-összesítő sorai ennél a csapatnál, szakaszonként egy (nem üres). */
@@ -43,6 +47,7 @@ interface PlayerDetailsViewProps {
 // A fejléc és az átlagok a lista már betöltött soraiból jönnek, lekérdezés nélkül.
 export function PlayerDetailsView({
   seasonId,
+  seasonName,
   team,
   playerRows,
   teamsById,
@@ -77,6 +82,33 @@ export function PlayerDetailsView({
         )}
         {playerRows.map(row => (
           <TabsContent key={row.seasonType} value={String(row.seasonType)} className="flex flex-col gap-8">
+            <div className="flex justify-end">
+              <CopyMarkdownButton
+                label="Játékos MD"
+                disabled={!league.data || !log.data}
+                build={() => {
+                  const totals = league.data ?? [];
+                  const analysis = analyzeStagePlayer(
+                    totals,
+                    buildStageBenchmarks(totals, row.seasonType),
+                    row.playerId,
+                    team.id,
+                    row.seasonType,
+                  );
+                  return playerSeasonToMd({
+                    seasonName,
+                    stageLabel: seasonTypeLabel(row.seasonType),
+                    teamName: team.name,
+                    player: row,
+                    played: (log.data?.played ?? []).filter(
+                      entry => entry.teamId === team.id && entry.game.seasonType === row.seasonType,
+                    ),
+                    opponentName: teamId => teamsById.get(teamId)?.name ?? 'Ismeretlen csapat',
+                    analysis,
+                  });
+                }}
+              />
+            </div>
             <StageAverages row={row} />
             <PlayerAnalysisPanel
               league={league}

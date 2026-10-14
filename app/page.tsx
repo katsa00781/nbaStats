@@ -8,6 +8,7 @@ import { GamesView } from '@/components/GamesView';
 import { LoginForm } from '@/components/LoginForm';
 import { PlayersView } from '@/components/PlayersView';
 import { SeasonTeamSelector } from '@/components/SeasonTeamSelector';
+import { ScoutingView } from '@/components/ScoutingView';
 import { SituationalView } from '@/components/SituationalView';
 import { StandingsView } from '@/components/StandingsView';
 import { TeamStatsView } from '@/components/TeamStatsView';
@@ -75,6 +76,8 @@ function AppShell({ userEmail, isAdmin, onSignOut }: AppShellProps) {
           <StandingsView selection={selection} />
         ) : activeTab === 'situational' ? (
           <SituationalView selection={selection} />
+        ) : activeTab === 'scouting' ? (
+          <ScoutingView selection={selection} />
         ) : (
           <Card className="animate-fade-slide-up">
             <CardContent className="flex items-center gap-3 py-8 text-secondary">

@@ -1,6 +1,6 @@
 # Backlog
 
-Utolsó frissítés: 2026-10-12
+Utolsó frissítés: 2026-10-14
 
 Szerkezet:
 1. Nyitott feladatok
@@ -71,7 +71,11 @@ Szerkezet:
 - [x] Elemző motor 3/4: **team-analysis** portolva (`lib/team-analysis.ts`) + adapter (`lib/adapters/team-analysis-adapter.ts`) + **Csapat-elemzés** szekció a Csapatstatisztikában (`TeamAnalysisPanel` / `TeamAnalysisBlocks`) – 2026-10-12
 - [ ] **A Csapat-elemzés ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Csapatstatisztika* → 2025/2026 + Lakers, az alsó táblák alatt „Csapat-elemzés": jelvények („Kiegyensúlyozott támadás", „Kevés faultos védekezés", „Perimétervédelem", „Gyors, belső fókuszú"), 11 sávos liga-profil (Tempó 100.7 / 27, FT rate 0.244 / 95, ORtg 115.4 / 85, NetRtg +1.7 / 61), erősségek / limitációk / kockázatok, Védekezési profil és Roster (10 alkalmas játékos, 3&D Wing · 5, Secondary Playmaker · 6); Rájátszás fül: sárga figyelmeztetés a vékony rosterről (2 alkalmas játékos); csapatváltáskor a szekció frissül; képernyőképen is átnézni (T32); a konzol hibamentes
 - [ ] **A `team-analysis` NBA-kalibrációja (döntés kell):** a roster-jelzések és néhány szöveges küszöb ASEStats-értéken áll, részletek a progress-tracker „Nyitott kérdések / Csapat-elemzés" pontjában
-- [ ] Következő motorok (roadmap 3.): `pregame-scouting`, `postgame-report`, `player-postgame` (az adapter-minta a `lib/adapters/`-ban)
+- [x] Elemző motor 4/6: **pregame-scouting** portolva (`lib/pregame-scouting.ts`) + adapter (`lib/adapters/pregame-adapter.ts`) + **Scouting** nézet (`ScoutingView`, új tab: Analitika → Scouting) – 2026-10-14
+- [ ] **A Scouting ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Analitika → Scouting* → 2025/2026 + Lakers: az ellenfél az utolsó lejátszott meccsé (Oklahoma City Thunder), négy kártya (Nyerési esély 35.5%, Várható győztes OKC, Bizonyosság Közepes), profilok, csapatmutató-tábla, 5 poszt-párharc (PG +9.1, PF −6.0), kulcsjátékosok névvel (Shai Gilgeous-Alexander, Luka Doncic), forgatókönyvek; ellenfelet váltva frissül; Rájátszás fül (Lakers–OKC: 8% esély); play-in/kis minta: tájékoztató üzenet; képernyőképen is átnézni (T32); a konzol hibamentes
+- [ ] **A `pregame-scouting` NBA-kalibrációja és a nyerési esély tesztelése (döntés kell):** a modell nem kalibrált, részletek a progress-tracker „Nyitott kérdések / Scouting” pontjában
+- [ ] Következő motorok (roadmap 3.): `postgame-report`, `player-postgame` (az adapter-minta a `lib/adapters/`-ban)
+- [ ] Scouting: dobásprofil (`shotProfiles`: saját, ellenfél, liga, kapott zónák a `shot_events`-ből; NBA-geometria döntés kell) és sérülés-kontextus (az adatbázisban nincs sérülésadat)
 - [ ] `player-analysis`: forma-trend riport (`PlayerTrend`, utolsó 5 meccs) és hasonlósági mutató – meccsenkénti bemenet kell, külön egység
 - [ ] Negyedenkénti eredmény (linescore) a Meccs-részletekbe: a `games` táblában nincs ilyen oszlop → migráció + import-bővítés, **döntés kell**
 - [ ] Ligaszintű játékoslista (ranglista a 30 csapatra, a cserélt játékos sorainak összevonásával) – előtte döntés kell a csapatszűrő szerepéről a ligás nézetekben
@@ -118,6 +122,17 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-14 – Scouting: a `pregame-scouting` motor portja ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** a következő motor a `pregame-scouting`; új tab (*Analitika → Scouting*), az ellenfelet a nézetben lehet választani; az első körben dobásprofil és sérülés-kontextus nélkül.
+- **`lib/pregame-scouting.ts` (új):** az ASEStats motor portja (2266 sor): csapatstílus, nyerési esély (rating-különbség + poszt-párharc korrekció), poszt-párharc, kulcsjátékosok, X-faktor, forgatókönyvek, kockázati forgatókönyvek, szabály-alapú összefoglaló. Eltérések: a csapatmutatók a Csapatstatisztika definícióit követik (T14 közös birtoklásszámból számolt, 48 percre vetített tempó; Oliver-féle TO%; T17 FT-mutató = FTM / FGA; `lib/stat-formulas.ts`, T22); nincs magasság; a dobásprofil és a sérülés-kontextus bemenete megvan, de az adapter nem tölti; a magyar névelő javítva („az irányító”, az ASEStats „a irányító” hibája helyett); a `POSITION_LABELS` exportált.
+- **`lib/adapters/pregame-adapter.ts` (új):** `scoutStageOpponent()`: a `TeamStageStats` → a motor `TeamSeasonStat`-ja (a benchmark-pool a szakasz ≥ 10 meccset játszott csapatai, min. 8 csapat; liga = „NBA”, szezon = a szakasz kódja); a rotáció (≥ 5 meccs, ≥ 10 perc/meccs) a `LeaguePlayerTotals`-ból a Játékos-elemzés posztjaival és szerepköreivel. **A poszt-vödör egyetlen, a statisztikailag illesztett poszt:** az ESPN G / F / C jelölésének vödrei (G → PG + SG, F → SF + PF) a PG és SG, illetve SF és PF sorát azonos adattal, dupla súllyal számolták (valós adaton: azonos VAL/36 a két posztra). Eredmény: `ready` / `no-data` / `small-sample` / `no-benchmark`.
+- **`components/ScoutingView.tsx`, `ScoutingSummaryBlocks.tsx`, `ScoutingMatchupBlocks.tsx` (új):** ellenfél-választó (alapból a csapat következő le nem játszott meccsének ellenfele, lezárt szezonban az utolsó lejátszotté), szakasz-fülek (ahol mindkét csapatnak van meccse), négy kártya, összefoglaló (profilok, veszélyek, sebezhetőségek, fókuszpontok, játékterv, tartalék terv), csapatmutató-tábla, poszt-párharcok, kulcsjátékosok, a rotáció legjobbjai, forgatókönyvek, „ha bekövetkezik”; skeleton / `DataLoadError` / tájékoztató üzenet. **`components/AppSidebar.tsx`, `app/page.tsx`:** új `scouting` tab.
+- **Dokumentáció:** `CLAUDE.md`, `context/architecture.md`, `context/project-overview.md`, `context/progress-tracker.md`.
+- **Ellenőrzés:** valós DB (2025/26): Lakers–Thunder alapszakasz 35.5% / 64.5% (Közepes), rotáció 14 / 16 játékos, 5 különálló poszt-párharc, a kulcsjátékosok névvel; Lakers–Celtics 46.9% (Alacsony); rájátszás 8% / 92%; play-in: nincs adat. A komponensek szerveroldali renderje valós adatból (45 kB, nincs `NaN` / `undefined`); `tsc`, `eslint`, `build` hibátlan.
+- **Nem ellenőrzött:** böngészős futás, képernyőkép (T32).
+- **Ismert korlát:** a nyerési esély nem kalibrált (a logisztikus skála ASEStats-érték), rájátszásban 8 csapatos poolnál szélsőséges lehet (a 8% / 92% a modell alsó/felső határa); a kulcsjátékos-küszöbök (AST ≥ 2.5/meccs, 3PA ≥ 1.5/meccs) ASEStats-értéken állnak.
 
 ### 2026-10-12 – Csapat-elemzés: a `team-analysis` motor portja ✓ (éles böngészős próba hátravan)
 

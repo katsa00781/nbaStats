@@ -11,6 +11,7 @@ import {
   Trophy,
   Calendar,
   ClipboardList,
+  Swords,
   DatabaseZap,
   ChevronLeft,
 } from 'lucide-react';
@@ -42,6 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: 'teamstats', label: 'Csapatstatisztika', icon: BarChart3 },
       { key: 'comparison', label: 'Elemzések', icon: Sparkles, tone: 'ai' },
       { key: 'situational', label: 'Szituációk', icon: Target },
+      { key: 'scouting', label: 'Scouting', icon: Swords },
     ],
   },
   {

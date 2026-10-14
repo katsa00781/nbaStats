@@ -65,6 +65,8 @@
 
 - **Csapat-elemzés kész (2026-10-12):** a `team-analysis` motor portja (`lib/team-analysis.ts`), adapterrel (`lib/adapters/team-analysis-adapter.ts`) és a `TeamAnalysisPanel` / `TeamAnalysisBlocks` a Csapatstatisztika nézetben. Stílus, klaszter, 11 sávos liga-profil, erősségek / limitációk / kockázatok, védekezési profil és roster a szakasz (≥ 10 meccset játszott) csapatai között. Döntések (felhasználó): a Csapatstatisztika új szekciója; a benchmark szakaszonként a 30 csapatból. Ellenőrizve: valós DB (Lakers ORtg 115.4 = a Csapatstatisztika értéke, 30 csapatra lefut, a komponensek szerveroldali renderje valós adatból), `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 18.).
 
+- **Scouting kész (2026-10-14):** a `pregame-scouting` motor portja (`lib/pregame-scouting.ts`), adapterrel (`lib/adapters/pregame-adapter.ts`) és `ScoutingView` / `ScoutingSummaryBlocks` / `ScoutingMatchupBlocks` az új *Analitika → Scouting* tabon. A kiválasztott csapat meccs előtti elemzése egy választott ellenfél ellen: nyerési esély, stílus-profilok, veszélyek és sebezhetőségek, poszt-párharcok, kulcsjátékosok, X-faktor, forgatókönyvek. Döntések (felhasználó): ez a motor a következő; új tab, az ellenfél a nézetben választható; dobásprofil és sérülések nélkül. Új lekérdezés nincs (a Csapatstatisztika és a Játékos-elemzés hookjai). Ellenőrizve: valós DB (Lakers–Thunder alapszakasz 35.5% / 64.5%, 5 különálló poszt, kulcsjátékosok névvel), a komponensek szerveroldali renderje valós adatból, `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 19.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -100,6 +102,8 @@
 
 18. **A Csapat-elemzés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Csapatstatisztika*. Várt: 2025/2026 + Lakers mellett az alap- és fejlett mutatók alatt „Csapat-elemzés”; jelvények „Kiegyensúlyozott támadás”, „Kevés faultos védekezés”, „Perimétervédelem”, „Gyors, belső fókuszú”; liga-profil (Tempó 100.7 / 27, FT rate 0.244 / 95, ORtg 115.4 / 85, Net rating +1.7 / 61); Védekezési profil (sebezhető gyűrűvédekezés, stabil perimétervédekezés, erős védelmi lepattanózás); Roster: PG 14.3% … C 16.1%, „3&D Wing · 5”, „Secondary Playmaker · 6”; Rájátszás fül: figyelmeztetés a vékony rosterről („Csak 2 alkalmas játékos”); csapatváltáskor frissül; képernyőképen is átnézni (T32); a konzol hibamentes.
 
+19. **A Scouting kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Scouting*. Várt: 2025/2026 + Lakers mellett az Ellenfél mező Oklahoma City Thunder (az utolsó lejátszott meccs ellenfele); négy kártya (Nyerési esély 35.5% / ellenfél 64.5%, Várható győztes OKC, Bizonyosság Közepes, X-faktor swing); összefoglaló (profilok, veszélyek, fókuszpontok), csapatmutató-tábla (Tempó ~100.7 / 101.7), 5 poszt-párharc (PG +9.1, PF −6.0), kulcsjátékosok névvel (Shai Gilgeous-Alexander, Luka Doncic), a rotáció legjobbjai, forgatókönyvek; ellenfelet váltva frissül (Boston: 46.9%, Alacsony); Rájátszás fül (OKC ellen 8% / 92%); csapatváltáskor az ellenfél visszaáll az alapértelmezésre; képernyőképen is átnézni (T32); a konzol hibamentes.
+
 ## Következő lépések (roadmap)
 
 1. **Ingest teljesítése:**
@@ -125,7 +129,8 @@
    - ~~`situational-analysis` + Szituációk nézet~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
    - ~~`player-analysis` + Játékos-elemzés szekció~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
    - ~~`team-analysis` + Csapat-elemzés szekció a Csapatstatisztikában~~: kész (2026-10-12), éles böngészős próba a felhasználónál;
-   - hátravan: `pregame-scouting`, `postgame-report`, `player-postgame`.
+   - ~~`pregame-scouting` + Scouting nézet~~: kész (2026-10-14), éles böngészős próba a felhasználónál;
+   - hátravan: `postgame-report`, `player-postgame`.
 4. **AI riportok:** pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
 5. **NBA dobástérkép-geometria** és zóna heatmap.
 6. **Opcionális:** play-by-play (win probability, run-ok, clutch). Ehhez Supabase tier-döntés kell.
@@ -178,6 +183,16 @@
   - a csapat `val` értéke a csapat összesített box score-jából számolt `simpleValuation()` (a csapatszintű eladott labdákkal), nem a játékosok összege;
   - a posztfeloldás a Játékos-elemzés ESPN G / F / C → statisztikai illesztése (lásd fent), ezért a PG-perc kicsi (a Lakersnél 14%), és ez a „PG szűk rotáció” kockázatot gyakran kiváltja;
   - a számítás a böngészőben fut (kb. 50 ms), gyorsítótár nélkül; a nézet a liga játékosainak (kb. 1000 sor) és a csapat játékosainak lekérdezését is indítja (a Játékosok / Játékos-részletek nézetekkel azonos hookok, de nézetenként külön lekérdezéssel).
+- **Scouting – megvalósítási döntések, felülbírálhatók:**
+  - a saját csapat a globális csapatválasztóé (alapból a követett csapat), az ellenfél a nézet saját állapota; alapértelmezés: a csapat következő le nem játszott meccsének ellenfele, lezárt szezonban (2025/26) az utolsó lejátszotté. Az ellenfél-választás nem perzisztens;
+  - a riport szakaszonként készül, csak ott, ahol mindkét csapatnak van meccse; küszöb: mindkét csapat ≥ 10 meccs és legalább 8 csapat a poolban (azonos a Csapat-elemzéssel). A rájátszásban 2025/26-ban pont 8 csapat éri el, a play-inben egy sem;
+  - **poszt-vödör:** az ESPN G / F / C jelölése helyett a Játékos-elemző motor statisztikailag illesztett egy posztja (különben PG = SG és SF = PF azonos sorokat kapna, dupla súllyal). A PG-pool kicsi, ezért egyes csapatoknál a PG-hely a „combo guard” tartalék-szabályból töltődik;
+  - a rotáció: ≥ 5 meccs és ≥ 10 perc/meccs (saját érték; az ASEStats nem szűrt, a motor pedig a kulcsjátékosokat a teljes lista z-pontjaiból választja);
+  - **a nyerési esély nem kalibrált:** logisztikus függvény a percentilis-alapú rating-különbségen (osztó 18, ASEStats-érték), plusz a poszt-párharc korrekciója (±15 pont). Lakers–Thunder alapszakaszban 35.5%, rájátszásban 8% (az alsó határ, 8 csapatos pool). Visszamérés (a lezárt 1231 alapszakasz-meccsen a becsült és a tényleges kimenetel) külön egység;
+  - a kulcsjátékos-küszöbök (AST ≥ 2.5 és AST/TO ≥ 1.4 a játékszervezőknél, 3PA ≥ 1.5 és 3P% ≥ 34 a tripla-veszélynél) az ASEStats FIBA-értékei, NBA-kalibráció nélkül: a Lakersnél Doncic és Reaves mind a négy kulcsjátékos-listán szerepel. A szöveges megállapítások az ASEStats sablonjai;
+  - a „PER-proxy” és „WS-proxy” az ASEStats egyszerű becslései (nem a valódi PER / win share);
+  - dobásprofil-ütközés (`shotProfileContext`) és sérülés-kontextus nincs (a motorban megvan, az adapter nem tölti; sérülésadat az adatbázisban nincs);
+  - nincs magasság-alapú elem; a „Következő mérkőzés” sor csak a dátumot és a pályaválasztást írja ki; az ellenfél-lista a 29 másik csapat, a konferencia nem számít.
 - **A választás megőrzése:** most frissítés után az alapértelmezés jön vissza (az ASEStats is így működik). Ha kell, hogy a böngésző megjegyezze (localStorage), az külön döntés.
 - **Döntés (2026-10-12): a 2027-es tabella nem íródik, amíg nincs lezárt meccs** (`writeStandings()` 0-t ad, `ℹ` tájékoztatás); a Tabella nézet addig üres állapotot mutat. Csapatszűrő a ligás Tabellán: kiemelés (mind a 30 csapat látszik). Eredeti megfigyelés – **ESPN-tabella a még le nem játszott szezonra:** a 2027-es lekérdezés már 2–0 / 0–2 mérleget ad, miközben nálunk nincs lejátszott 2026/27-es meccs (valószínűleg az ESPN előszezont is számol vagy előbbre tart). A Tabella nézetnél eldöntendő, mit mutat ilyenkor; az `nba.standings` 2027-es sorát addig nem érdemes írni, amíg a `games`-szel nem egyezik.
 - **Ligaszintű nézetek és a csapatszűrő:** a csapat most mindig ki van választva. A Tabellán kiemelésre szolgál (kész, 2026-10-12). A ligás Játékosok nézetnél még el kell dönteni, hogy a szűrő ott rejtve van, kiemelésre szolgál, vagy kap „összes csapat” opciót.

@@ -6,6 +6,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { AppTopbar } from '@/components/AppTopbar';
 import { GamesView } from '@/components/GamesView';
 import { LoginForm } from '@/components/LoginForm';
+import { OverviewView } from '@/components/OverviewView';
 import { PlayersView } from '@/components/PlayersView';
 import { SeasonTeamSelector } from '@/components/SeasonTeamSelector';
 import { ScoutingView } from '@/components/ScoutingView';
@@ -43,7 +44,7 @@ interface AppShellProps {
 }
 
 // Az app-váz: navigáció, szezon- és csapatválasztó, tab routing. A nézetek a
-// roadmap 2. lépésében épülnek (kész: Mérkőzések, Játékosok, Csapatstatisztika, Tabella, Szituációk) – lásd context/progress-tracker.md.
+// roadmap 2. lépésében épülnek (kész: Áttekintés, Mérkőzések, Játékosok, Csapatstatisztika, Tabella, Szituációk) – lásd context/progress-tracker.md.
 function AppShell({ userEmail, isAdmin, onSignOut }: AppShellProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -66,7 +67,9 @@ function AppShell({ userEmail, isAdmin, onSignOut }: AppShellProps) {
           onSignOut={onSignOut}
         />
         <SeasonTeamSelector selection={selection} />
-        {activeTab === 'games' ? (
+        {activeTab === 'overview' ? (
+          <OverviewView selection={selection} onNavigate={setActiveTab} />
+        ) : activeTab === 'games' ? (
           <GamesView selection={selection} />
         ) : activeTab === 'players' ? (
           <PlayersView selection={selection} />

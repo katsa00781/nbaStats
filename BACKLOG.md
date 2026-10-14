@@ -81,6 +81,8 @@ Szerkezet:
 - [x] **Markdown export** (vágólapra): meccs utáni riport, box score, csapatstatisztika (+ Csapat-elemzés), játékos szezonértékelés (+ Játékos-elemzés) – `lib/export-to-md.ts`, `components/CopyMarkdownButton.tsx` – 2026-10-14
 - [ ] **A Markdown exportok ellenőrzése böngészőben (felhasználó):** Meccs-részletek: „Box score MD” és a riport „Riport MD” gombja; Csapatstatisztika: „Csapat MD”; Játékos-részletek: „Játékos MD” – kattintás után toast, a vágólap tartalma beilleszthető (táblák, nincs `NaN` / `undefined`)
 - [ ] Markdown export: Scouting riport (`pregameReportToMd`), Szituációk, Tabella; fájlletöltés; meccsnapló-export
+- [x] **Áttekintés nézet** (`overview` → `OverviewView`): csapat-kártyák (mérleg, kiemelés, forma, NetRtg), következő meccs + Scouting-belépő, utolsó 5 meccs, legjobb 5 játékos, konferencia-élmezőny – `components/OverviewView.tsx`, `components/OverviewBlocks.tsx` – 2026-10-14
+- [ ] **Az Áttekintés ellenőrzése böngészőben, bejelentkezve (felhasználó):** lásd a progress-tracker Kézi teendők 22. pontját
 - [ ] `player-postgame` önálló nézet / játékos-szintű riport a Játékos-részletekben (a motor már megvan, a meccs utáni játékostábla a riportban látszik)
 - [ ] Scouting: dobásprofil (`shotProfiles`: saját, ellenfél, liga, kapott zónák a `shot_events`-ből; NBA-geometria döntés kell) és sérülés-kontextus (az adatbázisban nincs sérülésadat)
 - [ ] `player-analysis`: forma-trend riport (`PlayerTrend`, utolsó 5 meccs) és hasonlósági mutató – meccsenkénti bemenet kell, külön egység
@@ -129,6 +131,14 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-14 – Áttekintés nézet ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** a context fájlok nem definiálták a tartalmát; négy blokk: csapat-kártyák, következő / utolsó meccsek, top játékosok, liga-pillanatkép. Új lekérdezés nincs.
+- **`components/OverviewView.tsx` (új):** a `useStandings`, `useLeagueTeamStats`, `useTeamGames`, `useTeamPlayerStats` hookokból. Kártyák: Mérleg, Kiemelés, Forma (L10 + sorozat), NetRtg (ORtg / DRtg, helyezés). A mutatók és a játékosok az alapszakaszból (annak híján az első elérhető szakaszból) jönnek.
+- **`components/OverviewBlocks.tsx` (új):** `NextGameCard` (Scouting gombbal), `RecentGamesTable`, `TopPlayersTable` (pontátlag, min. 10 meccs, T15), `ConferenceSnapshot` (top 5 konferenciánként).
+- **`app/page.tsx`:** az `overview` tab az `OverviewView`-t rendereli, az `onNavigate` a Scouting gombnak adja a tab-váltást.
+- **Ellenőrzés:** `tsc`, `eslint`, `build` hibátlan. **Nem ellenőrzött:** böngésző, valós adat, képernyőkép (T32).
 
 ### 2026-10-14 – Markdown export (vágólapra) ✓ (éles böngészős próba hátravan)
 

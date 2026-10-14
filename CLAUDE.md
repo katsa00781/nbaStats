@@ -62,7 +62,7 @@ Az UI egységes, sportos, telemetria-érzetű sötét felület, változatlanul �
 - `AppTopbar`: breadcrumb, user-chip, kijelentkezés.
 - `SeasonTeamSelector`: globális szezon- és csapatszűrő a topbar alatt, minden tabon. Alapértelmezés: `DEFAULT_SEASON_ESPN_YEAR` (`lib/selection.ts`, most a 2025/26-os szezon) és a követett csapat.
 - Az `activeTab` tiszta `useState`, nincs URL routing. Új nézet = új `NAV_GROUPS` elem + tartalom-komponens.
-- Kész nézetek: **Mérkőzések** (`games` → `GamesView`, benne a **Meccs-részletek**: `GameDetailsView`), **Játékosok** (`players` → `PlayersView`, benne a **Játékos-részletek**: `PlayerDetailsView`) **Csapatstatisztika** (`teamstats` → `TeamStatsView`), **Szituációk** (`situational` → `SituationalView`), **Scouting** (`scouting` → `ScoutingView`) és **Tabella** (`standings` → `StandingsView`). A többi tabon „épül” kártya áll.
+- Kész nézetek: **Áttekintés** (`overview` → `OverviewView`), **Mérkőzések** (`games` → `GamesView`, benne a **Meccs-részletek**: `GameDetailsView`), **Játékosok** (`players` → `PlayersView`, benne a **Játékos-részletek**: `PlayerDetailsView`) **Csapatstatisztika** (`teamstats` → `TeamStatsView`), **Szituációk** (`situational` → `SituationalView`), **Scouting** (`scouting` → `ScoutingView`) és **Tabella** (`standings` → `StandingsView`). A többi tabon „épül” kártya áll.
 - **Részletnézet** (döntés: 2026-10-10): a lista helyén nyílik meg, „Vissza” gombbal; a megnyitott elem a nézet saját állapota (nincs URL, nincs AppShell-szintű state). Tab-, szezon- vagy csapatváltáskor a lista jön vissza.
 
 ---
@@ -110,6 +110,8 @@ nbastats/
 │   │   └── data-table.tsx      # generikus sortolható tábla (ColumnDef<T>)
 │   ├── AppSidebar.tsx, AppTopbar.tsx, LoginForm.tsx
 │   ├── SeasonTeamSelector.tsx  # globális szezon- és csapatszűrő a topbar alatt (megjelenítő komponens)
+│   ├── OverviewView.tsx        # Áttekintés nézet: csapat-kártyák, következő / utolsó meccsek, legjobb játékosok, konferencia-élmezőny (új lekérdezés nélkül)
+│   ├── OverviewBlocks.tsx      # NextGameCard / RecentGamesTable / TopPlayersTable / ConferenceSnapshot
 │   ├── GamesView.tsx           # Mérkőzések nézet: szakasz-fülek, mérleg-kártyák, kiírt + lejátszott meccsek
 │   ├── GamesTables.tsx         # GameResultsTable (sor végi „Box score” gomb) / GameScheduleTable + a közös GameResultBadges / OpponentCell
 │   ├── GameDetailsView.tsx     # Meccs-részletek: eredmény-fejléc, csapatstatisztika, a két csapat box score-ja, DNP-sor

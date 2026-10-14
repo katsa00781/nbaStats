@@ -71,6 +71,8 @@
 
 - **Markdown export kész (2026-10-14):** `lib/export-to-md.ts` (meccs utáni riport, box score, csapatstatisztika + Csapat-elemzés, játékos szezonértékelés + Játékos-elemzés) és a `CopyMarkdownButton` (csak vágólapra másolás) a Meccs-részletekben, a Csapatstatisztikában és a Játékos-részletekben. Döntések (felhasználó): AI riport nincs, csak az MD export; a Scouting nem; nincs fájlletöltés. Új lekérdezés nincs. Ellenőrizve: valós DB (4 export, nincs `NaN` / `undefined`, táblák épek), `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 21.).
 
+- **Áttekintés kész (2026-10-14):** `OverviewView` / `OverviewBlocks` az `overview` tabon. Csapat-kártyák (Mérleg, Kiemelés, Forma, NetRtg), következő meccs Scouting-belépővel, utolsó 5 meccs, legjobb 5 játékos (pontátlag, min. 10 meccs), a két konferencia top 5-je. Döntések (felhasználó): mind a négy blokk. Új lekérdezés nincs (a Tabella, Csapatstatisztika, Mérkőzések és Játékosok hookjai). Ellenőrizve: `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 22.).
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -111,6 +113,8 @@
 20. **A Meccs utáni riport kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Mérkőzések* → Rájátszás fül → 2026. 05. 11. „Box score”. Várt: a fejléc alatt „Meccs utáni riport”; kártyák (Eredmény 110–115 Vereség, ORtg 112.0 / DRtg 117.1 / NetRtg −5.1, szezonátlag-referenciával), összefoglaló („Fő ok: a hátrányt elsősorban a védekezés alakította”), kulcsmutató-tábla, döntő tényezők (Labdabiztonsági hátrány TO rate 17.9% vs 11.6%), játékos-tábla (legfelül Jaxson Hayes „Stabil alappillér (padról)”, Ayton „Rotációs hozzájárulás”, Kennard „Limitált hatás”); alatta a Csapatstatisztika és a box score; Alapszakasz 2026. 01. 18. (Toronto): Ayton „Elsődleges motor”; képernyőképen is átnézni (T32); a konzol hibamentes.
 
 21. **A Markdown exportok kipróbálása böngészőben:** `npm run dev`, bejelentkezés. *Liga → Mérkőzések* → Rájátszás → 2026. 05. 11. „Box score”: „Box score MD” (a lap tetején) és a „Meccs utáni riport” fejlécében „Riport MD”; *Analitika → Csapatstatisztika*: „Csapat MD”; *Analitika → Játékosok* → Luka Doncic: „Játékos MD”. Várt: toast („…a vágólapra másolva”), a gomb rövid ideig pipa; beillesztve Markdown, rendezett táblákkal (a riport első sora „# Postgame elemzés: Los Angeles Lakers vs Oklahoma City Thunder”, kulcsmutató-tábla ▲/▼ jelekkel); a konzol hibamentes.
+
+22. **Az Áttekintés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Áttekintés* (ez az első oldal). Várt: 2025/2026 + Lakers mellett négy kártya (Mérleg 53–29, Kiemelés 4. / GB 11, Forma 7-3 / GY3, NetRtg +1.7 14. / 30); „Következő mérkőzés”: nincs kiírt meccs (lezárt szezon); „Utolsó mérkőzések”: 5 sor; „Legjobb játékosok”: legfelül Luka Doncic; Liga-pillanatkép: Keleti és Nyugati top 5, a Lakers sora kiemelve; 2026/2027-re váltva a következő meccs és a Scouting gomb látszik, a kártyák nélkül; képernyőképen is átnézni (T32); a konzol hibamentes.
 
 ## Következő lépések (roadmap)
 

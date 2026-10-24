@@ -132,6 +132,14 @@ Szerkezet:
 
 ## 2. Fejlesztési történet
 
+### 2026-10-24 – Poszt-finomítás: a G → PG / SG illesztés kalibrálása ✓
+
+- **Ok:** a Meccs utáni riportban Dončić SG-ként szerepelt. Az ESPN csak G / F / C-t ad, a G → PG / SG a `computePositionFitScore()` illesztésből jön; az SG pontszerző-súlya (PTS × 0,6 + 3PA × 0,8) legyőzte a PG-t a nagy pontszerző irányítóknál. Alapszakaszban 25 PG / 153 SG volt.
+- **`lib/player-analysis.ts`:** `PG_AST_WEIGHT = 4` (volt 2), `PG_MIN_AST_PER36 = 6`, `PG_LOW_AST_PENALTY = 6`. A puszta súlyemelés (3,5) alacsony AST-ú védekező hátvédeket (Smart, Caldwell-Pope, Konchar, DeRozan) is PG-be tett (11 játékos < 4 AST/36), ezért kell az alsó határ.
+- **Kalibráció (valós adat, 2025/26 alapszakasz, 178 alkalmas G-vödrös játékos, scratchpad-szkript, csak olvasás):** 71 PG / 107 SG; Dončić, Young, Harden, Gilgeous-Alexander, Brunson, Cunningham, Ball, Garland, Fox PG; Edwards, Mitchell, Curry, LaVine, Green SG; egyetlen PG sincs 4,5 AST/36 alatt. Ismert határeset: Booker és Maxey PG-be kerül.
+- **Hatókör:** a Játékos-elemzés, Csapat-elemzés (roster), Scouting és a Meccs utáni riport használja a motort. Alapszakasz-pool: SG 107, SF 76, PG 71, C 49, PF 40. Rájátszás: SG 19, PG 9, C 9, SF 8, PF 3 (a PG 10 alatt: nincs PG-benchmark; előtte nem volt PG sem).
+- **Ellenőrzés:** `tsc`, `eslint` hibátlan; 5 Lakers-meccs riportja előtte / utána: csak a posztok változnak (Dončić, Reaves, Smart, Kennard PG / SG), a címkék és a rangsor nem. **Böngészőben nem néztem** (T32).
+
 ### 2026-10-24 – Meccs utáni riport: a Riport MD anomáliáinak javítása ✓
 
 - **Kiváltó ok:** egy korai szezonmeccs (a csapatnak 1 másik meccse a szakaszban, nincs liga-benchmark) riportja önellentmondó volt. Felhasználói döntések: „enyhe” sáv a döntő tényezőkben; rögzített NBA-referencia a TO-hangsúlyhoz referencia nélkül; új „Hatékonysági deficit” címke; poszt-finomítás (külön commit, még hátravan).
@@ -145,7 +153,7 @@ Szerkezet:
 - **`lib/player-postgame.ts`:** `isInefficientHighUsage()` + `INEFFICIENT_LABEL` / `INEFFICIENT_MAX_TS_PCT` (kezdő, USG ≥ 25%, alappillér-szintű játékidő, TS% ≤ 50): az `engine` / `support` osztály címkéje „Hatékonysági deficit” (az osztály és a sorrend nem változik); bekerül a „Limitált hatás (magas usage)” kiemelésbe is.
 - **`lib/export-to-md.ts`, `components/PostgameReportPanel.tsx`, `PostgameReportBlocks.tsx`:** közös megjegyzés, lábjegyzet-magyarázat, `badge-warning` a új címkére (új token nincs).
 - **Ellenőrzés:** `tsc`, `eslint` hibátlan. Szintetikus eset (1 másik meccs, üres benchmark, Dončić-szerű sor) 11 állításra zöld. Valós adat: 5 Lakers-meccs (2025/26) riportja előtte / utána: a különbség az enyhe sorok, a TO-fókusz előrébb kerülése és a Dončić-meccsen (34 perc, USG 38%, TS 49,6%) az új címke; minden más változatlan. Egy első változat az enyhe sávval kiszorította / előjelben ellentmondta a referencia-sorokat (FTM rate), ezt a valós diff fogta meg: javítva. **Böngészőben nem néztem** (T32).
-- **Nyitott:** poszt-finomítás (G → PG / SG, külön commit).
+- **Nyitott:** poszt-finomítás: lásd a következő bejegyzést.
 
 ### 2026-10-24 – Nem használt navigációs fülek törlése ✓
 

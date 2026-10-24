@@ -169,6 +169,19 @@ const derivePositionBuckets = (raw: RawPlayerSeasonStat): PositionBucketMeta => 
   return { buckets: POSITION_PRIORITY.slice(), trustOrder: false };
 };
 
+/**
+ * A PG-illesztés AST-súlya és „pass-first” alsó határa (valós 2025/26-os alapszakasz-adaton
+ * kalibrálva, a 178 alkalmas G-vödrös játékoson). A korábbi 2-es súly mellett a nagy pontszerző
+ * irányítók (Dončić, Harden, Ball) SG-be estek, a PG-pool 25 fő volt. Önmagában a súly emelése
+ * az alacsony AST-ú védekező / kis volumenű hátvédeket (Smart, Caldwell-Pope, Konchar, DeRozan)
+ * is PG-be tette, ezért 6 AST/36 alatt büntetés jár. Eredmény: 71 PG / 107 SG; Dončić, Young,
+ * Harden, Gilgeous-Alexander, Brunson, Cunningham, Ball PG; Edwards, Mitchell, Curry, LaVine SG;
+ * egyetlen PG sem 4,5 AST/36 alatt.
+ */
+const PG_AST_WEIGHT = 4;
+const PG_MIN_AST_PER36 = 6;
+const PG_LOW_AST_PENALTY = 6;
+
 const computePositionFitScore = (player: NormalizedStats, position: Position) => {
   const {
     astPer36,
@@ -183,7 +196,14 @@ const computePositionFitScore = (player: NormalizedStats, position: Position) =>
 
   switch (position) {
     case 'PG':
-      return astPer36 * 2 + usageProxyPer36 * 0.4 + stlPer36 * 0.3 - rebPer36 * 0.3 - blkPer36 * 0.6;
+      return (
+        astPer36 * PG_AST_WEIGHT +
+        usageProxyPer36 * 0.4 +
+        stlPer36 * 0.3 -
+        rebPer36 * 0.3 -
+        blkPer36 * 0.6 -
+        Math.max(0, PG_MIN_AST_PER36 - astPer36) * PG_LOW_AST_PENALTY
+      );
     case 'SG':
       return ptsPer36 * 0.6 + threePAPer36 * 0.8 + usageProxyPer36 * 0.3 + astPer36 * 0.2 - rebPer36 * 0.1 - blkPer36 * 0.4;
     case 'SF':

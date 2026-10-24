@@ -180,7 +180,7 @@
 
 - **Játékos-elemzés – megvalósítási döntések, felülbírálhatók:**
   - a benchmark szakaszonként épül a liga összes játékosából (poszt szerint); a szezon közben igazolt játékos a poolban egy összegzett játékos, az elemzett sor viszont a kiválasztott csapaté (a lista átlagaival azonos meccsek);
-  - az ESPN csak G / F / C jelölést ad (a 591 játékosból 279 / 221 / 88), ezért a G → PG vagy SG, az F → SF vagy PF a statisztikai illesztésből jön. Ennek eredménye a pool-eloszlás: alapszakaszban SG 153, SF 76, C 49, PF 40, PG 25 alkalmas játékos – a hátvédek többsége SG-nek számít, a PG pool kicsi. Ha ez zavaró, a posztfeloldás finomítása (pl. AST-súly) külön szakmai döntés;
+  - az ESPN csak G / F / C jelölést ad (a 591 játékosból 279 / 221 / 88), ezért a G → PG vagy SG, az F → SF vagy PF a statisztikai illesztésből jön. Korábbi pool-eloszlás: alapszakaszban SG 153, SF 76, C 49, PF 40, PG 25 alkalmas játékos (a nagy pontszerző irányítók SG-be estek). **Finomítva (2026-10-24):** a PG-illesztés AST-súlya 4 (volt 2), 6 AST/36 alatt büntetéssel; új eloszlás: SG 107, SF 76, PG 71, C 49, PF 40 (rájátszás: SG 19, PG 9, C 9, SF 8, PF 3 – a PG-pool 10 alatt van, ott nincs PG-benchmark);
   - a rájátszásban csak az SG pool éri el a 10 játékost (8 meccs / 18 perc mellett), a play-inben egy sem: ott tájékoztató üzenet jön. Alternatíva: a rájátszás játékosát az alapszakasz benchmarkjához mérni (külön döntés);
   - a perc-küszöb 18 (az ASEStats 15 perce ×1,2); a 8 meccs változatlan; a minimális pool 10 játékos (saját érték);
   - a használati arány a `usageProxyPer36` (FGA + 0,44·FTA + TOV per 36), nem USG% (T18): a szerepkör-szabályok küszöbei ehhez hangoltak;
@@ -214,7 +214,7 @@
   - a szezonreferencia a szakasz összesítője a vizsgált meccs nélkül; kis mintánál (< 3 meccs) a liga medián. A liga-benchmark a szakasz ≥ 10 meccset játszott csapataiból áll (min. 8 csapat): a rájátszásban 8 csapat éri el, a play-inben egy sem (ott csak szezonátlag);
   - **Impact score kalibráció:** az osztályküszöbök NBA-adaton újrakalibrálva (alappillér 47, rotáció 25; ASEStats: 52 / 38). A MVP-szabályok változatlanok (meccs legjobbja ≥ 60 és legalább 22 / 18 perc); a Lakers-szezonon a meccsek 29%-ában (24/82) nincs MVP, mert a meccs legjobb pontszáma < 60 és senki sem éri el a 68-at. Ha zavaró, a küszöb külön szakmai döntés;
   - **változatlan ASEStats-küszöbök, NBA-kalibráció nélkül:** a per-meccs VAL-küszöbök a játékos-hatásban (pozitív: VAL ≥ 10; negatív: VAL ≤ 5; kiugró: VAL ≥ 18; gyenge meccs: VAL ≤ 3), a VAL/36-os küszöbök (18, 16, 11, 45-ös normalizálás), a USG% sávok (15% / 25%), a meccs-párharc küszöbei (eFG 5 pp, TO 4 pp, OREB 10 pp, FT 7 pp) és a védekezési sávok (DRtg ±4, eFG ±2,5 pp, TO ±3 pp). A percküszöbök 48 percre skálázva (×1,2);
-  - a poszt a Játékos-elemzés statisztikai illesztéséből jön (PG-pool kicsi: a Lakers meccsein egyetlen PG sincs); a szerepkörök (`roles`) nincsenek feltöltve (a motor a játékos-riportban nem használja);
+  - a poszt a Játékos-elemzés statisztikai illesztéséből jön (a 2026-10-24-i finomítás óta a PG-pool 71 fő; Dončić, Reaves PG); a szerepkörök (`roles`) nincsenek feltöltve (a motor a játékos-riportban nem használja);
   - X-faktor visszacsatolás nincs (a Scouting riportja nincs mentve); a „Reflexió” szakasz ezért üres;
   - nincs dobástérkép, lineup, clutch, pontforrás, negyedek (nincs linescore); a festékre nem hivatkozik a szöveg, csak a box score 2P-arányára;
   - a szöveges megállapítások az ASEStats sablonjai (néhol angol szakszó: „short roll”, „skip-pass”, „wedge set”);

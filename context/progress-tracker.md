@@ -73,6 +73,8 @@
 
 - **Áttekintés kész (2026-10-14):** `OverviewView` / `OverviewBlocks` az `overview` tabon. Csapat-kártyák (Mérleg, Kiemelés, Forma, NetRtg), következő meccs Scouting-belépővel, utolsó 5 meccs, legjobb 5 játékos (pontátlag, min. 10 meccs), a két konferencia top 5-je. Döntések (felhasználó): mind a négy blokk. Új lekérdezés nincs (a Tabella, Csapatstatisztika, Mérkőzések és Játékosok hookjai). Ellenőrizve: `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 22.).
 
+- **Navigáció tisztítása (2026-10-24):** az üres „Elemzések” és „Meccs Log” fül törölve a sidebarból (döntés: felhasználó); a pregame a Scouting tabon, a postgame a Meccs-részletekben marad. Az `Import` admin fül maradt.
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.

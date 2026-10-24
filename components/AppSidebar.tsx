@@ -6,11 +6,9 @@ import {
   LayoutDashboard,
   Users,
   BarChart3,
-  Sparkles,
   Target,
   Trophy,
   Calendar,
-  ClipboardList,
   Swords,
   DatabaseZap,
   ChevronLeft,
@@ -41,7 +39,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: 'overview', label: 'Áttekintés', icon: LayoutDashboard },
       { key: 'players', label: 'Játékosok', icon: Users },
       { key: 'teamstats', label: 'Csapatstatisztika', icon: BarChart3 },
-      { key: 'comparison', label: 'Elemzések', icon: Sparkles, tone: 'ai' },
       { key: 'situational', label: 'Szituációk', icon: Target },
       { key: 'scouting', label: 'Scouting', icon: Swords },
     ],
@@ -52,7 +49,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: 'standings', label: 'Tabella', icon: Trophy },
       { key: 'games', label: 'Mérkőzések', icon: Calendar },
-      { key: 'gamelog', label: 'Meccs Log', icon: ClipboardList },
     ],
   },
   {

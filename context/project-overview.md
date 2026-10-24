@@ -20,7 +20,7 @@ Az NBAStats egy belső NBA statisztikai és elemzési platform, az ASEStats (mag
 
 1. A felhasználó bejelentkezik (Supabase email/jelszó).
 2. Kiválaszt egy szezont és egy csapatot. Az alapértelmezett csapat a követett csapat.
-3. A navigáción ezek érhetők el: Áttekintés, Játékosok, Elemzések, Szituációk, Scouting, Tabella, Mérkőzések, Meccs Log.
+3. A navigáción ezek érhetők el: Áttekintés, Játékosok, Csapatstatisztika, Szituációk, Scouting, Tabella, Mérkőzések.
 4. Az adatfrissítés ütemezett GitHub Actions futással történik, kézzel pedig így: `npm run ingest:games -- --date YYYY-MM-DD`.
 
 ## Scope

@@ -1,6 +1,6 @@
 # Backlog
 
-Utolsó frissítés: 2026-10-14
+Utolsó frissítés: 2026-10-24
 
 Szerkezet:
 1. Nyitott feladatok
@@ -131,6 +131,13 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-24 – Nem használt navigációs fülek törlése ✓
+
+- **Döntés (felhasználó):** a pregame (Analitika → Scouting) és a postgame (Mérkőzések → Box score → Meccs utáni riport) marad ahol van; az üres „Elemzések” és „Meccs Log” fül törlődik.
+- **`components/AppSidebar.tsx`:** a két `NAV_GROUPS` elem és az ikon-importjuk (`Sparkles`, `ClipboardList`) kikerült. Az `Import` (Admin) fül maradt. A `NavItem.tone` támogatás a komponensben megmaradt (jelenleg nincs használója).
+- **`context/project-overview.md`:** a navigáció felsorolása a valós fülekre javítva.
+- **Ellenőrzés:** `tsc`, `eslint` hibátlan. Böngészőben nem néztem.
 
 ### 2026-10-14 – Áttekintés nézet ✓ (éles böngészős próba hátravan)
 

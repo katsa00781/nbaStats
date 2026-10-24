@@ -73,6 +73,7 @@
 
 - **Áttekintés kész (2026-10-14):** `OverviewView` / `OverviewBlocks` az `overview` tabon. Csapat-kártyák (Mérleg, Kiemelés, Forma, NetRtg), következő meccs Scouting-belépővel, utolsó 5 meccs, legjobb 5 játékos (pontátlag, min. 10 meccs), a két konferencia top 5-je. Döntések (felhasználó): mind a négy blokk. Új lekérdezés nincs (a Tabella, Csapatstatisztika, Mérkőzések és Játékosok hookjai). Ellenőrizve: `tsc`, `eslint`, `build`. **Böngészőben nem futott** (lásd Kézi teendők 22.).
 
+- **Meccs utáni riport – anomáliák javítva (2026-10-24):** benchmark nélkül nincs „Liga medián” oszlop; referencia nélkül (`comparable: false`) nincs szezon-delta az Erősségek / Problémák / Fókusz sorokban; az adatminőségi megjegyzés a `describePostgameBaselineNote()`-ból jön (web = MD); a párharc-faktorok „enyhe” sávot kaptak (eFG 2, TO 2, OREB 1,5, FT 3 pp, csak hézagot tölt, fókuszt nem vezet); referencia nélkül a TO-hoz rögzített NBA-tartalék él (12,8%, 2025/26 mediánja, jelölt becslés); új „Hatékonysági deficit” játékos-címke (kezdő, USG ≥ 25%, TS% ≤ 50). Poszt-finomítás (G → PG / SG) külön lépésben hátravan. Lásd `BACKLOG.md`, T33–T34.
 - **Navigáció tisztítása (2026-10-24):** az üres „Elemzések” és „Meccs Log” fül törölve a sidebarból (döntés: felhasználó); a pregame a Scouting tabon, a postgame a Meccs-részletekben marad. Az `Import` admin fül maradt.
 
 ## Kézi teendők (felhasználó)

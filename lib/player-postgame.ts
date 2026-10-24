@@ -197,6 +197,27 @@ export const ROLE_PLAYER_MIN_TS_PCT = 55;
 export const ROLE_PLAYER_MIN_MINUTES = scaleMinutes(12);
 
 /**
+ * „Hatékonysági deficit”: nagy terhelésű kezdő (magas usage, hosszú játékidő), akinek a hatékonysága
+ * a terheléshez képest gyenge (TS% ≤ 50; az NBA-átlag ~57–58%). A „Rotációs hozzájárulás” /
+ * „Stabil alappillér” címke ilyenkor félrevezető: a játékos sok birtoklást használt el, kevés
+ * értékkel. A címke szerepet jelöl, az impact osztályt (és így a sorrendet) nem érinti.
+ */
+export const INEFFICIENT_LABEL = 'Hatékonysági deficit';
+export const INEFFICIENT_MAX_TS_PCT = 50;
+
+/** Nagy terhelés, gyenge hatékonyság; `tsPct` százalékban. A játékidő-feltétel az alappillér-szint. */
+export const isInefficientHighUsage = (player: {
+  isStarter: boolean;
+  usageShare: number;
+  minutes: number;
+  tsPct: number;
+}) =>
+  player.isStarter &&
+  player.usageShare >= USG_HIGH_MIN &&
+  hasEngineMinutes(player.minutes, player.isStarter) &&
+  player.tsPct <= INEFFICIENT_MAX_TS_PCT;
+
+/**
  * Hatékony szerepjátékos: alacsony usage (≤ 15%) mellett erős és hatékony
  * termelés. Az Impact score-ban a usage 20%-ot ér, ezért az ilyen játékos
  * pontszáma a „Limitált hatás” sávba csúszhat, miközben a meccsszintű
@@ -226,6 +247,12 @@ const mapContextualImpactLabel = (
 ) => {
   if (impactClass === 'mvp' && context.usageTier === 'low') {
     return 'Hatékony szerepjátékos';
+  }
+  if (
+    (impactClass === 'engine' || impactClass === 'support') &&
+    isInefficientHighUsage({ isStarter: context.isStarter, usageShare: context.usageShare, minutes, tsPct: context.tsPct })
+  ) {
+    return INEFFICIENT_LABEL;
   }
   if (impactClass === 'support' && isEfficientRolePlayer(context, minutes)) {
     return 'Hatékony szerepjátékos';

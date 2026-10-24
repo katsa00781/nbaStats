@@ -132,6 +132,21 @@ Szerkezet:
 
 ## 2. Fejlesztési történet
 
+### 2026-10-24 – Meccs utáni riport: a Riport MD anomáliáinak javítása ✓
+
+- **Kiváltó ok:** egy korai szezonmeccs (a csapatnak 1 másik meccse a szakaszban, nincs liga-benchmark) riportja önellentmondó volt. Felhasználói döntések: „enyhe” sáv a döntő tényezőkben; rögzített NBA-referencia a TO-hangsúlyhoz referencia nélkül; új „Hatékonysági deficit” címke; poszt-finomítás (külön commit, még hátravan).
+- **`lib/postgame-report.ts`:**
+  - **Liga medián 0,0%:** a `buildPostgameMetrics` a `getBenchmarkThreshold()`-ot (`?? 0`) használta; most `getLeagueMedian()` → benchmark nélkül `undefined`, az export „Liga medián” oszlopa elmarad.
+  - **Referencia nélküli ág:** új `hasSeasonReference()` (`kind === 'season' && comparable`). A szezon-delta Erősség / Probléma sorok és a fókusz célértékei (`seasonRef()`) nem használják az 1 másik meccset referenciának.
+  - **Tartalék TO-referencia:** `NBA_FALLBACK_TURNOVER_RATE` = 12,8% (a 2025/26-os alapszakasz 30 csapatának TO rate mediánja, 2462 csapat-meccs, csapatonként 11,1–14,6%). Csak `!comparable` és liga medián híján él, „NBA-átlag becslés” jelöléssel (probléma-sor és TO-fókusz). Nem kalibrált benchmark.
+  - **Enyhe sáv:** a négy párharc-faktor második küszöbe (eFG 2, TO 2, OREB 1,5, FT 3 pp), `severity: 'minor'`, „Enyhe …” címke. Az enyhe sor csak hézagot tölt ki (ha a témát döntő vagy referencia-sor már lefedi, elmarad), a kulcsmomentumokba, a „ki döntött” megítélésbe és a kapcsolt bontásba / fókuszba nem számít.
+  - **Közös adatminőségi megjegyzés:** `describePostgameBaselineNote()` (web és MD azonos szöveg); referencia nélkül már nem állítja, hogy „a szezonátlaghoz mér”.
+  - `focusTopic()`: a „Labdabiztonság”, „TO-rate” sor a TO témához tartozik (nincs dupla TO-fókusz, és a TO prioritása érvényesül).
+- **`lib/player-postgame.ts`:** `isInefficientHighUsage()` + `INEFFICIENT_LABEL` / `INEFFICIENT_MAX_TS_PCT` (kezdő, USG ≥ 25%, alappillér-szintű játékidő, TS% ≤ 50): az `engine` / `support` osztály címkéje „Hatékonysági deficit” (az osztály és a sorrend nem változik); bekerül a „Limitált hatás (magas usage)” kiemelésbe is.
+- **`lib/export-to-md.ts`, `components/PostgameReportPanel.tsx`, `PostgameReportBlocks.tsx`:** közös megjegyzés, lábjegyzet-magyarázat, `badge-warning` a új címkére (új token nincs).
+- **Ellenőrzés:** `tsc`, `eslint` hibátlan. Szintetikus eset (1 másik meccs, üres benchmark, Dončić-szerű sor) 11 állításra zöld. Valós adat: 5 Lakers-meccs (2025/26) riportja előtte / utána: a különbség az enyhe sorok, a TO-fókusz előrébb kerülése és a Dončić-meccsen (34 perc, USG 38%, TS 49,6%) az új címke; minden más változatlan. Egy első változat az enyhe sávval kiszorította / előjelben ellentmondta a referencia-sorokat (FTM rate), ezt a valós diff fogta meg: javítva. **Böngészőben nem néztem** (T32).
+- **Nyitott:** poszt-finomítás (G → PG / SG, külön commit).
+
 ### 2026-10-24 – Nem használt navigációs fülek törlése ✓
 
 - **Döntés (felhasználó):** a pregame (Analitika → Scouting) és a postgame (Mérkőzések → Box score → Meccs utáni riport) marad ahol van; az üres „Elemzések” és „Meccs Log” fül törlődik.
@@ -568,6 +583,8 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | T23 | A sidebar bevezetése után a széles táblák vízszintesen túlcsordultak, mert a grid-cella min-content szélességű (elemzések reszponzivitás) | A `.app-shell > main` és a `.grid > *` `min-width: 0` szabályát nem szabad kivenni | ✓ `globals.css` |
 | T24 | Redesign után maradtak `slate-*` / `sky-*` / `violet-*` osztályok. 10 helyen hiányzott a szóköz két class között (`border-border-subtlebg-…`), így egyik sem hatott (token audit) | Csak tokenek; minden class-lista `cn()`-en át, szóközzel | Szabály |
 | T32 | *(NBAStats, 2026-10-10)* A `text-base` osztály betűméret helyett a szöveg színét állította a háttérszínre: a `@theme inline` `--color-base` tokenje miatt itt ez szín-utility. A felirat „eltűnt”, a `tsc`, az `eslint` és a DOM-alapú teszt nem jelezte, csak a képernyőkép | A `text-base` kizárólag színként használható (pl. sötét szöveg narancs gombon). Új nézetnél a képernyőképet is át kell nézni, nem elég a DOM-állítás | ✓ szabály a CLAUDE.md-ben |
+| T33 | *(NBAStats, 2026-10-24)* A hiányzó liga-benchmark `?? 0`-val 0-ként átment a `Number.isFinite` őrön: „Liga medián 0,0%”, „vs liga +67 pp”. A `baseline.kind === 'season'` kis mintánál, referencia nélkül is igaz volt, így az 1 másik meccs „szezonátlagként” szerepelt | Hiányzó értéket nem pótolunk 0-val: `null` / `undefined`, és az oszlop elmarad. A referencia-ágat a `comparable` kapuzza, nem a `kind`. A tartalék referencia mindig jelölt becslés | ✓ `getLeagueMedian`, `hasSeasonReference` |
+| T34 | *(NBAStats, 2026-10-24)* Az új, alacsonyabb küszöbű „enyhe” tényező szintetikus teszten jónak látszott, de a valós adaton kiszorította vagy ellentmondta a referencia-alapú tényezőt (FTM rate előjele megfordult) | Új küszöb / szabály előtt-után diff valós meccseken; az enyhe jelzés csak hézagot tölt ki | ✓ |
 
 ### Auth és infrastruktúra
 

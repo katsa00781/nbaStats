@@ -17,6 +17,7 @@ import {
   ENGINE_MIN_SCORE,
   ENGINE_MINUTES,
   ENGINE_STARTER_MINUTES,
+  INEFFICIENT_MAX_TS_PCT,
   ROLE_PLAYER_MIN_MINUTES,
   ROLE_PLAYER_MIN_TS_PCT,
   ROLE_PLAYER_MIN_VAL_PER36,
@@ -24,7 +25,7 @@ import {
   USG_HIGH_MIN,
   USG_LOW_MAX,
 } from '@/lib/player-postgame';
-import { buildPostgameAutoFocus, composePostgameSummary } from '@/lib/postgame-report';
+import { buildPostgameAutoFocus, composePostgameSummary, describePostgameBaselineNote } from '@/lib/postgame-report';
 import { effectiveFgPct, freeThrowRate, offensiveReboundPct, trueShootingPct, turnoverPct } from '@/lib/stat-formulas';
 import { finalizeDefenseStyle, finalizeOffenseStyle } from '@/lib/style-vocabulary';
 
@@ -96,7 +97,7 @@ export function postgameReportToMd(report: PostGameReport, meta: PostgameMdMeta)
       `> **Kis minta:** a csapatnak ${report.baseline.seasonGames} másik meccse van a szakaszban, a szezonátlag még nem értelmezhető viszonyítási alap.` +
         (report.baseline.kind === 'league'
           ? ' A deltaoszlop és a célértékek a liga mediánjához mérnek.'
-          : ' Liga benchmark sem érhető el, ezért a deltaoszlop tájékoztató jellegű.'),
+          : ' Liga benchmark sem érhető el, ezért a deltaoszlop üres.'),
     );
   }
 
@@ -139,7 +140,7 @@ export function postgameReportToMd(report: PostGameReport, meta: PostgameMdMeta)
     ``,
     `*▲ = a saját csapatnak kedvező, ▼ = kedvezőtlen eltérés (a TO rate-nél és a DRtg-nél az alacsonyabb érték a jobb); a tempó nem minősített.*`,
     ``,
-    `*Birtoklás = a két csapat (FGA + 0,44·FTA + LV − T-lep) becslésének átlaga – a tempó és mindkét rating közös nevezője, így a DRtg megegyezik az ellenfél ORtg-jével. TO rate (Oliver) = LV / (FGA + 0,44·FTA + LV). FTM rate = értékesített büntető / FGA. ORtg / DRtg = szerzett / kapott pont 100 közös birtoklásra. A ${baselineLabel.toLowerCase()} a vizsgált meccs nélkül számolódik.${showLeague ? ' Liga medián = a szakasz legalább 10 meccset játszott csapatainak középértéke; „vs liga” = meccs − liga medián.' : ''}*`,
+    `*Birtoklás = a két csapat (FGA + 0,44·FTA + LV − T-lep) becslésének átlaga – a tempó és mindkét rating közös nevezője, így a DRtg megegyezik az ellenfél ORtg-jével. TO rate (Oliver) = LV / (FGA + 0,44·FTA + LV). FTM rate = értékesített büntető / FGA. ORtg / DRtg = szerzett / kapott pont 100 közös birtoklásra.${comparable ? ` A ${baselineLabel.toLowerCase()} a vizsgált meccs nélkül számolódik.` : ''}${showLeague ? ' Liga medián = a szakasz legalább 10 meccset játszott csapatainak középértéke; „vs liga” = meccs − liga medián.' : ''}*`,
   );
 
   const opp = report.metrics.opponent;
@@ -246,7 +247,7 @@ export function postgameReportToMd(report: PostGameReport, meta: PostgameMdMeta)
         ]),
       ),
       ``,
-      `*Sorrend és címke az Impact score alapján (VAL/36 45%, TS% 25%, usage 20%, St+Bl 10%), nem a nyers VAL szerint. A meccs legjobbjától legfeljebb 10%-kal elmaradó játékosok ugyanazt a vezető címkét kapják. A „Stabil alappillér” címkéhez legalább ${ENGINE_MIN_SCORE}-es Impact score és ${ENGINE_MINUTES} perc játékidő kell (kezdőnél ${ENGINE_STARTER_MINUTES} perc); „Rotációs hozzájárulás” legalább ${SUPPORT_MIN_SCORE} ponttól; „(padról)” = cserejátékos, „(rövid percben)” = alappillér-szintű pontszám ennél kevesebb játékidővel. A „Hatékony szerepjátékos” szerepet jelöl, nem rangot: alacsony usage (≤ ${Math.round(USG_LOW_MAX * 100)}%) mellett legalább ${ROLE_PLAYER_MIN_VAL_PER36}-as VAL/36 és ${ROLE_PLAYER_MIN_TS_PCT}%-os TS% (legalább ${ROLE_PLAYER_MIN_MINUTES} perc). Usage% = standard USG% = (FGA + 0,44·FTA + LV) · (csapatperc / 5) / (perc · csapat FGA + 0,44·FTA + LV); átlag ~20%, alacsony ≤ ${Math.round(USG_LOW_MAX * 100)}%, magas ≥ ${Math.round(USG_HIGH_MIN * 100)}%. Az Impact küszöbök NBA-adaton kalibráltak.*`,
+      `*Sorrend és címke az Impact score alapján (VAL/36 45%, TS% 25%, usage 20%, St+Bl 10%), nem a nyers VAL szerint. A meccs legjobbjától legfeljebb 10%-kal elmaradó játékosok ugyanazt a vezető címkét kapják. A „Stabil alappillér” címkéhez legalább ${ENGINE_MIN_SCORE}-es Impact score és ${ENGINE_MINUTES} perc játékidő kell (kezdőnél ${ENGINE_STARTER_MINUTES} perc); „Rotációs hozzájárulás” legalább ${SUPPORT_MIN_SCORE} ponttól; „Hatékonysági deficit” = kezdő, aki legalább ${Math.round(USG_HIGH_MIN * 100)}%-os usage mellett alappillér-szintű játékidőt kapott, de a TS% legfeljebb ${INEFFICIENT_MAX_TS_PCT}% (az osztály és a sorrend nem változik); „(padról)” = cserejátékos, „(rövid percben)” = alappillér-szintű pontszám ennél kevesebb játékidővel. A „Hatékony szerepjátékos” szerepet jelöl, nem rangot: alacsony usage (≤ ${Math.round(USG_LOW_MAX * 100)}%) mellett legalább ${ROLE_PLAYER_MIN_VAL_PER36}-as VAL/36 és ${ROLE_PLAYER_MIN_TS_PCT}%-os TS% (legalább ${ROLE_PLAYER_MIN_MINUTES} perc). Usage% = standard USG% = (FGA + 0,44·FTA + LV) · (csapatperc / 5) / (perc · csapat FGA + 0,44·FTA + LV); átlag ~20%, alacsony ≤ ${Math.round(USG_LOW_MAX * 100)}%, magas ≥ ${Math.round(USG_HIGH_MIN * 100)}%. Az Impact küszöbök NBA-adaton kalibráltak.*`,
     );
   }
 
@@ -277,10 +278,8 @@ export function postgameReportToMd(report: PostGameReport, meta: PostgameMdMeta)
     if (playerImpact.negative.length > 0) lines.push(`**Limitált hatás (magas usage):** ${playerImpact.negative.join(', ')}`);
   }
 
-  const dataNotes = [
-    ...report.dataNotes,
-    ...(meta.hasLeagueBenchmark ? [] : ['Ebben a szakaszban kevés csapat játszott elég meccset, ezért nincs liga-összevetés: a riport csak a szezonátlaghoz mér.']),
-  ];
+  const baselineNote = describePostgameBaselineNote(report.baseline, meta.hasLeagueBenchmark);
+  const dataNotes = [...report.dataNotes, ...(baselineNote ? [baselineNote] : [])];
   if (dataNotes.length > 0) {
     lines.push(``, `## Adatminőség és megjegyzések`, ``, ...dataNotes.map(note => `- ${note}`));
   }

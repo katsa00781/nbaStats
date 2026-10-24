@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { StatCard } from '@/components/ui/stat-card';
+import { INEFFICIENT_LABEL } from '@/lib/player-postgame';
 import { parsePostgameSummary } from '@/lib/postgame-report';
 import { Gauge, Scale, Shield, Swords } from 'lucide-react';
 
@@ -212,7 +213,11 @@ const PLAYER_COLUMNS: ColumnDef<PlayerPostGameBreakdown>[] = [
     key: 'label',
     label: 'Értékelés',
     sortAccessor: row => row.impactLabel,
-    render: row => <Badge className={IMPACT_BADGES[row.impactClass]}>{row.impactLabel}</Badge>,
+    render: row => (
+      <Badge className={row.impactLabel === INEFFICIENT_LABEL ? 'badge-warning' : IMPACT_BADGES[row.impactClass]}>
+        {row.impactLabel}
+      </Badge>
+    ),
   },
 ];
 

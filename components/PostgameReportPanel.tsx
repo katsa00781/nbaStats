@@ -18,6 +18,7 @@ import { useLeaguePlayerTotals } from '@/hooks/useLeaguePlayerData';
 import { useLeagueTeamStats } from '@/hooks/useTeamStatsData';
 import { buildGameReport } from '@/lib/adapters/postgame-adapter';
 import { postgameReportToMd } from '@/lib/export-to-md';
+import { describePostgameBaselineNote } from '@/lib/postgame-report';
 import { seasonTypeLabel } from '@/lib/season-types';
 import { AlertTriangle, Info } from 'lucide-react';
 import { useMemo } from 'react';
@@ -62,10 +63,11 @@ export function PostgameReportPanel({ seasonId, seasonName, boxScore, game, team
     content = <Notice>A csapatnak nincs szezon-összesítője ebben a szakaszban, ezért nincs mihez mérni a meccset.</Notice>;
   } else {
     const { report, hasLeagueBenchmark } = outcome;
+    const baselineNote = describePostgameBaselineNote(report.baseline, hasLeagueBenchmark);
     content = (
       <>
         <PostgameHeadlineCards report={report} />
-        {(report.dataNotes.length > 0 || !hasLeagueBenchmark) && (
+        {(report.dataNotes.length > 0 || baselineNote) && (
           <ul className="flex flex-col gap-1.5 text-sm text-warning">
             {report.dataNotes.map(note => (
               <li key={note} className="flex items-start gap-2">
@@ -73,11 +75,10 @@ export function PostgameReportPanel({ seasonId, seasonName, boxScore, game, team
                 {note}
               </li>
             ))}
-            {!hasLeagueBenchmark && (
+            {baselineNote && (
               <li className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.8} />
-                Ebben a szakaszban kevés csapat játszott elég meccset, ezért nincs liga-összevetés: a riport csak a
-                szezonátlaghoz mér.
+                {baselineNote}
               </li>
             )}
           </ul>

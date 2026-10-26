@@ -76,6 +76,8 @@
 - **Meccs utáni riport – anomáliák javítva (2026-10-24):** benchmark nélkül nincs „Liga medián” oszlop; referencia nélkül (`comparable: false`) nincs szezon-delta az Erősségek / Problémák / Fókusz sorokban; az adatminőségi megjegyzés a `describePostgameBaselineNote()`-ból jön (web = MD); a párharc-faktorok „enyhe” sávot kaptak (eFG 2, TO 2, OREB 1,5, FT 3 pp, csak hézagot tölt, fókuszt nem vezet); referencia nélkül a TO-hoz rögzített NBA-tartalék él (12,8%, 2025/26 mediánja, jelölt becslés); új „Hatékonysági deficit” játékos-címke (kezdő, USG ≥ 25%, TS% ≤ 50). Poszt-finomítás (G → PG / SG) külön lépésben hátravan. Lásd `BACKLOG.md`, T33–T34.
 - **Navigáció tisztítása (2026-10-24):** az üres „Elemzések” és „Meccs Log” fül törölve a sidebarból (döntés: felhasználó); a pregame a Scouting tabon, a postgame a Meccs-részletekben marad. Az `Import` admin fül maradt.
 
+- **Vercel deploy (2026-10-26):** `vercel.json` (T27), a `katsa00781s-projects/nbastats` projekt a GitHub repóhoz kötve (a `master` push production deployt indít), env: csak a két `NEXT_PUBLIC_SUPABASE_*` (production + preview). Lásd `BACKLOG.md`, T35.
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -118,6 +120,9 @@
 21. **A Markdown exportok kipróbálása böngészőben:** `npm run dev`, bejelentkezés. *Liga → Mérkőzések* → Rájátszás → 2026. 05. 11. „Box score”: „Box score MD” (a lap tetején) és a „Meccs utáni riport” fejlécében „Riport MD”; *Analitika → Csapatstatisztika*: „Csapat MD”; *Analitika → Játékosok* → Luka Doncic: „Játékos MD”. Várt: toast („…a vágólapra másolva”), a gomb rövid ideig pipa; beillesztve Markdown, rendezett táblákkal (a riport első sora „# Postgame elemzés: Los Angeles Lakers vs Oklahoma City Thunder”, kulcsmutató-tábla ▲/▼ jelekkel); a konzol hibamentes.
 
 22. **Az Áttekintés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Áttekintés* (ez az első oldal). Várt: 2025/2026 + Lakers mellett négy kártya (Mérleg 53–29, Kiemelés 4. / GB 11, Forma 7-3 / GY3, NetRtg +1.7 14. / 30); „Következő mérkőzés”: nincs kiírt meccs (lezárt szezon); „Utolsó mérkőzések”: 5 sor; „Legjobb játékosok”: legfelül Luka Doncic; Liga-pillanatkép: Keleti és Nyugati top 5, a Lakers sora kiemelve; 2026/2027-re váltva a következő meccs és a Scouting gomb látszik, a kártyák nélkül; képernyőképen is átnézni (T32); a konzol hibamentes.
+
+23. **Az éles deploy kipróbálása:** a production URL-en bejelentkezés (az ASEStats felhasználóval), az Áttekintés betölt, a konzol hibamentes; utána a 8–22. pont próbái élesben is elvégezhetők.
+24. **A `.env.local` vége:** a `vercel link` hozzáfűzte a `# Created by Vercel CLI` + `VERCEL_OIDC_TOKEN` blokkot; törölni kell (az app nem használja).
 
 ## Következő lépések (roadmap)
 

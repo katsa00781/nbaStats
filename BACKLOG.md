@@ -1,6 +1,6 @@
 # Backlog
 
-Utolsó frissítés: 2026-10-24
+Utolsó frissítés: 2026-10-26
 
 Szerkezet:
 1. Nyitott feladatok
@@ -98,7 +98,7 @@ Szerkezet:
 - [ ] `player-postgame`: 48 perces percküszöbök konstansba kiemelve; `situational-analysis`: hosszabbítás-bucket
 - [ ] Migráció 004: AI riport táblák és RLS; a `generate-*` route-ok a követett csapatra paraméterezve, `requireAdmin()`-nal (T26)
 - [ ] Dobástérkép NBA-geometriával (clamp, nem eldobás – T11), zóna heatmap
-- [ ] Vercel deploy: `vercel.json` az ASEStats mintájára (T27)
+- [x] Vercel deploy: `vercel.json` az ASEStats mintájára (T27), 2026-10-26
 
 ### Később / ötletek
 
@@ -131,6 +131,13 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-10-26 – Vercel deploy ✓
+
+- **`vercel.json`** az ASEStats mintájára (T27): `npm install --cache /tmp/.npm --prefer-offline --no-audit --no-fund`, `NEXT_TELEMETRY_DISABLED=1 next build`.
+- **Vercel projekt:** `katsa00781s-projects/nbastats` (`prj_BXt6Hhfbu6JDLmdGmJZQNvk17QCs`), a `katsa00781/nbaStats` GitHub repóhoz kötve: a `master` push production deployt indít. A projekt a Vercel CLI-vel jött létre (`vercel link`); a Vercel MCP-nek nincs írási joga a teamhez (403).
+- **Környezeti változók (production + preview):** csak `NEXT_PUBLIC_SUPABASE_URL` és `NEXT_PUBLIC_SUPABASE_ANON_KEY` (`--type config`: az anon kulcs a böngészőbe kerül, az adatot az RLS védi). A service role és az AI-kulcsok nincsenek fent: API route nincs, a futó app nem használja őket. Ha lesz `app/api/*` route, akkor kellenek (csak `secret` típussal).
+- **Ellenőrzés:** `tsc`, `eslint`, `next build` helyben hibátlan.
 
 ### 2026-10-24 – Poszt-finomítás: a G → PG / SG illesztés kalibrálása ✓
 
@@ -593,6 +600,7 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | T32 | *(NBAStats, 2026-10-10)* A `text-base` osztály betűméret helyett a szöveg színét állította a háttérszínre: a `@theme inline` `--color-base` tokenje miatt itt ez szín-utility. A felirat „eltűnt”, a `tsc`, az `eslint` és a DOM-alapú teszt nem jelezte, csak a képernyőkép | A `text-base` kizárólag színként használható (pl. sötét szöveg narancs gombon). Új nézetnél a képernyőképet is át kell nézni, nem elég a DOM-állítás | ✓ szabály a CLAUDE.md-ben |
 | T33 | *(NBAStats, 2026-10-24)* A hiányzó liga-benchmark `?? 0`-val 0-ként átment a `Number.isFinite` őrön: „Liga medián 0,0%”, „vs liga +67 pp”. A `baseline.kind === 'season'` kis mintánál, referencia nélkül is igaz volt, így az 1 másik meccs „szezonátlagként” szerepelt | Hiányzó értéket nem pótolunk 0-val: `null` / `undefined`, és az oszlop elmarad. A referencia-ágat a `comparable` kapuzza, nem a `kind`. A tartalék referencia mindig jelölt becslés | ✓ `getLeagueMedian`, `hasSeasonReference` |
 | T34 | *(NBAStats, 2026-10-24)* Az új, alacsonyabb küszöbű „enyhe” tényező szintetikus teszten jónak látszott, de a valós adaton kiszorította vagy ellentmondta a referencia-alapú tényezőt (FTM rate előjele megfordult) | Új küszöb / szabály előtt-után diff valós meccseken; az enyhe jelzés csak hézagot tölt ki | ✓ |
+| T35 | *(NBAStats, 2026-10-26)* A `vercel link` kérdés nélkül hozzáfűzött egy `VERCEL_OIDC_TOKEN` sort a `.env.local`-hoz; a `NEXT_PUBLIC_*` + kulcs-szerű érték `vercel env add`-dal `--type` nélkül nem mentődik (action_required) | Link után a `.env.local` végét ellenőrizni kell (a CLI-blokkot a felhasználó törli). Böngészőbe szánt kulcs `--type config`, szerveroldali titok `--type secret` | Szabály |
 
 ### Auth és infrastruktúra
 

@@ -207,6 +207,7 @@ nbastats/
 ├── ingest-schedule.ts          # CLI: npm run ingest:schedule -- --season YYYY [--dry-run]
 ├── ingest-standings.ts         # CLI: npm run ingest:standings -- --season YYYY [--dry-run] (besorolás + tabella)
 ├── HOWTO-auto-import.md        # az ütemezett import beállítása, hibakeresése, szezonváltás
+├── vercel.json                 # Vercel build (T27): npm cache a /tmp-ben; a master push production deployt indít
 ├── BACKLOG.md
 └── .env.local                  # titkos változók – soha nem kerül git-be
 ```

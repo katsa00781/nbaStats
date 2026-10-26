@@ -137,7 +137,8 @@ Szerkezet:
 - **`vercel.json`** az ASEStats mintájára (T27): `npm install --cache /tmp/.npm --prefer-offline --no-audit --no-fund`, `NEXT_TELEMETRY_DISABLED=1 next build`.
 - **Vercel projekt:** `katsa00781s-projects/nbastats` (`prj_BXt6Hhfbu6JDLmdGmJZQNvk17QCs`), a `katsa00781/nbaStats` GitHub repóhoz kötve: a `master` push production deployt indít. A projekt a Vercel CLI-vel jött létre (`vercel link`); a Vercel MCP-nek nincs írási joga a teamhez (403).
 - **Környezeti változók (production + preview):** csak `NEXT_PUBLIC_SUPABASE_URL` és `NEXT_PUBLIC_SUPABASE_ANON_KEY` (`--type config`: az anon kulcs a böngészőbe kerül, az adatot az RLS védi). A service role és az AI-kulcsok nincsenek fent: API route nincs, a futó app nem használja őket. Ha lesz `app/api/*` route, akkor kellenek (csak `secret` típussal).
-- **Ellenőrzés:** `tsc`, `eslint`, `next build` helyben hibátlan.
+- **Éles URL:** https://nbastats-psi.vercel.app (a `master` production aliasa).
+- **Ellenőrzés:** `tsc`, `eslint`, `next build` helyben hibátlan; a Vercel build (commit `bd9da0e`) Ready, 32 mp; az éles oldal HTTP 200, a kliens-bundle-ben a Supabase URL és az anon kulcs egyezik a `.env.local` értékével. **Bejelentkezve, böngészőben nem néztem.**
 
 ### 2026-10-24 – Poszt-finomítás: a G → PG / SG illesztés kalibrálása ✓
 

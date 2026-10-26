@@ -121,7 +121,7 @@
 
 22. **Az Áttekintés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Áttekintés* (ez az első oldal). Várt: 2025/2026 + Lakers mellett négy kártya (Mérleg 53–29, Kiemelés 4. / GB 11, Forma 7-3 / GY3, NetRtg +1.7 14. / 30); „Következő mérkőzés”: nincs kiírt meccs (lezárt szezon); „Utolsó mérkőzések”: 5 sor; „Legjobb játékosok”: legfelül Luka Doncic; Liga-pillanatkép: Keleti és Nyugati top 5, a Lakers sora kiemelve; 2026/2027-re váltva a következő meccs és a Scouting gomb látszik, a kártyák nélkül; képernyőképen is átnézni (T32); a konzol hibamentes.
 
-23. **Az éles deploy kipróbálása:** https://nbastats-psi.vercel.app, bejelentkezés (az ASEStats felhasználóval), az Áttekintés betölt, a konzol hibamentes; utána a 8–22. pont próbái élesben is elvégezhetők.
+23. **Az éles deploy kipróbálása:** https://nbastats-psi.vercel.app; a bejelentkezés működik (2026-10-26, a közös Auth-fiókkal). Hátravan: az Áttekintés betölt, a konzol hibamentes; utána a 8–22. pont próbái élesben is elvégezhetők.
 24. **A `.env.local` vége:** a `vercel link` hozzáfűzte a `# Created by Vercel CLI` + `VERCEL_OIDC_TOKEN` blokkot; törölni kell (az app nem használja).
 
 ## Következő lépések (roadmap)

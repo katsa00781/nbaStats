@@ -45,6 +45,8 @@ interface GameDetailsViewProps {
   seasonName: string;
   /** A meccs a kiválasztott csapat nézőpontjából. */
   game: TeamGame;
+  /** A csapat összes meccse a szezonban (a meccs utáni riport dobás-referenciájához). */
+  seasonGames: readonly TeamGame[];
   team: Team;
   opponent: Team | undefined;
   onBack: () => void;
@@ -52,7 +54,7 @@ interface GameDetailsViewProps {
 
 // Meccs-részletek: eredmény-fejléc, a két csapat összesítője és a box score.
 // A kiválasztott csapat áll elöl, ahogy a Mérkőzések listában is.
-export function GameDetailsView({ seasonId, seasonName, game, team, opponent, onBack }: GameDetailsViewProps) {
+export function GameDetailsView({ seasonId, seasonName, game, seasonGames, team, opponent, onBack }: GameDetailsViewProps) {
   const boxScore = useGameBoxScore(seasonId, game.id);
 
   return (
@@ -71,7 +73,15 @@ export function GameDetailsView({ seasonId, seasonName, game, team, opponent, on
       ) : boxScore.loading || !boxScore.data ? (
         <BoxScoreSkeleton />
       ) : (
-        <BoxScore seasonId={seasonId} seasonName={seasonName} teams={boxScore.data} game={game} team={team} opponent={opponent} />
+        <BoxScore
+          seasonId={seasonId}
+          seasonName={seasonName}
+          teams={boxScore.data}
+          game={game}
+          seasonGames={seasonGames}
+          team={team}
+          opponent={opponent}
+        />
       )}
     </div>
   );
@@ -145,11 +155,12 @@ interface BoxScoreProps {
   seasonName: string;
   teams: BoxScoreTeam[];
   game: TeamGame;
+  seasonGames: readonly TeamGame[];
   team: Team;
   opponent: Team | undefined;
 }
 
-function BoxScore({ seasonId, seasonName, teams, game, team, opponent }: BoxScoreProps) {
+function BoxScore({ seasonId, seasonName, teams, game, seasonGames, team, opponent }: BoxScoreProps) {
   const own = teams.find(side => side.teamId === team.id);
   const other = teams.find(side => side.teamId === game.opponentTeamId);
   const sides = [
@@ -189,6 +200,7 @@ function BoxScore({ seasonId, seasonName, teams, game, team, opponent }: BoxScor
         seasonName={seasonName}
         boxScore={teams}
         game={game}
+        seasonGames={seasonGames}
         team={team}
         opponent={opponent}
       />

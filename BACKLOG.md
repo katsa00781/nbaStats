@@ -77,7 +77,12 @@ Szerkezet:
 - [x] Elemző motor 5–6/6: **postgame-report** + **player-postgame** portolva (`lib/postgame-report.ts`, `lib/player-postgame.ts`) + adapter (`lib/adapters/postgame-adapter.ts`) + **Meccs utáni riport** szekció a Meccs-részletekben (`PostgameReportPanel`) – 2026-10-14
 - [ ] **A Meccs utáni riport ellenőrzése böngészőben, bejelentkezve (felhasználó):** *Liga → Mérkőzések* → Rájátszás → 2026. 05. 11. „Box score”: a box score fölött „Meccs utáni riport” – kártyák (Eredmény 110–115, ORtg 112.0, DRtg 117.1, NetRtg −5.1 a szezonátlag-referenciával), összefoglaló (fő ok: védekezés), kulcsmutató-tábla, döntő tényezők, játékos-tábla (legfelül Jaxson Hayes, „Stabil alappillér (padról)”); alapszakasz-meccsen (2026. 01. 18., Toronto) Ayton „Elsődleges motor”; képernyőképen is átnézni (T32); a konzol hibamentes
 - [ ] **A `postgame-report` / `player-postgame` NBA-kalibrációja (döntés kell):** a per-meccs VAL-küszöbök és több szöveges küszöb ASEStats-értéken áll, részletek a progress-tracker „Nyitott kérdések / Meccs utáni riport” pontjában
-- [ ] Meccs utáni riport: dobástérkép (NBA-geometria, roadmap 5.), lineup, clutch, pontforrások, negyedek (linescore nincs), X-faktor visszacsatolás (a Scouting riportjának mentése kell hozzá)
+- [x] Meccs utáni riport: **dobástérkép és zónák** (NBA-félpálya, pontok / hőtérkép, zóna-összevetés a szakasz többi meccséhez, zóna-alapú döntő tényezők / erősségek / problémák / fókusz, játékos-szintű dobásjelzések, MD-szakasz) – `lib/shot-data.ts`, `hooks/useShotData.ts`, `components/PostgameShotChart.tsx`, `PostgameShotMapBlocks.tsx`, `PostgameZoneHeatmapChart.tsx` – 2026-11-12
+- [ ] **A dobástérkép ellenőrzése böngészőben, bejelentkezve (felhasználó):** lásd a progress-tracker Kézi teendők 25. pontját
+- [ ] Meccs utáni riport: lineup, clutch, pontforrások, negyedek (play-by-play kivonat, terv 3. egység), X-faktor visszacsatolás (a Scouting riportjának mentése kell hozzá)
+- [ ] **Terv 2. egység – játékos hosszú távú trend:** (2a) szezonon belüli forma (utolsó 5 / 10 / 15 meccs vs szakasz, forma-jelvény, stabilitás, szerepkör-változás, meccsenkénti grafikonok gördülő átlaggal) – a stabilitás küszöbe **döntés kell** (az ASEStats abszolút VAL-szórása FIBA-skálájú); (2b) szezonok közti összevetés (2025/26 vs 2026/27, ESPN athlete ID)
+- [ ] **Terv 3. egység – play-by-play kivonat (döntés: import-kori kivonat, 2026-11-12):** (3a) migráció 005 + import + visszatöltés a nyers JSON-ból (sémaegyeztetés előtte); (3b) negyedek, momentum, pontforrások, clutch; (3c) ötösök, páros / hármas, rotáció
+- [ ] **Terv 4. egység – postgame játékos-kiegészítések:** Usage vs TS% buborék, „Játékos trend (utolsó N meccs)"
 - [x] **Markdown export** (vágólapra): meccs utáni riport, box score, csapatstatisztika (+ Csapat-elemzés), játékos szezonértékelés (+ Játékos-elemzés) – `lib/export-to-md.ts`, `components/CopyMarkdownButton.tsx` – 2026-10-14
 - [ ] **A Markdown exportok ellenőrzése böngészőben (felhasználó):** Meccs-részletek: „Box score MD” és a riport „Riport MD” gombja; Csapatstatisztika: „Csapat MD”; Játékos-részletek: „Játékos MD” – kattintás után toast, a vágólap tartalma beilleszthető (táblák, nincs `NaN` / `undefined`)
 - [ ] Markdown export: Scouting riport (`pregameReportToMd`), Szituációk, Tabella; fájlletöltés; meccsnapló-export
@@ -97,7 +102,7 @@ Szerkezet:
 - [ ] Elemző motorok portolása (B-lista, `context/megvalosithatosag.md`), az ASEStats H10/H12 döntéseivel együtt (T14–T18)
 - [ ] `player-postgame`: 48 perces percküszöbök konstansba kiemelve; `situational-analysis`: hosszabbítás-bucket
 - [ ] Migráció 004: AI riport táblák és RLS; a `generate-*` route-ok a követett csapatra paraméterezve, `requireAdmin()`-nal (T26)
-- [ ] Dobástérkép NBA-geometriával (clamp, nem eldobás – T11), zóna heatmap
+- [x] Dobástérkép NBA-geometriával (clamp, nem eldobás – T11), zóna heatmap – a Meccs utáni riportban, 2026-11-12
 - [x] Vercel deploy: `vercel.json` az ASEStats mintájára (T27), 2026-10-26
 
 ### Később / ötletek
@@ -131,6 +136,16 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-11-12 – Meccs utáni riport: dobástérkép és zónák ✓ (éles böngészős próba hátravan)
+
+- **Döntések (felhasználó):** ASEStats-szintű postgame és játékostrend a terv szerint, egységenként; a PBP-részek import-kori kivonatból; AI-szöveg nem kell (marad az MD export); trend szezonon belül + szezonok közt; sorrend: dobástérkép → trend → PBP → postgame játékos-kiegészítések.
+- **Adat:** `lib/shot-data.ts` (`fetchGameShots`: a meccs mindkét csapata, kb. 170 sor; `fetchTeamSeasonShots`: a csapat szezonja, kb. 7600 sor, `fetchAllRows`, T1) + `hooks/useShotData.ts` (`useSeasonScopedResource`). A zóna a tárolt besorolás (`map-shots.ts`, T10), séma-változás nincs.
+- **Motor (`lib/postgame-report.ts`, `lib/player-postgame.ts`):** az ASEStats dobástérkép-része a tárolt NBA-zónákra: zóna-összesítő (FG% `null` kísérlet nélkül, T33), meccs vs szezon összevetés (csak értelmezhető szezonátlag mellett; a szezon = a szakasz többi lezárt meccse), lefedettség a box score FGA-jához (±3 tűrés, >10% eltérésnél nincsenek zóna-szabályok, T19), dobáshely-mix index, festékfókusz-tényező a 2P-arány helyett, gyűrű-befejezés probléma + fókusz, dobástérkép-erősségek / -problémák, `appendShotMapSignals` (játékos). A félrebesorolt hármas javítása nem kellett (a 3P az ESPN `pointsAttempted`-je). A küszöbök az ASEStats értékei, NBA-kalibráció nélkül.
+- **UI:** `PostgameShotChart` (Chart.js, NBA-félpálya lábban, kosár felül, 35 láb fölött clamp – T11; pontok / hőtérkép / mindkettő, volumen / FG%, kontraszt, játékos-választó, saját / ellenfél), `PostgameZoneHeatmapChart` (zóna-delta), `PostgameShotMapBlocks` (6 kártya, zónatábla, lefedettség). A pályaszínek a paletta áttetsző változatai (`CHART_COURT`, `heatRampRgb` a `chart-theme.ts`-ben), új token nincs. A riport csak a dobások betöltése után készül (a szövege nem ugrik). A `GamesView` a szezon meccseit adja le (szakasz-szűrő a referenciához).
+- **MD:** „Dobástérkép és zónák” szakasz (saját zónák a szezonhoz, ellenfél zónái, index, lefedettség).
+- **Ellenőrzés:** `tsc`, `eslint`, `next build --webpack` hibátlan. Valós DB (csak olvasás, scratchpad-szkript): Lakers 2025/26 mind a 92 meccs – dobásszám = FGA, zónaösszeg = dobásszám, összevetés mindenhol, nincs `NaN` / `undefined`; előtte / utána (T34): új erősség 27, probléma 25, fókusz 20, döntő tényező 16 meccsen (pl. 2025-11-05 SAS: „Gyűrű körüli befejezés gyenge (12/19, 63.2% vs 75.8%)”, index 31.3 vs 51.6); Bulls 82 meccs: lefedettségi jelzés nincs. Képernyőkép (headless Chrome, ideiglenes fixture-oldal, törölve): pálya, kártyák, tábla, hőtérkép rendben; két hiba javítva (a zóna-delta tengelyfeliratai, a tábla szélessége). **Bejelentkezve, böngészőben nem néztem.**
+- **Környezet:** a helyi `npm run build` (Turbopack, Next 16.3.7) a Google Fonts betöltésén elbukik – tiszta `master`-en is, nem ennek a változásnak a hibája; a `next dev` a CLAUDE.md végére „nextjs-agent-rules” blokkot fűz (T36).
 
 ### 2026-10-26 – Vercel deploy ✓
 
@@ -602,6 +617,7 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | T33 | *(NBAStats, 2026-10-24)* A hiányzó liga-benchmark `?? 0`-val 0-ként átment a `Number.isFinite` őrön: „Liga medián 0,0%”, „vs liga +67 pp”. A `baseline.kind === 'season'` kis mintánál, referencia nélkül is igaz volt, így az 1 másik meccs „szezonátlagként” szerepelt | Hiányzó értéket nem pótolunk 0-val: `null` / `undefined`, és az oszlop elmarad. A referencia-ágat a `comparable` kapuzza, nem a `kind`. A tartalék referencia mindig jelölt becslés | ✓ `getLeagueMedian`, `hasSeasonReference` |
 | T34 | *(NBAStats, 2026-10-24)* Az új, alacsonyabb küszöbű „enyhe” tényező szintetikus teszten jónak látszott, de a valós adaton kiszorította vagy ellentmondta a referencia-alapú tényezőt (FTM rate előjele megfordult) | Új küszöb / szabály előtt-után diff valós meccseken; az enyhe jelzés csak hézagot tölt ki | ✓ |
 | T35 | *(NBAStats, 2026-10-26)* A `vercel link` kérdés nélkül hozzáfűzött egy `VERCEL_OIDC_TOKEN` sort a `.env.local`-hoz; a `NEXT_PUBLIC_*` + kulcs-szerű érték `vercel env add`-dal `--type` nélkül nem mentődik (action_required) | Link után a `.env.local` végét ellenőrizni kell (a CLI-blokkot a felhasználó törli). Böngészőbe szánt kulcs `--type config`, szerveroldali titok `--type secret` | Szabály |
+| T36 | *(NBAStats, 2026-11-12)* A `next dev` (16.3.7) kérdés nélkül egy „nextjs-agent-rules” blokkot fűzött a `CLAUDE.md` végére, és minden indításkor újra hozzáadja. A headless Chrome legalább 500 px széles nézetablakkal renderel: a 390 px-es képernyőkép levágott, nem túlcsordult | `next dev` után a `git diff CLAUDE.md`-t ellenőrizni kell, a blokk nem kerül commitba (tartós megoldás: `agentRules: false` a `next.config`-ban – **döntés kell**). Mobil túlcsordulást `scrollWidth`-tel mérünk, nem a kivágott képről | Szabály |
 
 ### Auth és infrastruktúra
 

@@ -3,11 +3,22 @@
 // és a szakasz csapatsorainak összesítőiből (TeamStageStats) állítja elő a csapat meccsét,
 // a szezonbeli referenciát (a vizsgált meccs nélkül), a liga-benchmarkot és a játékosok
 // meccssorait. A játékosok posztját a játékos-elemző motor adja, a szezon-összegekből.
-// A motor így nem ismeri a sémát.
+// A dobástérképhez a meccs és a szakasz többi meccsének dobásait adja át (a zóna a tárolt
+// besorolás). A motor így nem ismeri a sémát.
 
 import type { BoxScorePlayer, BoxScoreTeam, BoxScoreTeamTotals } from '@/lib/box-score-data';
 import type { LeaguePlayerTotals } from '@/lib/league-player-data';
-import type { PlayerGameStat, PostGameReport, TeamGameStat, TeamSeasonStat } from '@/lib/postgame-report';
+import type {
+  PlayerGameStat,
+  PostGameReport,
+  PostGameShotMapContext,
+  ShotMapEventInput,
+  ShotZoneKey,
+  TeamGameStat,
+  TeamSeasonStat,
+} from '@/lib/postgame-report';
+import type { GameShot, SeasonShot } from '@/lib/shot-data';
+import type { ShotZone } from '@/lib/supabase';
 import type { TeamStageStats } from '@/lib/team-stats-data';
 import { toRawPlayerStat } from '@/lib/adapters/player-analysis-adapter';
 import { MIN_TEAM_ANALYSIS_GAMES, MIN_TEAM_BENCHMARK_POOL } from '@/lib/adapters/team-analysis-adapter';
@@ -34,6 +45,47 @@ export type PostgameOutcome =
 export interface PostgameLookups {
   teamName: string;
   opponentName: string;
+}
+
+/** A dobástérkép bemenete: a meccs dobásai és a csapat szezonbeli dobásai. */
+export interface PostgameShotInput {
+  gameId: string;
+  /** A meccs mindkét csapatának dobásai. */
+  gameShots: readonly GameShot[];
+  /** A csapat szezonbeli dobásai (minden szakasz). */
+  seasonShots: readonly SeasonShot[];
+  /** A szakasz lezárt meccseinek azonosítói (a szezonreferencia szűrője). */
+  stageGameIds: ReadonlySet<string>;
+}
+
+const ZONE_KEYS: Record<ShotZone, ShotZoneKey> = {
+  rim: 'rim',
+  paint: 'paint',
+  mid: 'mid',
+  corner3: 'corner3',
+  above_break3: 'aboveBreak3',
+};
+
+const toShotEvent = (shot: Pick<GameShot, 'playerId' | 'zone' | 'shotValue' | 'made'>): ShotMapEventInput => ({
+  playerId: shot.playerId,
+  zone: ZONE_KEYS[shot.zone],
+  shotValue: shot.shotValue,
+  made: shot.made,
+});
+
+/**
+ * A motor dobás-bemenete a `teamId` nézőpontjából: a saját és az ellenfél dobásai a meccsen,
+ * és a szezonreferencia – a szakasz többi lezárt meccse (a vizsgált meccs nélkül, ahogy a
+ * box score referenciája is).
+ */
+function toShotMapContext(shots: PostgameShotInput, teamId: string, opponentTeamId: string): PostGameShotMapContext {
+  return {
+    gameShots: shots.gameShots.filter(shot => shot.teamId === teamId).map(toShotEvent),
+    opponentShots: shots.gameShots.filter(shot => shot.teamId === opponentTeamId).map(toShotEvent),
+    seasonShots: shots.seasonShots
+      .filter(shot => shot.gameId !== shots.gameId && shots.stageGameIds.has(shot.gameId))
+      .map(toShotEvent),
+  };
 }
 
 interface SideTotals {
@@ -214,7 +266,7 @@ function toPlayerGameStat(
  * referencia a szakasz összesítője a vizsgált meccs nélkül (különben a meccs önmagához
  * mérné magát); kis mintánál (< 3 meccs) a motor a liga mediánra vált. A liga-benchmark a
  * szakasz legalább 10 meccset játszott csapataiból áll (min. 8 csapat); híján a riport csak
- * a szezonátlaghoz mér.
+ * a szezonátlaghoz mér. A `shots` nélkül a riport dobástérkép nélkül készül.
  */
 export function buildGameReport(
   boxScore: readonly BoxScoreTeam[],
@@ -224,6 +276,7 @@ export function buildGameReport(
   opponentTeamId: string,
   seasonType: number,
   lookups: PostgameLookups,
+  shots?: PostgameShotInput,
 ): PostgameOutcome {
   const own = boxScore.find(side => side.teamId === teamId);
   const other = boxScore.find(side => side.teamId === opponentTeamId);
@@ -251,6 +304,8 @@ export function buildGameReport(
     teamSeason,
     benchmarks,
     players,
+    undefined,
+    shots ? toShotMapContext(shots, teamId, opponentTeamId) : undefined,
   );
   return { status: 'ready', report, hasLeagueBenchmark };
 }

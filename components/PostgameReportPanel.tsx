@@ -6,6 +6,7 @@ import type { Team } from '@/lib/master-data';
 import type { ReactNode } from 'react';
 import { CopyMarkdownButton } from '@/components/CopyMarkdownButton';
 import { DataLoadError } from '@/components/DataLoadError';
+import { PostgameShotMapBlocks } from '@/components/PostgameShotMapBlocks';
 import {
   PostgameFactors,
   PostgameHeadlineCards,
@@ -15,6 +16,7 @@ import {
 } from '@/components/PostgameReportBlocks';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLeaguePlayerTotals } from '@/hooks/useLeaguePlayerData';
+import { useGameShots, useTeamSeasonShots } from '@/hooks/useShotData';
 import { useLeagueTeamStats } from '@/hooks/useTeamStatsData';
 import { buildGameReport } from '@/lib/adapters/postgame-adapter';
 import { postgameReportToMd } from '@/lib/export-to-md';
@@ -30,6 +32,8 @@ interface PostgameReportPanelProps {
   boxScore: BoxScoreTeam[];
   /** A meccs a kiválasztott csapat nézőpontjából. */
   game: TeamGame;
+  /** A csapat összes meccse a szezonban (a dobástérkép szezonreferenciájának szűrője). */
+  seasonGames: readonly TeamGame[];
   team: Team;
   opponent: Team | undefined;
 }
@@ -37,24 +41,57 @@ interface PostgameReportPanelProps {
 // Meccs utáni riport egy lezárt meccsre, a kiválasztott csapat nézőpontjából: a meccs
 // mutatóit a szezonátlaghoz (a meccs nélkül) és a liga mediánhoz méri a motor
 // (lib/postgame-report.ts). A szezon csapat- és játékos-összesítőit a Csapatstatisztika és
-// a Játékos-elemzés hookjai adják, ezért új lekérdezés nincs.
-export function PostgameReportPanel({ seasonId, seasonName, boxScore, game, team, opponent }: PostgameReportPanelProps) {
+// a Játékos-elemzés hookjai adják; a dobástérképhez a meccs és a csapat szezonbeli dobásai
+// töltődnek be (hooks/useShotData.ts). A riport csak mindegyik után készül el, így a szövege
+// nem változik a dobások megérkezésekor.
+export function PostgameReportPanel({ seasonId, seasonName, boxScore, game, seasonGames, team, opponent }: PostgameReportPanelProps) {
   const league = useLeagueTeamStats(seasonId);
   const leaguePlayers = useLeaguePlayerTotals(seasonId);
+  const gameShots = useGameShots(seasonId, game.id);
+  const seasonShots = useTeamSeasonShots(seasonId, team.id);
+
+  const stageGameIds = useMemo(
+    () => new Set(seasonGames.filter(item => item.status === 'final' && item.seasonType === game.seasonType).map(item => item.id)),
+    [seasonGames, game.seasonType],
+  );
 
   const outcome = useMemo(() => {
-    if (!league.data || !leaguePlayers.data) return null;
-    return buildGameReport(boxScore, league.data.stats, leaguePlayers.data, team.id, game.opponentTeamId, game.seasonType, {
-      teamName: team.name,
-      opponentName: opponent?.name ?? 'Ellenfél',
-    });
-  }, [boxScore, league.data, leaguePlayers.data, team.id, team.name, game.opponentTeamId, game.seasonType, opponent?.name]);
+    if (!league.data || !leaguePlayers.data || !gameShots.data || !seasonShots.data) return null;
+    return buildGameReport(
+      boxScore,
+      league.data.stats,
+      leaguePlayers.data,
+      team.id,
+      game.opponentTeamId,
+      game.seasonType,
+      { teamName: team.name, opponentName: opponent?.name ?? 'Ellenfél' },
+      { gameId: game.id, gameShots: gameShots.data, seasonShots: seasonShots.data, stageGameIds },
+    );
+  }, [
+    boxScore,
+    league.data,
+    leaguePlayers.data,
+    gameShots.data,
+    seasonShots.data,
+    stageGameIds,
+    team.id,
+    team.name,
+    game.id,
+    game.opponentTeamId,
+    game.seasonType,
+    opponent?.name,
+  ]);
+
+  const playerNames = useMemo(
+    () => new Map(boxScore.flatMap(side => side.players.map(player => [player.playerId, player.name] as const))),
+    [boxScore],
+  );
+
+  const loadError = [league, leaguePlayers, gameShots, seasonShots].find(resource => resource.error);
 
   let content: ReactNode;
-  if (league.error) {
-    content = <DataLoadError message={league.error} onRetry={league.reload} />;
-  } else if (leaguePlayers.error) {
-    content = <DataLoadError message={leaguePlayers.error} onRetry={leaguePlayers.reload} />;
+  if (loadError?.error) {
+    content = <DataLoadError message={loadError.error} onRetry={loadError.reload} />;
   } else if (!outcome) {
     content = <div className="skeleton-shimmer h-72" aria-busy="true" aria-label="Meccs utáni riport betöltése" />;
   } else if (outcome.status === 'no-team-stats') {
@@ -88,6 +125,20 @@ export function PostgameReportPanel({ seasonId, seasonName, boxScore, game, team
           <h3 className="mb-3 text-lg">Kulcsmutatók</h3>
           <PostgameKeyStats report={report} />
         </section>
+        {report.shotMap && gameShots.data && (
+          <section className="animate-fade-slide-up">
+            <h3 className="mb-3 text-lg">Dobástérkép és zónák (meccs vs szezon)</h3>
+            <PostgameShotMapBlocks
+              shotMap={report.shotMap}
+              gameShots={gameShots.data}
+              teamId={team.id}
+              opponentTeamId={game.opponentTeamId}
+              teamLabel={team.abbreviation}
+              opponentLabel={opponent?.abbreviation ?? 'Ellenfél'}
+              playerNames={playerNames}
+            />
+          </section>
+        )}
         <PostgameFactors report={report} />
         <section className="animate-fade-slide-up">
           <h3 className="mb-3 text-lg">Játékosok</h3>
@@ -120,7 +171,7 @@ export function PostgameReportPanel({ seasonId, seasonName, boxScore, game, team
         </div>
         <p className="mt-1 text-sm text-secondary">
           A meccs mutatói a(z) {team.name} szezonátlagához (a meccs nélkül, kis mintánál a liga mediánhoz) és a liga
-          mediánhoz mérve. A birtoklásszám a két csapaté közös átlaga, a hatás-pontszám a VAL/36, a TS% és a használat
+          mediánhoz mérve; a dobászónák a szakasz többi meccséhez. A birtoklásszám a két csapaté közös átlaga, a hatás-pontszám a VAL/36, a TS% és a használat
           súlyozott keveréke; a szöveges megállapítások szabály-alapúak.
         </p>
       </div>

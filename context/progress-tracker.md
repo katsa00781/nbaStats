@@ -78,6 +78,8 @@
 
 - **Vercel deploy (2026-10-26):** `vercel.json` (T27), a `katsa00781s-projects/nbastats` projekt a GitHub repóhoz kötve (a `master` push production deployt indít), env: csak a két `NEXT_PUBLIC_SUPABASE_*` (production + preview). Éles: https://nbastats-psi.vercel.app (build Ready, HTTP 200, env a bundle-ben ellenőrizve). Lásd `BACKLOG.md`, T35.
 
+- **Meccs utáni riport – dobástérkép és zónák kész (2026-11-12):** a terv (ASEStats-szintű postgame + hosszú távú játékostrend) 1. egysége. `lib/shot-data.ts` + `hooks/useShotData.ts` (a meccs és a csapat szezonbeli dobásai), a motor dobástérkép-része a tárolt NBA-zónákra (`lib/postgame-report.ts`, `lib/player-postgame.ts`), `PostgameShotChart` / `PostgameZoneHeatmapChart` / `PostgameShotMapBlocks` a riportban a Kulcsmutatók után, MD-szakasz. Séma-változás nincs. Ellenőrizve: valós DB (Lakers 92 meccs: dobásszám = FGA, összevetés mindenhol, nincs `NaN`; előtte / utána diff), képernyőkép (ideiglenes fixture-oldal), `tsc`, `eslint`, `next build --webpack`. **Bejelentkezve, böngészőben nem futott** (lásd Kézi teendők 25.). Lásd `BACKLOG.md`, T36.
+
 ## Kézi teendők (felhasználó)
 
 1. ~~A 001 futtatása és az `nba` séma kitétele a Data API-ra~~: kész (2026-09-30). Az Exposed schemas a Project Settings → Data API oldalon van.
@@ -122,6 +124,7 @@
 22. **Az Áttekintés kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Analitika → Áttekintés* (ez az első oldal). Várt: 2025/2026 + Lakers mellett négy kártya (Mérleg 53–29, Kiemelés 4. / GB 11, Forma 7-3 / GY3, NetRtg +1.7 14. / 30); „Következő mérkőzés”: nincs kiírt meccs (lezárt szezon); „Utolsó mérkőzések”: 5 sor; „Legjobb játékosok”: legfelül Luka Doncic; Liga-pillanatkép: Keleti és Nyugati top 5, a Lakers sora kiemelve; 2026/2027-re váltva a következő meccs és a Scouting gomb látszik, a kártyák nélkül; képernyőképen is átnézni (T32); a konzol hibamentes.
 
 23. **Az éles deploy kipróbálása:** https://nbastats-psi.vercel.app; a bejelentkezés működik (2026-10-26, a közös Auth-fiókkal). Hátravan: az Áttekintés betölt, a konzol hibamentes; utána a 8–22. pont próbái élesben is elvégezhetők.
+25. **A dobástérkép kipróbálása böngészőben:** `npm run dev`, bejelentkezés → *Liga → Mérkőzések* → Alapszakasz → 2025. 11. 05. (San Antonio) „Box score”. Várt: a Kulcsmutatók alatt „Dobástérkép és zónák (meccs vs szezon)”; kártyák Gyűrű 22.9% (FG% 63.2% · −1.9 pp), Középtáv 33.7%, Dobáshely-mix index 31.3 (szezon 51.6, lefelé nyíl); a pályán 83 dobás (37 zöld pont, 46 piros kereszt); a zónatáblában Gyűrű 12/19, Δ FG% −12.6; a Problémák között „Gyűrű körüli befejezés gyenge (12/19 …)”, a fókuszban „Befejezés a gyűrűnél”; Hőtérkép / Mindkettő réteg, FG% mód, játékos-választó (pl. Ayton) és SA oldal (szezonoszlopok nélkül) működik; a „Riport MD”-ben „## Dobástérkép és zónák”; képernyőképen is átnézni (T32); a konzol hibamentes. **Figyelem (T36):** a `next dev` a CLAUDE.md végére blokkot fűz – ne kerüljön commitba.
 24. **A `.env.local` vége:** a `vercel link` hozzáfűzte a `# Created by Vercel CLI` + `VERCEL_OIDC_TOKEN` blokkot; törölni kell (az app nem használja).
 
 ## Következő lépések (roadmap)
@@ -153,8 +156,13 @@
    - ~~`postgame-report` + `player-postgame` + Meccs utáni riport a Meccs-részletekben~~: kész (2026-10-14), éles böngészős próba a felhasználónál;
    - mind a hat elemző motor portolva.
 4. **AI riportok** (a felhasználó döntése, 2026-10-14: nem kell; csak a Markdown export készült el): pregame, postgame, játékos és csapat. Kell hozzá a riport táblák migrációja (004) és a követett csapatra paraméterezett promptok.
-5. **NBA dobástérkép-geometria** és zóna heatmap.
-6. **Opcionális:** play-by-play (win probability, run-ok, clutch). Ehhez Supabase tier-döntés kell.
+5. ~~**NBA dobástérkép-geometria** és zóna heatmap~~: kész a Meccs utáni riportban (2026-11-12); a Scouting dobásprofilja még hátravan.
+5a. **Terv (2026-11-12): ASEStats-szintű postgame + hosszú távú játékostrend**, egységenként (részletek: `BACKLOG.md`):
+   - ~~1. dobástérkép és zónák a Meccs utáni riportban~~: kész (2026-11-12);
+   - 2. játékos-trend: (2a) szezonon belüli forma – a stabilitás-küszöb döntés kell; (2b) szezonok közti összevetés;
+   - 3. play-by-play kivonat (import-kori, döntés 2026-11-12): (3a) migráció 005 + import + visszatöltés a nyers JSON-ból; (3b) negyedek, momentum, pontforrások, clutch; (3c) ötösök, rotáció;
+   - 4. postgame játékos-kiegészítések (Usage vs TS% buborék, utolsó N meccs trend).
+6. **Opcionális:** play-by-play (win probability, run-ok, clutch). ~~Ehhez Supabase tier-döntés kell~~ → a terv 3. egysége tömör kivonatot tárol (kb. 20–30 MB két szezonra, mérés a 3a-ban), nem a teljes play-by-play-t.
 
 ## Eldöntött kérdések (2026-09-29)
 
@@ -221,7 +229,10 @@
   - **változatlan ASEStats-küszöbök, NBA-kalibráció nélkül:** a per-meccs VAL-küszöbök a játékos-hatásban (pozitív: VAL ≥ 10; negatív: VAL ≤ 5; kiugró: VAL ≥ 18; gyenge meccs: VAL ≤ 3), a VAL/36-os küszöbök (18, 16, 11, 45-ös normalizálás), a USG% sávok (15% / 25%), a meccs-párharc küszöbei (eFG 5 pp, TO 4 pp, OREB 10 pp, FT 7 pp) és a védekezési sávok (DRtg ±4, eFG ±2,5 pp, TO ±3 pp). A percküszöbök 48 percre skálázva (×1,2);
   - a poszt a Játékos-elemzés statisztikai illesztéséből jön (a 2026-10-24-i finomítás óta a PG-pool 71 fő; Dončić, Reaves PG); a szerepkörök (`roles`) nincsenek feltöltve (a motor a játékos-riportban nem használja);
   - X-faktor visszacsatolás nincs (a Scouting riportja nincs mentve); a „Reflexió” szakasz ezért üres;
-  - nincs dobástérkép, lineup, clutch, pontforrás, negyedek (nincs linescore); a festékre nem hivatkozik a szöveg, csak a box score 2P-arányára;
+  - **dobástérkép (2026-11-12):** a zóna a tárolt besorolás (gyűrű ≤ 4 láb, „festék” 4–8 láb – nem a festék-téglalap –, középtáv, saroktripla az alapvonaltól 14 lábig, íven túli tripla). A szezonreferencia a szakasz többi lezárt meccse, csak értelmezhető szezonátlag mellett (kis mintánál / liga-referenciánál nincs zóna-összevetés, mert a ligának nincs zóna-benchmarkja). Az ellenfél oldalán csak a meccs zónái látszanak (az ellenfél szezonbeli dobásai nincsenek betöltve). **Változatlan ASEStats-küszöbök, NBA-kalibráció nélkül:** festékfókusz / festék-visszaesés ±6 pp, gyűrű-befejezés −10 pp legalább 10 kísérletnél (cél legfeljebb +12 pp), gyűrűnyomás +6 pp arány és +4 pp FG%, saroktripla +3 / +3, középtáv +6 pp és index −4, tripla-volumen +6 / −5, index ±5; a dobáshely-mix index súlyai (gyűrű 1,25, festék 0,8, saroktripla 1,2, íven túli 0,65, középtáv −0,9); játékosnál 4 dobástól: belső ≥ 45% és ≥ 58% FG, saroktripla ≥ 2 és ≥ 38%, középtáv ≥ 45% és ≤ 38%, tripla ≥ 50% és ≤ 30%. A Lakers-szezonon a meccsek kb. 30%-ában hoz új sort. Ha zavaró, a kalibráció szakmai döntés;
+  - a dobástérkép-lefedettség: ±3 dobás eltérés a box score FGA-jától az ESPN-adat sajátja (jelzés nélkül, a lefedettség-sorban látszik), fölötte adatminőségi jelzés, 10% fölött nincsenek zóna-szabályok (a 2025/26-os Lakers és Bulls meccseken eltérés nincs);
+  - a szezonbeli dobások csapatváltáskor és minden megnyitáskor újra lekérdeződnek (kb. 7600 sor, 8 lap, kb. 1–4 mp), gyorsítótár nincs; a riport ezek nélkül nem jelenik meg;
+  - nincs lineup, clutch, pontforrás, negyedek (nincs linescore) – a terv 3. egysége;
   - a szöveges megállapítások az ASEStats sablonjai (néhol angol szakszó: „short roll”, „skip-pass”, „wedge set”);
   - az MVP / kiugró / gyenge listák két külön szabályból jönnek (a meccs-szintű kiemelés és az osztály), ezért egy játékos szerepelhet „Pozitív hatás”-ként és alacsony osztállyal is (alacsony használat + jó VAL/36, de kis impact-pontszám); az egyeztetés (`reconcilePlayerImpact`) csak a vezető osztályokat szűri;
   - a szezon- és játékos-összesítő minden megnyitáskor újra lekérdeződik (nincs gyorsítótár).

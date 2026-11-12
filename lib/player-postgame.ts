@@ -8,7 +8,9 @@
 //    alappillér, MVP és szerepjátékos minimum);
 //  - az Impact score osztályküszöbei NBA-adaton újrakalibrálva (lásd `ENGINE_MIN_SCORE`);
 //    a „gyenge meccs” kiemelésbe csak rotációs percet kapó játékos kerül;
-//  - a dobástérkép-alapú jelzések (`appendShotMapSignals`) kimaradtak: nincs NBA-geometria.
+//  - a dobástérkép-alapú jelzések (`appendShotMapSignals`) a tárolt NBA-zónákból jönnek
+//    (lib/espn/map-shots.ts): a „gyűrű” itt a 0–8 láb (gyűrű + festék zóna); a küszöbök az
+//    ASEStats értékei, NBA-kalibráció nélkül.
 
 /** A 40 perces FIBA-meccs → 48 perces NBA-meccs percskálája. */
 const MINUTES_SCALE = 48 / 40;
@@ -89,6 +91,23 @@ export type PlayerPostGameReport = {
     struggling: PlayerPostGameBreakdown[];
   };
 };
+
+/** Egy játékos dobásai zónánként egy meccsen (a postgame motor építi a dobás-eseményekből). */
+export type PlayerShotMapStats = {
+  attempts: number;
+  made: number;
+  /** Gyűrű + festék zóna (0–8 láb). */
+  rimAttempts: number;
+  rimMade: number;
+  midAttempts: number;
+  midMade: number;
+  threeAttempts: number;
+  threeMade: number;
+  corner3Attempts: number;
+  corner3Made: number;
+};
+
+export type PlayerShotMapContext = Record<string, PlayerShotMapStats>;
 
 const round = (value: number, digits = 1) => {
   const factor = Math.pow(10, digits);
@@ -307,6 +326,42 @@ const buildFocus = (issues: string[]) => {
   return Array.from(new Set(mapped));
 };
 
+/** Legalább ennyi dobás kell a játékos dobástérkép-jelzéseihez. */
+const SHOT_MAP_MIN_ATTEMPTS = 4;
+
+const appendShotMapSignals = (
+  strengths: string[],
+  issues: string[],
+  focus: string[],
+  shotMap: PlayerShotMapStats | undefined
+) => {
+  if (!shotMap || shotMap.attempts < SHOT_MAP_MIN_ATTEMPTS) return;
+
+  const rimRate = shotMap.rimAttempts / shotMap.attempts;
+  const midRate = shotMap.midAttempts / shotMap.attempts;
+  const threeRate = shotMap.threeAttempts / shotMap.attempts;
+  const pct = (made: number, attempts: number) => (attempts > 0 ? (made / attempts) * 100 : null);
+  const rimPct = pct(shotMap.rimMade, shotMap.rimAttempts);
+  const midPct = pct(shotMap.midMade, shotMap.midAttempts);
+  const threePct = pct(shotMap.threeMade, shotMap.threeAttempts);
+  const corner3Pct = pct(shotMap.corner3Made, shotMap.corner3Attempts);
+
+  if (rimRate >= 0.45 && rimPct !== null && rimPct >= 58) {
+    strengths.push('Dobástérkép szerint gyűrűtámadásból magas hatékonyság');
+  }
+  if (shotMap.corner3Attempts >= 2 && corner3Pct !== null && corner3Pct >= 38) {
+    strengths.push('Saroktriplákból stabil hatékonyság');
+  }
+  if (midRate >= 0.45 && shotMap.midAttempts >= 4 && midPct !== null && midPct <= 38) {
+    issues.push('Középtávoli dobásszelekció túl magas, alacsony hatékonysággal');
+    focus.push('Kevesebb korai középtávoli, több festék- vagy kick-out alapú döntés.');
+  }
+  if (threeRate >= 0.5 && shotMap.threeAttempts >= 5 && threePct !== null && threePct <= 30) {
+    issues.push('Magas periméter volumen, de gyenge tripla-hatékonyság');
+    focus.push('Periméter minőségjavítás: ritmushelyzetek és labda nélküli előny teremtése.');
+  }
+};
+
 type DerivedPlayerContext = {
   isStarter: boolean;
   minutesBucket: PlayerMinutesBucket;
@@ -395,7 +450,10 @@ const buildSummaryLine = (player: PlayerGameStat, context: DerivedPlayerContext,
   return `${parts.join(' • ')} | TS ${tsDisplay} • Usage ${(usageShare * 100).toFixed(1)}%`;
 };
 
-export const buildPlayerPostGameReport = (players: PlayerGameStat[]): PlayerPostGameReport => {
+export const buildPlayerPostGameReport = (
+  players: PlayerGameStat[],
+  shotMapContext?: PlayerShotMapContext
+): PlayerPostGameReport => {
   const hasExplicitStarterInfo = players.some(player => typeof player.isStarter === 'boolean');
 
   const starterIds = new Set(
@@ -466,6 +524,7 @@ export const buildPlayerPostGameReport = (players: PlayerGameStat[]): PlayerPost
     const strengths = buildStrengths(player, context);
     const issues = buildIssues(player, context);
     const focus = buildFocus(issues);
+    appendShotMapSignals(strengths, issues, focus, shotMapContext?.[player.playerId]);
     const impactTags = buildImpactTags(player, context);
     const impactClass = classifyImpact(impactScore, context, player.minutes, maxScoreInGame);
     const impactLabel = mapContextualImpactLabel(impactClass, context, impactScore, player.minutes);

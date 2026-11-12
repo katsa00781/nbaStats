@@ -1,14 +1,14 @@
 // Markdown exportok külső elemzéshez (pl. egy LLM-be másolható riport). Tiszta
 // függvények: a nézetek már betöltött adatából szöveget állítanak elő, lekérdezés és
 // DOM nélkül. Az ASEStats `export-to-md` szakaszszerkezetét követik, de az NBA
-// adattípusaira írva: a Kosarstat-, negyed-, lineup- és dobástérkép-szakaszok nincsenek
-// (nincs hozzájuk adat), a pontforrás és a rotáció sem.
+// adattípusaira írva: a Kosarstat-, negyed- és lineup-szakaszok nincsenek (nincs hozzájuk
+// adat), a pontforrás és a rotáció sem. A dobástérkép zónatáblaként szerepel (pályarajz nélkül).
 
 import type { PlayerAnalysisOutcome } from '@/lib/adapters/player-analysis-adapter';
 import type { BoxScorePlayer, BoxScoreTeam, BoxScoreTeamTotals } from '@/lib/box-score-data';
 import type { PlayerGameLogEntry } from '@/lib/player-game-log-data';
 import type { PlayerSeasonStats } from '@/lib/player-data';
-import type { PostGameReport, PostgameBoxScoreLine } from '@/lib/postgame-report';
+import type { PostGameReport, PostgameBoxScoreLine, TeamShotMapSummary } from '@/lib/postgame-report';
 import type { TeamAnalysis } from '@/lib/team-analysis';
 import type { TeamMetricRow } from '@/lib/team-stats-metrics';
 import { formatGameDate } from '@/lib/format-date';
@@ -25,7 +25,13 @@ import {
   USG_HIGH_MIN,
   USG_LOW_MAX,
 } from '@/lib/player-postgame';
-import { buildPostgameAutoFocus, composePostgameSummary, describePostgameBaselineNote } from '@/lib/postgame-report';
+import {
+  SHOT_ZONE_KEYS,
+  SHOT_ZONE_LABELS,
+  buildPostgameAutoFocus,
+  composePostgameSummary,
+  describePostgameBaselineNote,
+} from '@/lib/postgame-report';
 import { effectiveFgPct, freeThrowRate, offensiveReboundPct, trueShootingPct, turnoverPct } from '@/lib/stat-formulas';
 import { finalizeDefenseStyle, finalizeOffenseStyle } from '@/lib/style-vocabulary';
 
@@ -65,6 +71,62 @@ export interface PostgameMdMeta {
 
 /** Kulcsmutatók, ahol az alacsonyabb érték a jobb – a delta irányjelöléséhez. */
 const LOWER_IS_BETTER_STATS = new Set(['turnover_rate']);
+
+const zoneShare = (summary: TeamShotMapSummary, zone: (typeof SHOT_ZONE_KEYS)[number]) =>
+  summary.attempts > 0 ? (summary.zones[zone].attempts / summary.attempts) * 100 : 0;
+
+/** „Dobástérkép és zónák”: a csapat zónái a szezonreferenciához mérve, az ellenfél zónái, lefedettség. */
+function shotMapSection(report: PostGameReport): string[] {
+  const shotMap = report.shotMap;
+  if (!shotMap?.team) return [];
+  const own = shotMap.team;
+  const season = shotMap.season;
+  const lines: string[] = [``, `## Dobástérkép és zónák`, ``, `### ${report.teamName}`, ``];
+  const headers = season
+    ? ['Zóna', 'Dobott', 'Arány', 'FG%', 'Szezon arány', 'Szezon FG%', 'Arány Δ', 'FG% Δ']
+    : ['Zóna', 'Dobott', 'Arány', 'FG%'];
+  lines.push(
+    ...table(
+      headers,
+      SHOT_ZONE_KEYS.map(zone => {
+        const row = own.zones[zone];
+        const base = [SHOT_ZONE_LABELS[zone], made(row.made, row.attempts), pct1(zoneShare(own, zone)), pct1(row.pct)];
+        if (!season) return base;
+        const seasonRow = season.zones[zone];
+        const rateDelta = signed1(zoneShare(own, zone) - zoneShare(season, zone), ' pp');
+        const fgDelta = row.pct !== null && seasonRow.pct !== null ? signed1(row.pct - seasonRow.pct, ' pp') : EMPTY;
+        return [...base, pct1(zoneShare(season, zone)), pct1(seasonRow.pct), rateDelta, fgDelta];
+      }),
+    ),
+    ``,
+    `**Dobáshely-mix index:** ${own.shotQualityIndex.toFixed(1)}${season ? ` (szezon ${season.shotQualityIndex.toFixed(1)}, ${signed1(own.shotQualityIndex - season.shotQualityIndex)})` : ''}`,
+  );
+  const opponent = shotMap.opponent;
+  if (opponent) {
+    lines.push(
+      ``,
+      `### ${report.opponentName}`,
+      ``,
+      ...table(
+        ['Zóna', 'Dobott', 'Arány', 'FG%'],
+        SHOT_ZONE_KEYS.map(zone => [
+          SHOT_ZONE_LABELS[zone],
+          made(opponent.zones[zone].made, opponent.zones[zone].attempts),
+          pct1(zoneShare(opponent, zone)),
+          pct1(opponent.zones[zone].pct),
+        ]),
+      ),
+      ``,
+      `**Dobáshely-mix index:** ${opponent.shotQualityIndex.toFixed(1)}`,
+    );
+  }
+  const coverage = shotMap.coverage;
+  lines.push(
+    ``,
+    `*Zónák az ESPN dobáskoordinátáiból: gyűrű ≤ 4 láb, festék 4–8 láb, középtáv a 8 láb feletti kettes, saroktripla az alapvonaltól 14 lábig. ${season ? 'Szezon = a szakasz többi lezárt meccse (a vizsgált meccs nélkül).' : 'Szezonreferencia nincs (kis minta vagy liga-referencia).'} Dobáshely-mix index = ASEStats-súlyozás (gyűrű és saroktripla +, középtáv −).${coverage ? ` Lefedettség: ${coverage.shotMapAttempts} dobás a box score ${coverage.boxAttempts} mezőnykísérletéből.` : ''}*`,
+  );
+  return lines;
+}
 
 export function postgameReportToMd(report: PostGameReport, meta: PostgameMdMeta): string {
   const result = report.result === 'win' ? 'Győzelem' : 'Vereség';
@@ -201,9 +263,11 @@ export function postgameReportToMd(report: PostGameReport, meta: PostgameMdMeta)
           `| ${item.label} | ${item.game.toFixed(1)}% | ${comparable ? `${item.season.toFixed(1)}%` : EMPTY} | ${comparable ? signed1(item.game - item.season, ' pp') : EMPTY} |`,
       ),
       ``,
-      `*2P / 3P arány = a mezőnykísérletek megoszlása a box score-ból (a 2P a középtávot is tartalmazza, nem azonos a festékkel); FTM arány = értékesített büntető / FGA. Dobástérkép nincs az exportban.*`,
+      `*2P / 3P arány = a mezőnykísérletek megoszlása a box score-ból (a 2P a középtávot is tartalmazza, nem azonos a festékkel); FTM arány = értékesített büntető / FGA.${report.shotMap ? ' A zónák a „Dobástérkép és zónák” szakaszban.' : ' Dobástérkép nincs az exportban.'}*`,
     );
   }
+
+  lines.push(...shotMapSection(report));
 
   if (report.decisiveFactors.offense.length > 0 || report.decisiveFactors.defense.length > 0) {
     const toneMark = (tone: 'positive' | 'negative' | undefined) => (tone ? `${tone === 'positive' ? '(+)' : '(−)'} ` : '');

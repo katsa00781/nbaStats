@@ -66,6 +66,7 @@ export function GamesView({ selection }: GamesViewProps) {
         seasonId={season.id}
         seasonName={season.name}
         game={openedGame}
+        seasonGames={games.data}
         team={team}
         opponent={teamsById.get(openedGame.opponentTeamId)}
         onBack={() => setOpenedGameId(null)}

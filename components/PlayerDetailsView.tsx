@@ -29,6 +29,13 @@ const NO_REASON = 'indok nélkül';
 
 type TeamsById = ReadonlyMap<string, Team>;
 
+// A szakasz meccsei a kiválasztott csapat színeiben: a szezon közben igazolt
+// játékos más csapatnál játszott meccsei nem számítanak, ahogy a listán sem.
+const inTeamStage =
+  (teamId: string, seasonType: number) =>
+  (entry: { teamId: string; game: { seasonType: number } }): boolean =>
+    entry.teamId === teamId && entry.game.seasonType === seasonType;
+
 interface PlayerDetailsViewProps {
   seasonId: string;
   seasonName: string;
@@ -100,9 +107,7 @@ export function PlayerDetailsView({
                     stageLabel: seasonTypeLabel(row.seasonType),
                     teamName: team.name,
                     player: row,
-                    played: (log.data?.played ?? []).filter(
-                      entry => entry.teamId === team.id && entry.game.seasonType === row.seasonType,
-                    ),
+                    played: (log.data?.played ?? []).filter(inTeamStage(team.id, row.seasonType)),
                     opponentName: teamId => teamsById.get(teamId)?.name ?? 'Ismeretlen csapat',
                     analysis,
                   });
@@ -115,6 +120,11 @@ export function PlayerDetailsView({
               playerId={row.playerId}
               teamId={team.id}
               seasonType={row.seasonType}
+              trend={{
+                entries: log.data ? log.data.played.filter(inTeamStage(team.id, row.seasonType)) : null,
+                failed: Boolean(log.error),
+                teamsById,
+              }}
             />
             {log.error ? (
               <DataLoadError message={log.error} onRetry={log.reload} />
@@ -199,11 +209,8 @@ interface StageGameLogProps {
   teamsById: TeamsById;
 }
 
-// A szakasz meccsei a kiválasztott csapat színeiben: a szezon közben igazolt
-// játékos más csapatnál játszott meccsei nem számítanak, ahogy a listán sem.
 function StageGameLog({ log, seasonType, team, teamsById }: StageGameLogProps) {
-  const inStage = (entry: { teamId: string; game: { seasonType: number } }) =>
-    entry.teamId === team.id && entry.game.seasonType === seasonType;
+  const inStage = inTeamStage(team.id, seasonType);
   const entries = log.played.filter(inStage);
   const absences = log.didNotPlay.filter(inStage);
 

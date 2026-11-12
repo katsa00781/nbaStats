@@ -1,5 +1,6 @@
 'use client';
 
+import type { PlayerTrendInput } from '@/components/PlayerTrendPanel';
 import type { SeasonScopedResourceState } from '@/hooks/useSeasonScopedResource';
 import type { LeaguePlayerTotals } from '@/lib/league-player-data';
 import type { ReactNode } from 'react';
@@ -16,11 +17,13 @@ interface PlayerAnalysisPanelProps {
   playerId: string;
   teamId: string;
   seasonType: number;
+  /** A szakasz meccsei a haladó blokkok trendjéhez. */
+  trend: PlayerTrendInput;
 }
 
 // Játékos-elemzés egy szakaszra: a poszt szerinti liga-percentilisekből a motor
 // (lib/player-analysis.ts) szerepköröket, skill-pontokat és haladó blokkokat ad.
-export function PlayerAnalysisPanel({ league, playerId, teamId, seasonType }: PlayerAnalysisPanelProps) {
+export function PlayerAnalysisPanel({ league, playerId, teamId, seasonType, trend }: PlayerAnalysisPanelProps) {
   const outcome = useMemo(() => {
     if (!league.data) return null;
     const benchmarks = buildStageBenchmarks(league.data, seasonType);
@@ -54,7 +57,7 @@ export function PlayerAnalysisPanel({ league, playerId, teamId, seasonType }: Pl
     content = (
       <>
         <PlayerAnalysisSummary analysis={outcome.analysis} />
-        <PlayerAdvancedBlocks blocks={outcome.blocks} />
+        <PlayerAdvancedBlocks blocks={outcome.blocks} trend={trend} />
       </>
     );
   }
@@ -66,7 +69,8 @@ export function PlayerAnalysisPanel({ league, playerId, teamId, seasonType }: Pl
         <p className="mt-1 text-sm text-secondary">
           A liga azonos posztú játékosaihoz képest (legalább {ANALYSIS_REQUIREMENTS.minGames} meccs és{' '}
           {ANALYSIS_REQUIREMENTS.minMinutesPerGame} perc / meccs), 36 percre vetítve. A poszt az ESPN jelöléséből
-          és a statisztikai profilból jön; a használat a labdabirtoklás közelítése, nem USG%.
+          és a statisztikai profilból jön; a használat a labdabirtoklás közelítése, nem USG%. Egy blokk-kártyára
+          kattintva a mutatói meccsenként, gördülő átlaggal is látszanak.
         </p>
       </div>
       {content}

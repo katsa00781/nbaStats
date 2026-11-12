@@ -8,12 +8,12 @@ import type { GameShot } from '@/lib/shot-data';
 import type { ShotZone } from '@/lib/supabase';
 import { PostgameShotChart } from '@/components/PostgameShotChart';
 import { PostgameZoneHeatmapChart } from '@/components/PostgameZoneHeatmapChart';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { formatSigned } from '@/components/TeamStatsTable';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatCard } from '@/components/ui/stat-card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SHOT_ZONE_KEYS, SHOT_ZONE_LABELS } from '@/lib/postgame-report';
 import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -231,29 +231,6 @@ export function PostgameShotMapBlocks({
       </div>
 
       <CoverageNote shotMap={shotMap} side={side} />
-    </div>
-  );
-}
-
-interface SegmentedControlProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-}
-
-/** Kis kapcsoló-csoport a shadcn Tabs triggereivel (tartalom-panel nélkül). */
-function SegmentedControl({ label, value, onChange, options }: SegmentedControlProps) {
-  return (
-    <div>
-      <span className="uppercase-label mb-2 block">{label}</span>
-      <Tabs value={value} onValueChange={onChange}>
-        <TabsList aria-label={label}>
-          {options.map(option => (
-            <TabsTrigger key={option.value} value={option.value}>{option.label}</TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
     </div>
   );
 }

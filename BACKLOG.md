@@ -80,6 +80,8 @@ Szerkezet:
 - [x] Meccs utáni riport: **dobástérkép és zónák** (NBA-félpálya, pontok / hőtérkép, zóna-összevetés a szakasz többi meccséhez, zóna-alapú döntő tényezők / erősségek / problémák / fókusz, játékos-szintű dobásjelzések, MD-szakasz) – `lib/shot-data.ts`, `hooks/useShotData.ts`, `components/PostgameShotChart.tsx`, `PostgameShotMapBlocks.tsx`, `PostgameZoneHeatmapChart.tsx` – 2026-11-12
 - [ ] **A dobástérkép ellenőrzése böngészőben, bejelentkezve (felhasználó):** lásd a progress-tracker Kézi teendők 25. pontját
 - [ ] Meccs utáni riport: lineup, clutch, pontforrások, negyedek (play-by-play kivonat, terv 3. egység), X-faktor visszacsatolás (a Scouting riportjának mentése kell hozzá)
+- [x] **Terv 2a, első rész – a Játékos-elemzés blokk-kártyáinak trendje:** kattintásra a kártyák alatt meccsenkénti érték + gördülő átlag (5 / 10) + szakaszátlag, mutató-választóval – `lib/player-trend.ts`, `components/PlayerTrendPanel.tsx` – 2026-11-12
+- [ ] **A játékos-trend ellenőrzése böngészőben, bejelentkezve (felhasználó):** lásd a progress-tracker Kézi teendők 26. pontját
 - [ ] **Terv 2. egység – játékos hosszú távú trend:** (2a) szezonon belüli forma (utolsó 5 / 10 / 15 meccs vs szakasz, forma-jelvény, stabilitás, szerepkör-változás, meccsenkénti grafikonok gördülő átlaggal) – a stabilitás küszöbe **döntés kell** (az ASEStats abszolút VAL-szórása FIBA-skálájú); (2b) szezonok közti összevetés (2025/26 vs 2026/27, ESPN athlete ID)
 - [ ] **Terv 3. egység – play-by-play kivonat (döntés: import-kori kivonat, 2026-11-12):** (3a) migráció 005 + import + visszatöltés a nyers JSON-ból (sémaegyeztetés előtte); (3b) negyedek, momentum, pontforrások, clutch; (3c) ötösök, páros / hármas, rotáció
 - [ ] **Terv 4. egység – postgame játékos-kiegészítések:** Usage vs TS% buborék, „Játékos trend (utolsó N meccs)"
@@ -136,6 +138,15 @@ Szerkezet:
 ---
 
 ## 2. Fejlesztési történet
+
+### 2026-11-12 – Játékos-trend: a blokk-kártyák formája meccsenként ✓ (éles böngészős próba hátravan)
+
+- **Kérés (felhasználó):** a Játékos-elemzés kártyáira (Dobás, Védekezés stb.) kattintva látszódjon a mutatók meccsenkénti trendje, a formaváltozás.
+- **Döntések (felhasználó):** panel a kártyarács alatt (nem modal, így nem kell új csomag); meccs-érték + gördülő átlag + szakaszátlag; választható 5 / 10 meccses ablak.
+- **Adat:** a `fetchPlayerGameLog()` a DREB-et, az OREB-et és a közeli / középtávoli dobásokat is lekéri (ugyanaz a lekérdezés, séma-változás nincs). A trend a már betöltött naplóból számol (kiválasztott csapat + szakasz, mint a napló tábla).
+- **`lib/player-trend.ts` (új, tiszta):** `TREND_METRICS` blokkonként (Dobás: TS%, eFG%, 3P%, Közeli / Közép FG%, FT%, 3PA; Játéképítés: AST, TOV, AST/TO, Használat; Védekezés: STL, BLK, DREB, PF; Pontszerzés: PTS, TS%, Használat, MIN; Hatékonyság: VAL, TS%, eFG%), `buildTrendSeries()`: a meccs értéke, a gördülő átlag és a szakaszátlag egyaránt összegekből (T12), kísérlet nélkül `null` (T33); a gördülő átlag csak teljes ablakkal indul. A darabszámok meccsenkéntiek (a meccsenkénti per-36 kevés percnél túl zajos); a használat a Játékos-elemzés proxyja (FGA + 0,44·FTA + TOV), nem USG%. `polarity`: a TOV és a PF alacsonyabb értéke jobb, a perc / használat / 3PA semleges.
+- **UI:** `PlayerTrendPanel` (Recharts, első használat a projektben; a `chart-theme.ts` konstansaival, új token nélkül), a `PlayerAdvancedBlocks` kártyái kattinthatók (cím-gomb lefedő réteggel, `aria-expanded`), a `SegmentedControl` a `PostgameShotMapBlocks`-ból közös fájlba került (viselkedés változatlan).
+- **Ellenőrzés:** `tsc`, `eslint`, `npm run build` hibátlan. Valós DB (csak olvasás, scratchpad-szkript): Lakers 2025/26 mind a 34 játékos-szakasz sora – a napló meccsszáma és a PTS-átlag egyezik a view-val, Dončić TS% 61.6 = a Dobás kártya értéke; 1496 sorozat (mutató × ablak), nincs `NaN` / végtelen. Képernyőkép (headless Chrome, ideiglenes fixture-oldal Dončić adataival, 1280 és 500 px, törölve): javítva a százalékos tengely (0-tól indulva összenyomta a formát) és a mobil összegző sor. **Bejelentkezve, böngészőben nem néztem.**
 
 ### 2026-11-12 – `agentRules: false` és a helyi build-hiba ✓
 

@@ -473,7 +473,8 @@ Easingek: `--ease-snap: cubic-bezier(.2,.8,.2,1)` · `--ease-glide: cubic-bezier
 Két könyvtár él egymás mellett – egyik sem váltja ki a másikat:
 
 - **Chart.js + react-chartjs-2** – shot chart és komplex canvas vizualizáció (`PostgameShotScatterChart`, `PostgameZoneHeatmapChart`)
-- **Recharts** – trendek és összehasonlítók (`PlayerTrends`, `SeasonComparison`, `GamePbpCharts`)
+- **Recharts** – trendek és összehasonlítók (`PlayerTrends`, `SeasonComparison`, `GamePbpCharts`). NBAStats: első használat a `PlayerTrendPanel` (Játékos-elemzés → blokk-kártya → forma meccsenként): cián pontok a meccs értékével (halvány összekötő vonallal), narancs gördülő átlag, szaggatott `secondary` szakaszátlag (`ReferenceLine`); a tooltip saját, Tailwind-tokenes komponens; a jelmagyarázat HTML (`bg-cyan` / `bg-orange` / `border-secondary`). Százaléknál a tengely a mért tartomány, darabszámnál 0-tól indul.
+- **Kattintható kártya** (Játékos-elemzés blokkjai): a címben lévő `<button>` `after:absolute after:inset-0` rétege fedi le a kártyát (`relative`), `aria-expanded` + `aria-controls`; kijelölve `ring-1 ring-cyan`, billentyűzetfókusznál `has-[:focus-visible]:ring-2 ring-cyan` (a `[data-slot="card"]` réteg nélküli border-szabálya miatt a `border-*` utility nem hatna). Kapcsolókhoz a közös `SegmentedControl` (shadcn Tabs triggerek, tartalom nélkül).
 
 Minden chart komponens `'use client'` – soha nem Server Component.
 

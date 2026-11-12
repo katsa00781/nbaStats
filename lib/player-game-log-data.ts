@@ -11,7 +11,7 @@ import type { TableRow } from '@/lib/supabase';
 import { GAME_COLUMNS, toTeamGame } from '@/lib/game-data';
 import { simpleValuation } from '@/lib/stat-formulas';
 
-const LOG_COLUMNS = `team_id, starter, did_not_play, dnp_reason, minutes, points, fgm, fga, fg3m, fg3a, ftm, fta, reb, ast, stl, blk, tov, pf, plus_minus, games(${GAME_COLUMNS})`;
+const LOG_COLUMNS = `team_id, starter, did_not_play, dnp_reason, minutes, points, fgm, fga, fg3m, fg3a, ftm, fta, close_made, close_attempted, mid_made, mid_attempted, oreb, dreb, reb, ast, stl, blk, tov, pf, plus_minus, games(${GAME_COLUMNS})`;
 type PlayerGameRow = Pick<
   TableRow<'player_game_stats'>,
   | 'team_id'
@@ -26,6 +26,12 @@ type PlayerGameRow = Pick<
   | 'fg3a'
   | 'ftm'
   | 'fta'
+  | 'close_made'
+  | 'close_attempted'
+  | 'mid_made'
+  | 'mid_attempted'
+  | 'oreb'
+  | 'dreb'
   | 'reb'
   | 'ast'
   | 'stl'
@@ -53,6 +59,13 @@ export interface PlayerGameLogEntry {
   threeAttempted: number;
   ftMade: number;
   ftAttempted: number;
+  /** Közeli (≤ 8 láb) és középtávoli dobások a dobás-eseményekből; `null`, ha a meccsnek nincs dobásadata. */
+  closeMade: number | null;
+  closeAttempted: number | null;
+  midMade: number | null;
+  midAttempted: number | null;
+  offRebounds: number;
+  defRebounds: number;
   rebounds: number;
   assists: number;
   steals: number;
@@ -92,6 +105,12 @@ function toLogEntry(row: PlayerGameRow, game: TeamGame): PlayerGameLogEntry {
     threeAttempted: row.fg3a,
     ftMade: row.ftm,
     ftAttempted: row.fta,
+    closeMade: row.close_made,
+    closeAttempted: row.close_attempted,
+    midMade: row.mid_made,
+    midAttempted: row.mid_attempted,
+    offRebounds: row.oreb,
+    defRebounds: row.dreb,
     rebounds: row.reb,
     assists: row.ast,
     steals: row.stl,

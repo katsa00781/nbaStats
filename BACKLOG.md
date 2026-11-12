@@ -137,6 +137,13 @@ Szerkezet:
 
 ## 2. Fejlesztési történet
 
+### 2026-11-12 – `agentRules: false` és a helyi build-hiba ✓
+
+- **`next.config.ts`:** `agentRules: false` (döntés: felhasználó) – a `next dev` (16.3.7) nem fűz „nextjs-agent-rules” blokkot a CLAUDE.md-hez, AGENTS.md sem keletkezik (T36).
+- **Build-hiba:** a helyi Turbopack-build a `next/font/google` feloldásán bukott el; az ok elavult helyi `.next` állapot volt, nem a kód és nem a Next-verzió (a lockfile 16.3.7-et rögzít, a Vercel-build ugyanezzel sikeres volt). `rm -rf .next` után az `npm run build` kétszer egymás után (hideg és meleg gyorsítótárral) hibátlan, a `next dev` (Turbopack) HTTP 200, és a CLAUDE.md érintetlen. Ha újra előjön: először a `.next` törlése.
+- **Megfigyelés:** a Next a `~/package-lock.json` (a home mappában, a repón kívül) miatt `turbopack.root` beállítást javasol; csak figyelmeztetés, a build nem függ tőle.
+- **Ellenőrzés:** `tsc`, `eslint`, `npm run build` (Turbopack) hibátlan.
+
 ### 2026-11-12 – Meccs utáni riport: dobástérkép és zónák ✓ (éles böngészős próba hátravan)
 
 - **Döntések (felhasználó):** ASEStats-szintű postgame és játékostrend a terv szerint, egységenként; a PBP-részek import-kori kivonatból; AI-szöveg nem kell (marad az MD export); trend szezonon belül + szezonok közt; sorrend: dobástérkép → trend → PBP → postgame játékos-kiegészítések.
@@ -145,7 +152,7 @@ Szerkezet:
 - **UI:** `PostgameShotChart` (Chart.js, NBA-félpálya lábban, kosár felül, 35 láb fölött clamp – T11; pontok / hőtérkép / mindkettő, volumen / FG%, kontraszt, játékos-választó, saját / ellenfél), `PostgameZoneHeatmapChart` (zóna-delta), `PostgameShotMapBlocks` (6 kártya, zónatábla, lefedettség). A pályaszínek a paletta áttetsző változatai (`CHART_COURT`, `heatRampRgb` a `chart-theme.ts`-ben), új token nincs. A riport csak a dobások betöltése után készül (a szövege nem ugrik). A `GamesView` a szezon meccseit adja le (szakasz-szűrő a referenciához).
 - **MD:** „Dobástérkép és zónák” szakasz (saját zónák a szezonhoz, ellenfél zónái, index, lefedettség).
 - **Ellenőrzés:** `tsc`, `eslint`, `next build --webpack` hibátlan. Valós DB (csak olvasás, scratchpad-szkript): Lakers 2025/26 mind a 92 meccs – dobásszám = FGA, zónaösszeg = dobásszám, összevetés mindenhol, nincs `NaN` / `undefined`; előtte / utána (T34): új erősség 27, probléma 25, fókusz 20, döntő tényező 16 meccsen (pl. 2025-11-05 SAS: „Gyűrű körüli befejezés gyenge (12/19, 63.2% vs 75.8%)”, index 31.3 vs 51.6); Bulls 82 meccs: lefedettségi jelzés nincs. Képernyőkép (headless Chrome, ideiglenes fixture-oldal, törölve): pálya, kártyák, tábla, hőtérkép rendben; két hiba javítva (a zóna-delta tengelyfeliratai, a tábla szélessége). **Bejelentkezve, böngészőben nem néztem.**
-- **Környezet:** a helyi `npm run build` (Turbopack, Next 16.3.7) a Google Fonts betöltésén elbukik – tiszta `master`-en is, nem ennek a változásnak a hibája; a `next dev` a CLAUDE.md végére „nextjs-agent-rules” blokkot fűz (T36).
+- **Környezet:** a helyi `npm run build` (Turbopack, Next 16.3.7) a Google Fonts betöltésén elbukott („next/font/google queries have exactly one entry”) – tiszta `master`-en is. Ok: elavult helyi `.next` állapot; `rm -rf .next` után a Turbopack-build és -dev hibátlan, meleg gyorsítótárral is (a Vercel ugyanezzel a verzióval 2026-10-26-án sikeresen buildelt, tiszta checkoutból). A `next dev` CLAUDE.md-blokkja: `agentRules: false` (T36).
 
 ### 2026-10-26 – Vercel deploy ✓
 
@@ -617,7 +624,7 @@ Forrás: az ASEStats `BACKLOG.md` hotfixei (H1–H12), javítási sprintje (2026
 | T33 | *(NBAStats, 2026-10-24)* A hiányzó liga-benchmark `?? 0`-val 0-ként átment a `Number.isFinite` őrön: „Liga medián 0,0%”, „vs liga +67 pp”. A `baseline.kind === 'season'` kis mintánál, referencia nélkül is igaz volt, így az 1 másik meccs „szezonátlagként” szerepelt | Hiányzó értéket nem pótolunk 0-val: `null` / `undefined`, és az oszlop elmarad. A referencia-ágat a `comparable` kapuzza, nem a `kind`. A tartalék referencia mindig jelölt becslés | ✓ `getLeagueMedian`, `hasSeasonReference` |
 | T34 | *(NBAStats, 2026-10-24)* Az új, alacsonyabb küszöbű „enyhe” tényező szintetikus teszten jónak látszott, de a valós adaton kiszorította vagy ellentmondta a referencia-alapú tényezőt (FTM rate előjele megfordult) | Új küszöb / szabály előtt-után diff valós meccseken; az enyhe jelzés csak hézagot tölt ki | ✓ |
 | T35 | *(NBAStats, 2026-10-26)* A `vercel link` kérdés nélkül hozzáfűzött egy `VERCEL_OIDC_TOKEN` sort a `.env.local`-hoz; a `NEXT_PUBLIC_*` + kulcs-szerű érték `vercel env add`-dal `--type` nélkül nem mentődik (action_required) | Link után a `.env.local` végét ellenőrizni kell (a CLI-blokkot a felhasználó törli). Böngészőbe szánt kulcs `--type config`, szerveroldali titok `--type secret` | Szabály |
-| T36 | *(NBAStats, 2026-11-12)* A `next dev` (16.3.7) kérdés nélkül egy „nextjs-agent-rules” blokkot fűzött a `CLAUDE.md` végére, és minden indításkor újra hozzáadja. A headless Chrome legalább 500 px széles nézetablakkal renderel: a 390 px-es képernyőkép levágott, nem túlcsordult | `next dev` után a `git diff CLAUDE.md`-t ellenőrizni kell, a blokk nem kerül commitba (tartós megoldás: `agentRules: false` a `next.config`-ban – **döntés kell**). Mobil túlcsordulást `scrollWidth`-tel mérünk, nem a kivágott képről | Szabály |
+| T36 | *(NBAStats, 2026-11-12)* A `next dev` (16.3.7) kérdés nélkül egy „nextjs-agent-rules” blokkot fűzött a `CLAUDE.md` végére, és minden indításkor újra hozzáadja. A headless Chrome legalább 500 px széles nézetablakkal renderel: a 390 px-es képernyőkép levágott, nem túlcsordult | `agentRules: false` a `next.config.ts`-ben (döntés: felhasználó, 2026-11-12) – a `next dev` nem ír a CLAUDE.md-be. Mobil túlcsordulást `scrollWidth`-tel mérünk, nem a kivágott képről | ✓ `next.config.ts` |
 
 ### Auth és infrastruktúra
 
